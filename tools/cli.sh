@@ -139,6 +139,16 @@ need_venv() {
         fail "$PYTHON not found — run make install"
         exit 1
     fi
+    sync_install
+}
+
+# The `bookflow` command and the dependencies are generated from pyproject.toml at
+# install time, so reinstall whenever it has changed since the last install.
+STAMP=$VENV/.installed
+sync_install() {
+    [[ -d $VENV && pyproject.toml -nt $STAMP ]] || return 0
+    step reinstall "$PYTHON" -m pip install -q -e . --group dev || exit 1
+    touch "$STAMP"
 }
 
 current_version() { sed -n 's/^__version__ = "\(.*\)"$/\1/p' "$VERSION_FILE"; }
@@ -173,7 +183,7 @@ ${B}Release${R}
   ${A}build${R}       Build the package into dist/
   ${A}clean${R}       Remove build files and caches
 
-${D}Run Bookflow: python src book.pdf [options]${R}
+${D}Run Bookflow: bookflow book.pdf [options]  (or python -m bookflow)${R}
 EOF
 }
 
@@ -183,6 +193,7 @@ cmd_install() {
     fi
     step pip "$PYTHON" -m pip install -q --upgrade pip || exit 1
     step dependencies "$PYTHON" -m pip install -q -e . --group dev || exit 1
+    touch "$STAMP"
     step "git hooks" "$VENV/bin/pre-commit" install || exit 1
 }
 

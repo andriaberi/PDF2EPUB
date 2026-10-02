@@ -31,7 +31,7 @@ Repository = "https://github.com/andriaberi/Bookflow"
 Issues = "https://github.com/andriaberi/Bookflow/issues"
 
 [project.scripts]
-bookflow = "bookflow.cli:main"
+bookflow = "bookflow.__main__:main"
 
 [dependency-groups]
 dev = [
@@ -45,7 +45,6 @@ dev = [
 
 # Build
 
-# Only packages are installed; src/__main__.py is just for `python src`.
 [tool.setuptools.packages.find]
 where = ["src"]
 
