@@ -1,0 +1,48 @@
+from collections.abc import Callable
+from pathlib import Path
+
+import pytest
+
+from bookflow.pdf import ReadError, read_pdf
+
+MakePdf = Callable[..., str]
+
+
+def test_reads_lines_without_page_numbers_or_headers(make_pdf: MakePdf) -> None:
+    pages = [[f"Line one of page {n}.", "Line two."] for n in range(1, 5)]
+    book = read_pdf(make_pdf(pages, header="A Running Header"))
+    assert [page.number for page in book.pages] == [1, 2, 3, 4]
+    assert [line.text for line in book.pages[2].lines] == ["Line one of page 3.", "Line two."]
+
+
+def test_reads_selected_pages(make_pdf: MakePdf) -> None:
+    book = read_pdf(make_pdf([["one"], ["two"], ["three"]]), "2-3")
+    assert [page.number for page in book.pages] == [2, 3]
+
+
+def test_detects_language(make_pdf: MakePdf) -> None:
+    book = read_pdf(make_pdf([["It was the best of times, it was the worst of times."]]))
+    assert book.language == "en"
+
+
+def test_missing_file(tmp_path: Path) -> None:
+    with pytest.raises(ReadError, match="no such file"):
+        read_pdf(str(tmp_path / "missing.pdf"))
+
+
+def test_not_a_pdf(tmp_path: Path) -> None:
+    path = tmp_path / "book.pdf"
+    path.write_text("hello")
+    with pytest.raises(ReadError, match="not a readable PDF"):
+        read_pdf(str(path))
+
+
+def test_no_text_layer(make_pdf: MakePdf, tmp_path: Path) -> None:
+    import pymupdf
+
+    path = tmp_path / "blank.pdf"
+    doc = pymupdf.open()
+    doc.new_page()
+    doc.save(path)
+    with pytest.raises(ReadError, match="no text found"):
+        read_pdf(str(path))

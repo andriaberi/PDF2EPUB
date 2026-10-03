@@ -11,7 +11,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Andria Beridze" }]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["pymupdf>=1.24"]
 keywords = ["pdf", "epub", "ebook", "converter", "reflowable"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -71,6 +71,9 @@ select = [
     "RUF",     # ruff-specific
 ]
 
+# Books are multilingual: en dashes, Cyrillic and Greek letters in strings are intended.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["B011"]
 
@@ -82,6 +85,8 @@ files = ["src", "tests"]
 mypy_path = "src"
 strict = true
 warn_unreachable = true
+# PyMuPDF ships type hints for only part of its API.
+untyped_calls_exclude = ["pymupdf"]
 pretty = true
 
 # Pytest

@@ -1,0 +1,95 @@
+import zipfile
+from pathlib import Path
+from xml.dom import minidom
+from xml.etree import ElementTree
+
+from bookflow.epub import Metadata, write_epub
+from bookflow.paragraphs import Paragraph
+from bookflow.structure import Heading, Section
+
+METADATA = Metadata(title="საბრალონი", author="ვიქტორ ჰიუგო", language="ka", identifier="urn:x")
+
+
+def paragraph(text: str) -> Paragraph:
+    return Paragraph(text, 1)
+
+
+SECTIONS = [
+    Section(None, [paragraph("წინასიტყვაობა & <შესავალი>")]),
+    Section(Heading(1, "წიგნი პირველი", "კაცი მართალი")),
+    Section(Heading(2, "თავი პირველი", "ბატონი მირიელი"), [paragraph("ერთი."), paragraph("ორი.")]),
+    Section(Heading(2, "თავი მეორე"), [paragraph("სამი.")]),
+    Section(Heading(1, "წიგნი მეორე")),
+    Section(Heading(2, "თავი პირველი"), [paragraph("ოთხი.")]),
+]
+
+
+def written(tmp_path: Path) -> zipfile.ZipFile:
+    path = tmp_path / "book.epub"
+    write_epub(path, SECTIONS, METADATA)
+    return zipfile.ZipFile(path)
+
+
+def test_mimetype_comes_first_uncompressed(tmp_path: Path) -> None:
+    epub = written(tmp_path)
+    first = epub.infolist()[0]
+    assert first.filename == "mimetype"
+    assert first.compress_type == zipfile.ZIP_STORED
+    assert epub.read("mimetype") == b"application/epub+zip"
+
+
+def test_every_file_is_well_formed_xml(tmp_path: Path) -> None:
+    epub = written(tmp_path)
+    for name in epub.namelist():
+        if name.endswith((".xhtml", ".opf", ".ncx", ".xml")):
+            minidom.parseString(epub.read(name))
+
+
+def test_each_section_is_its_own_page(tmp_path: Path) -> None:
+    epub = written(tmp_path)
+    pages = sorted(n for n in epub.namelist() if n.startswith("EPUB/text/"))
+    assert len(pages) == len(SECTIONS)
+    chapter = epub.read(pages[2]).decode()
+    assert '<h2><span class="label">თავი პირველი</span>ბატონი მირიელი</h2>' in chapter
+    assert "<p>ერთი.</p>" in chapter
+
+
+def test_text_is_escaped(tmp_path: Path) -> None:
+    front = written(tmp_path).read("EPUB/text/section-0001.xhtml").decode()
+    assert "წინასიტყვაობა &amp; &lt;შესავალი&gt;" in front
+
+
+def test_language_is_set_everywhere(tmp_path: Path) -> None:
+    epub = written(tmp_path)
+    assert "<dc:language>ka</dc:language>" in epub.read("EPUB/content.opf").decode()
+    assert 'xml:lang="ka"' in epub.read("EPUB/text/section-0003.xhtml").decode()
+
+
+def test_table_of_contents_is_nested(tmp_path: Path) -> None:
+    nav = ElementTree.fromstring(written(tmp_path).read("EPUB/nav.xhtml"))
+    xhtml = "{http://www.w3.org/1999/xhtml}"
+
+    def text(link: ElementTree.Element) -> str:
+        return "".join(link.itertext())
+
+    books = nav.findall(f".//{xhtml}nav/{xhtml}ol/{xhtml}li")
+    assert [text(book.find(f"{xhtml}a")) for book in books] == [  # type: ignore[arg-type]
+        "წიგნი პირველი. კაცი მართალი",
+        "წიგნი მეორე",
+    ]
+    chapters = books[0].findall(f"{xhtml}ol/{xhtml}li/{xhtml}a")
+    assert [text(chapter) for chapter in chapters] == [
+        "თავი პირველი. ბატონი მირიელი",
+        "თავი მეორე",
+    ]
+
+
+def test_heading_without_title_shows_its_label_as_the_title(tmp_path: Path) -> None:
+    chapter = written(tmp_path).read("EPUB/text/section-0004.xhtml").decode()
+    assert "<h2>თავი მეორე</h2>" in chapter
+
+
+def test_contents_is_a_page_of_the_book(tmp_path: Path) -> None:
+    opf = written(tmp_path).read("EPUB/content.opf").decode()
+    assert '<itemref idref="title"/>\n<itemref idref="nav"/>' in opf
+    assert "<h1>სარჩევი</h1>" in written(tmp_path).read("EPUB/nav.xhtml").decode()
