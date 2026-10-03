@@ -13,6 +13,9 @@ GAP = 0.8
 # A line ending this many line heights short of the right edge doesn't fill the line.
 SHORT = 2
 
+# A line this many times the usual height is set in a bigger font: a heading.
+TALL = 1.3
+
 # Text that stops above this share of the page height ends the page early.
 FULL_PAGE = 0.75
 
@@ -51,6 +54,11 @@ def is_indented(line: Line, layout: Layout) -> bool:
 
 def has_gap_before(line: Line, previous: Line, layout: Layout) -> bool:
     return line.y0 - previous.y1 > layout.gap + GAP * layout.line_height
+
+
+def is_tall(line: Line, layout: Layout) -> bool:
+    """Set in a bigger font than the text, as headings often are."""
+    return line.height > TALL * layout.line_height
 
 
 def ends_page_early(line: Line, layout: Layout) -> bool:

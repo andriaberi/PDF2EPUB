@@ -86,20 +86,36 @@ def test_sentence_starting_with_a_label_word_is_text() -> None:
 
 @pytest.mark.parametrize(
     ("text", "level"),
-    [("თავი მეორე", 3), ("თაჭი მეორე", 3), ("წიგნი მეხუთე", 2), ("CHAPTER XII.", 3), ("Part 2", 1)],
+    [
+        ("თავი მეორე", 4),
+        ("თაჭი მეორე", 4),
+        ("წიგნი მეხუთე", 3),
+        ("CHAPTER XII.", 4),
+        ("Part 2", 2),
+        ("მესამე ნაწილი", 2),
+        ("ტომი I", 1),
+        ("Volume 2", 1),
+    ],
 )
 def test_label_level(text: str, level: int) -> None:
     assert label_level(text) == level
 
 
-@pytest.mark.parametrize("text", ["თავი ჩაღუნა ბრევემ.", "ბატონი მირიელი", "Chapter"])
+@pytest.mark.parametrize(
+    "text", ["თავი ჩაღუნა ბრევემ.", "ბატონი მირიელი", "Chapter", "მისი თავს", "მესამე ნაწილს"]
+)
 def test_not_labels(text: str) -> None:
     assert label_level(text) is None
 
 
 @pytest.mark.parametrize(
     ("text", "fixed"),
-    [("თაჭი მეორე", "თავი მეორე"), ("Chaptcr 4", "Chapter 4"), ("CHAPTER 4", "CHAPTER 4")],
+    [
+        ("თაჭი მეორე", "თავი მეორე"),
+        ("Chaptcr 4", "Chapter 4"),
+        ("CHAPTER 4", "CHAPTER 4"),
+        ("მესამე ნაწილი", "მესამე ნაწილი"),
+    ],
 )
 def test_fix_label(text: str, fixed: str) -> None:
     assert fix_label(text) == fixed
@@ -163,3 +179,67 @@ def test_part_book_and_chapter_levels() -> None:
         text("1815 წელს.", 190),
     ]
     assert [h.level for h in headings(paragraphs) if h] == [1, 2, 3]
+
+
+def big(text: str, y: float, size: float = 16) -> Paragraph:
+    """A heading line in a bigger font than the text's 10 points."""
+    return Paragraph(text, 1, [Line(text, LEFT, y, LEFT + 100, y + size)])
+
+
+def test_label_in_a_bigger_font_without_title() -> None:
+    paragraphs = [big("თავი მეორე", 100), flush("– რა ვქნა?", 130), text("ტექსტი.", 150)]
+    [section] = build_sections(paragraphs, PAGES)
+    assert section.heading == Heading(1, "თავი მეორე")
+    assert [p.text for p in section.paragraphs] == ["– რა ვქნა?", "ტექსტი."]
+
+
+def test_label_in_a_bigger_font_keeps_a_title_in_one() -> None:
+    paragraphs = [big("თავი მეორე", 100), big("სტუმრები", 125), text("ტექსტი.", 160)]
+    assert headings(paragraphs) == [Heading(1, "თავი მეორე", "სტუმრები")]
+
+
+def test_volume_part_and_chapter_levels() -> None:
+    paragraphs = [
+        big("ტომი I", 60, size=28),
+        big("მესამე ნაწილი", 100, size=18),
+        big("თავი პირველი", 130),
+        text("ტექსტი.", 160),
+    ]
+    assert headings(paragraphs) == [
+        Heading(1, "ტომი I"),
+        Heading(2, "ნაწილი მესამე"),
+        Heading(3, "თავი პირველი"),
+    ]
+
+
+def test_label_order_follows_the_rest_of_the_book() -> None:
+    paragraphs = [
+        big("ნაწილი პირველი", 60, size=18),
+        big("თავი პირველი", 100),
+        text("ტექსტი.", 130),
+        big("მესამე ნაწილი", 160, size=18),
+        big("მეორე თავი", 200),
+        text("ტექსტი.", 230),
+    ]
+    assert [h.label for h in headings(paragraphs) if h] == [
+        "ნაწილი პირველი",
+        "თავი პირველი",
+        "ნაწილი მესამე",
+        "თავი მეორე",
+    ]
+
+
+def test_label_order_can_follow_a_book_that_puts_the_number_first() -> None:
+    paragraphs = [
+        big("პირველი თავი", 60),
+        text("ტექსტი.", 90),
+        big("მეორე თავი", 120),
+        text("ტექსტი.", 150),
+        big("თავი მესამე", 180),
+        text("ტექსტი.", 210),
+    ]
+    assert [h.label for h in headings(paragraphs) if h] == [
+        "პირველი თავი",
+        "მეორე თავი",
+        "მესამე თავი",
+    ]

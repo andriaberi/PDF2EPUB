@@ -49,6 +49,16 @@ def test_gap_starts_a_paragraph() -> None:
     assert texts([p]) == ["თავი პირველი", "ბატონი მირიელი"]
 
 
+def test_line_in_a_bigger_font_stands_alone() -> None:
+    p = page(
+        1,
+        Line("თავი მეორე", LEFT, 100, 120, 116),
+        line(124, "ანა პავლოვნას სასტუმრო ოთახი"),
+        line(138, "ხალხით ივსებოდა."),
+    )
+    assert texts([p]) == ["თავი მეორე", "ანა პავლოვნას სასტუმრო ოთახი ხალხით ივსებოდა."]
+
+
 def test_short_line_ending_a_sentence_ends_the_paragraph() -> None:
     p = page(1, line(100, "It ended here.", x1=150), line(114, "A new one, indent lost."))
     assert texts([p]) == ["It ended here.", "A new one, indent lost."]

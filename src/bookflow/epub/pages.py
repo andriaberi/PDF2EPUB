@@ -1,5 +1,6 @@
 from html import escape
 
+from bookflow.cover import Cover
 from bookflow.structure import Heading, Section
 
 from .models import Metadata
@@ -14,7 +15,7 @@ lang="{lang}" xml:lang="{lang}">
 <title>{title}</title>
 <link rel="stylesheet" type="text/css" href="{css}"/>
 </head>
-<body>
+<body{body_class}>
 {body}
 </body>
 </html>
@@ -24,8 +25,27 @@ lang="{lang}" xml:lang="{lang}">
 ORNAMENT = "⁂"
 
 
-def page(title: str, body: str, language: str, css: str = "style.css") -> str:
-    return PAGE.format(lang=escape(language), title=escape(title), css=css, body=body)
+def page(title: str, body: str, language: str, css: str = "style.css", body_class: str = "") -> str:
+    return PAGE.format(
+        lang=escape(language),
+        title=escape(title),
+        css=css,
+        body=body,
+        body_class=f' class="{body_class}"' if body_class else "",
+    )
+
+
+def cover_page(cover: Cover, metadata: Metadata) -> str:
+    """The cover image scaled to fill the screen, keeping its proportions."""
+    body = (
+        '<section class="cover" epub:type="cover">\n'
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+        f'version="1.1" width="100%" height="100%" viewBox="0 0 {cover.width} {cover.height}" '
+        'preserveAspectRatio="xMidYMid meet">\n'
+        f'<image width="{cover.width}" height="{cover.height}" xlink:href="images/cover.jpg"/>\n'
+        "</svg>\n</section>"
+    )
+    return page(metadata.title, body, metadata.language, body_class="cover")
 
 
 def title_page(metadata: Metadata) -> str:

@@ -6,9 +6,42 @@
 STYLESHEET = """\
 @charset "utf-8";
 
+/* Embedded so every reader shows the same type. Noto Serif carries Latin,
+   digits and punctuation; Noto Serif Georgian carries the Georgian letters. */
+@font-face {
+  font-family: "Bookflow Serif";
+  font-style: normal;
+  font-weight: normal;
+  src: url(fonts/NotoSerif-Regular.ttf);
+}
+@font-face {
+  font-family: "Bookflow Serif";
+  font-style: normal;
+  font-weight: bold;
+  src: url(fonts/NotoSerif-Bold.ttf);
+}
+@font-face {
+  font-family: "Bookflow Serif";
+  font-style: italic;
+  font-weight: normal;
+  src: url(fonts/NotoSerif-Italic.ttf);
+}
+@font-face {
+  font-family: "Bookflow Georgian";
+  font-style: normal;
+  font-weight: normal;
+  src: url(fonts/NotoSerifGeorgian-Regular.ttf);
+}
+@font-face {
+  font-family: "Bookflow Georgian";
+  font-style: normal;
+  font-weight: bold;
+  src: url(fonts/NotoSerifGeorgian-Bold.ttf);
+}
+
 body {
   margin: 0 5%;
-  font-family: serif;
+  font-family: "Bookflow Serif", "Bookflow Georgian", serif;
   line-height: 1.5;
   text-align: justify;
   -webkit-hyphens: auto;
@@ -88,6 +121,11 @@ h3 + p {
   font-size: 2em;
 }
 
+/* The outermost division, a volume where the book has them, is the largest. */
+.division h1 {
+  font-size: 2.4em;
+}
+
 .division h1 .label,
 .division h2 .label,
 .division h3 .label {
@@ -98,6 +136,25 @@ h3 + p {
   margin: 1em 0 0;
   text-align: center;
   text-indent: 0;
+}
+
+/* Cover: the picture alone, filling the screen. */
+
+body.cover {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+section.cover {
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+section.cover svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* Title page */

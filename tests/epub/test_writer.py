@@ -3,6 +3,7 @@ from pathlib import Path
 from xml.dom import minidom
 from xml.etree import ElementTree
 
+from bookflow.cover import Cover
 from bookflow.epub import Metadata, write_epub
 from bookflow.paragraphs import Paragraph
 from bookflow.structure import Heading, Section
@@ -89,7 +90,34 @@ def test_heading_without_title_shows_its_label_as_the_title(tmp_path: Path) -> N
     assert "<h2>თავი მეორე</h2>" in chapter
 
 
+def test_fonts_are_embedded(tmp_path: Path) -> None:
+    epub = written(tmp_path)
+    assert "EPUB/fonts/NotoSerifGeorgian-Regular.ttf" in epub.namelist()
+    assert 'media-type="font/ttf"' in epub.read("EPUB/content.opf").decode()
+    assert "url(fonts/NotoSerifGeorgian-Regular.ttf)" in epub.read("EPUB/style.css").decode()
+
+
 def test_contents_is_a_page_of_the_book(tmp_path: Path) -> None:
     opf = written(tmp_path).read("EPUB/content.opf").decode()
     assert '<itemref idref="title"/>\n<itemref idref="nav"/>' in opf
     assert "<h1>სარჩევი</h1>" in written(tmp_path).read("EPUB/nav.xhtml").decode()
+
+
+def test_cover_comes_first(tmp_path: Path) -> None:
+    path = tmp_path / "book.epub"
+    write_epub(path, SECTIONS, METADATA, Cover(b"\xff\xd8jpeg", 600, 900))
+    epub = zipfile.ZipFile(path)
+    assert epub.read("EPUB/images/cover.jpg") == b"\xff\xd8jpeg"
+    opf = epub.read("EPUB/content.opf").decode()
+    assert 'properties="cover-image"' in opf
+    assert '<meta name="cover" content="cover-image"/>' in opf
+    assert '<spine toc="ncx">\n<itemref idref="cover"/>' in opf
+    page = epub.read("EPUB/cover.xhtml").decode()
+    assert 'viewBox="0 0 600 900"' in page
+    minidom.parseString(page)
+
+
+def test_no_cover_without_one(tmp_path: Path) -> None:
+    epub = written(tmp_path)
+    assert "EPUB/cover.xhtml" not in epub.namelist()
+    assert "cover-image" not in epub.read("EPUB/content.opf").decode()

@@ -48,6 +48,9 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"bookflow.epub" = ["fonts/*.ttf", "fonts/OFL.txt"]
+
 [tool.setuptools.dynamic]
 version = { attr = "bookflow.__version__" }
 

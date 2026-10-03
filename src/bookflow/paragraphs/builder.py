@@ -6,6 +6,7 @@ from .layout import (
     ends_paragraph,
     has_gap_before,
     is_indented,
+    is_tall,
     measure,
 )
 from .models import Paragraph
@@ -39,6 +40,10 @@ def starts_paragraph(
     # A word broken at the end of the last line always carries on, whatever the layout.
     if previous is not None and breaks_word(previous[0].text):
         return False
+    # A heading in a bigger font stands alone: the gap below a tall line measures
+    # small, so the gap rule alone would glue the heading to the text after it.
+    if is_tall(line, layout) or (previous is not None and is_tall(*previous)):
+        return True
     if is_indented(line, layout):
         return True
     if above is not None and has_gap_before(line, above, layout):
