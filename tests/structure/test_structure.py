@@ -1,6 +1,6 @@
 import pytest
 
-from bookflow.labels import fix_label, label_level
+from bookflow.labels import fix_label, label_level, numeral_value
 from bookflow.paragraphs import Paragraph
 from bookflow.pdf import Line, Page
 from bookflow.structure import Heading, build_sections
@@ -119,6 +119,70 @@ def test_not_labels(text: str) -> None:
 )
 def test_fix_label(text: str, fixed: str) -> None:
     assert fix_label(text) == fixed
+
+
+@pytest.mark.parametrize(
+    ("text", "value"),
+    [("I", 1), ("IV", 4), ("XII.", 12), ("XXXIV", 34), ("7", 7), ("12.", 12)],
+)
+def test_numeral_value(text: str, value: int) -> None:
+    assert numeral_value(text) == value
+
+
+@pytest.mark.parametrize("text", ["IIII", "IC", "i", "v", "0", "1832", "I a", "Il"])
+def test_not_numerals(text: str) -> None:
+    assert numeral_value(text) is None
+
+
+def numbered(*items: str) -> list[Paragraph]:
+    """Chapter numbers flush left, each followed by a paragraph of text."""
+    paragraphs = []
+    for number, item in enumerate(items):
+        y = 100 + 60 * number
+        paragraphs += [flush(item, y, x1=80), text(f"ტექსტი {item}.", y + 20)]
+    return paragraphs
+
+
+def test_chapters_numbered_in_roman() -> None:
+    sections = build_sections(numbered("I", "II", "III", "IV"), PAGES)
+    assert [s.heading for s in sections] == [Heading(1, n) for n in ("I", "II", "III", "IV")]
+    assert [p.text for p in sections[1].paragraphs] == ["ტექსტი II."]
+
+
+def test_numbering_starts_again_in_each_part() -> None:
+    paragraphs = [flush("ნაწილი პირველი", 50), *numbered("I", "II"), flush("ნაწილი მეორე", 400)]
+    paragraphs += numbered("I", "II")
+    labels = [
+        (s.heading.level, s.heading.label) for s in build_sections(paragraphs, PAGES) if s.heading
+    ]
+    assert labels == [
+        (1, "ნაწილი პირველი"),
+        (2, "I"),
+        (2, "II"),
+        (1, "ნაწილი მეორე"),
+        (2, "I"),
+        (2, "II"),
+    ]
+
+
+def test_a_part_label_doesnt_take_the_chapter_number_as_its_title() -> None:
+    paragraphs = [flush("ნაწილი პირველი", 50), *numbered("I", "II", "III")]
+    assert build_sections(paragraphs, PAGES)[0].heading == Heading(1, "ნაწილი პირველი")
+
+
+def test_numbers_out_of_step_are_text() -> None:
+    # Too few to be chapter numbers, or not counting up: a number in the text.
+    assert [s.heading for s in build_sections(numbered("7", "II"), PAGES)] == [None]
+    sections = build_sections(numbered("I", "II", "III", "XX"), PAGES)
+    assert [s.heading.label for s in sections if s.heading] == ["I", "II", "III"]
+
+
+def test_sentence_after_a_chapter_number_is_not_its_title() -> None:
+    paragraphs = numbered("I", "II", "III")
+    paragraphs.insert(1, flush("ლევინმა სასმისი გამოცალა.", 120, x1=250))
+    sections = build_sections(paragraphs, PAGES)
+    assert sections[0].heading == Heading(1, "I")
+    assert sections[0].paragraphs[0].text == "ლევინმა სასმისი გამოცალა."
 
 
 def flush(text: str, y: float, page: int = 1, x1: float = 160) -> Paragraph:

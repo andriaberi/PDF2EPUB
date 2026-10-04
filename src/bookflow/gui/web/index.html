@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookflow</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header>
+  <h1>Bookflow</h1>
+  <span class="muted" id="version"></span>
+</header>
+
+<main>
+  <div class="drop" id="drop">
+    <div class="drop-empty">
+      Drop a PDF here or <button type="button" id="browse">Browse…</button>
+    </div>
+    <div class="drop-file">
+      <div>
+        <strong id="file-name"></strong>
+        <span class="muted" id="file-meta"></span>
+      </div>
+      <button type="button" id="change-pdf">Change…</button>
+    </div>
+  </div>
+
+  <form id="form" autocomplete="off">
+    <label for="title">Title</label>
+    <input id="title">
+
+    <label for="author">Author</label>
+    <input id="author">
+
+    <label for="language">Language</label>
+    <select id="language">
+      <option value="Auto">Detect automatically</option>
+      <option value="Georgian">Georgian</option>
+      <option value="English">English</option>
+    </select>
+
+    <label for="pages">Pages</label>
+    <input id="pages" placeholder="All">
+
+    <label>Cover image</label>
+    <div class="file-field">
+      <span class="path muted" id="cover-path">Only used if the PDF has no cover</span>
+      <button type="button" id="cover">Browse…</button>
+    </div>
+
+    <label>Save to</label>
+    <div class="file-field">
+      <span class="path" id="save-path"></span>
+      <button type="button" id="save-as">Change…</button>
+    </div>
+  </form>
+
+  <div class="result" id="result">
+    <p id="result-text"></p>
+    <div class="buttons">
+      <button type="button" id="show">Show in folder</button>
+      <button type="button" id="again">Convert another</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="status">
+    <progress id="progress" max="4" value="0"></progress>
+    <span id="status"></span>
+  </div>
+  <button type="submit" form="form" class="primary" id="convert">Convert</button>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -163,3 +163,8 @@ def test_page_of_short_lines_keeps_the_books_margins() -> None:
         "ჩააბარეთ ჩემი კოზეტი.",
         "ფანტინი“.",
     ]
+
+
+def test_chapter_number_stands_alone() -> None:
+    p = page(1, line(100, "XII", x1=80), line(114, "სტეპან არკადიჩი პირუთვნელი იყო."))
+    assert texts([p]) == ["XII", "სტეპან არკადიჩი პირუთვნელი იყო."]

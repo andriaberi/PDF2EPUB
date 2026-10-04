@@ -64,7 +64,7 @@ def convert(args: Args, progress: Callable[[str], None] = lambda step: None) -> 
     paragraphs = build_paragraphs(pages)
     progress("Finding chapters")
     sections = drop_title_page_reprints(build_sections(paragraphs, pages))
-    sections = drop_repeated_title(sections, metadata)
+    sections = drop_front_matter(drop_repeated_title(sections, metadata))
     notes = extract_notes(sections)
 
     # The book's own cover comes first; --cover is for books without one.
@@ -116,6 +116,24 @@ def drop_repeated_title(sections: list[Section], metadata: Metadata) -> list[Sec
     front = sections[0]
     front.paragraphs = [p for p in front.paragraphs if p.text.casefold() not in repeated]
     return sections if front.paragraphs and not is_title_page(front) else sections[1:]
+
+
+# Text before the first heading that is more than this share of the book is the book
+# itself, its first chapters missed, not a title page or a translator's note.
+MAX_FRONT_MATTER = 0.1
+
+
+def drop_front_matter(sections: list[Section]) -> list[Section]:
+    """Leave out what comes before the first heading: the printed title page, credits,
+    an epigraph, a translator's note. The EPUB opens with its own title page.
+
+    A book without headings keeps all its text.
+    """
+    if len(sections) < 2 or sections[0].heading:
+        return sections
+    front = len(sections[0].paragraphs)
+    total = sum(len(section.paragraphs) for section in sections)
+    return sections[1:] if front <= MAX_FRONT_MATTER * total else sections
 
 
 def is_title_page(section: Section) -> bool:

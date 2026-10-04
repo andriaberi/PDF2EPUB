@@ -21,8 +21,8 @@ full list of commands.
 | `make build` | Build the package into `dist/`. |
 
 Run the converter from the clone with `.venv/bin/bookflow book.pdf`, or
-`.venv/bin/bookflow` alone for the window. The window's tests skip themselves when Tk
-or a display is missing.
+`.venv/bin/bookflow` alone for the window. On Linux the dev setup needs a web view for
+the window: `.venv/bin/pip install -e ".[qt]"` (see the README).
 
 ## Layout
 
@@ -30,7 +30,8 @@ or a display is missing.
 src/bookflow/
   __main__.py      entry point: the window without arguments, the CLI with a PDF
   cli/             command-line options (Args)
-  gui/             the Tk window (form.py holds its logic, testable without a screen)
+  gui/             the window (pywebview): window.py opens it, api.py is what the
+                   page can call, form.py checks the fields, web/ is the page itself
   pipeline.py      runs the stages (convert); title-page clean-up
   labels.py        division words: ტომი, ნაწილი, წიგნი, თავი, Volume, Part, ...
   pdf/             PDF → pages of clean lines (reader, text, noise, language)
@@ -43,7 +44,14 @@ tests/             one folder per package, plus test_pipeline.py
 
 `pipeline.convert` runs a conversion and returns a `Result` or raises `ConvertError`; it
 reports each step to a `progress` callback. The CLI (`run`) prints the result; the
-window runs `convert` in a background thread and shows the steps as they come.
+window runs `convert` in a background thread and sends each step to the page.
+
+The window is plain HTML, CSS and JavaScript in `gui/web/`, with no build step. The page
+calls Python through `window.pywebview.api` (the public methods of `Api`), and Python
+calls back into `window.bookflow` (`onPicked`, `onProgress`, `onDone`, `onError`).
+Keep everything Python does in `Api`, so it is tested without a window; open
+`web/index.html` in a browser with a stand-in `window.pywebview.api` to work on the
+design.
 
 Each package only uses the ones before it in the pipeline:
 `pdf` ← `paragraphs` ← `structure` ← `epub`. `labels.py` sits outside them all because

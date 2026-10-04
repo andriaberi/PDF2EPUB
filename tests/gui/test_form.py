@@ -1,8 +1,9 @@
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
-from bookflow.gui.form import Form, FormError, default_output, to_args
+from bookflow.gui.form import Form, FormError, default_output, describe_pdf, to_args
 
 
 def test_blank_fields_are_left_to_bookflow(tmp_path: Path) -> None:
@@ -40,3 +41,12 @@ def test_the_pdf_must_exist(tmp_path: Path) -> None:
 def test_output_defaults_to_next_to_the_pdf() -> None:
     assert default_output("/books/ucxo.pdf") == str(Path("/books/ucxo.epub"))
     assert default_output("  ") == ""
+
+
+def test_describe_pdf(make_pdf: Callable[..., str], tmp_path: Path) -> None:
+    info = describe_pdf(make_pdf([["One."], ["Two."]]))
+    assert info is not None
+    assert info.pages == 2
+    bad = tmp_path / "bad.pdf"
+    bad.write_text("not a pdf")
+    assert describe_pdf(str(bad)) is None

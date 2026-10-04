@@ -12,6 +12,7 @@ from bookflow.pipeline import (
     ConvertError,
     choose_cover,
     convert,
+    drop_front_matter,
     drop_repeated_title,
     drop_title_page_reprints,
     run,
@@ -79,6 +80,31 @@ def test_title_page_is_dropped_without_the_title_in_metadata() -> None:
     front = Section(None, [Paragraph("ალბერ კამიუ - უცხო", 1)])
     part = Section(Heading(1, "ნაწილი პირველი"))
     assert drop_repeated_title([front, part], metadata) == [part]
+
+
+def test_text_before_the_first_heading_is_dropped() -> None:
+    front = Section(
+        None,
+        [
+            Paragraph("ლევ ტოლსტოი", 1),
+            Paragraph("ლარისა ტიტვინიძისა და თამარ საყვარელიძის თარგმანი", 1),
+            Paragraph("ჩემი არს შურისგება, და მე მივაგო.", 1),
+        ],
+    )
+    part = Section(Heading(1, "ნაწილი პირველი"), [Paragraph(f"ტექსტი {n}.", 2) for n in range(40)])
+    assert drop_front_matter([front, part]) == [part]
+
+
+def test_a_book_without_headings_keeps_its_text() -> None:
+    only = Section(None, [Paragraph("ტექსტი.", 1)])
+    assert drop_front_matter([only]) == [only]
+
+
+def test_long_text_before_the_first_heading_is_kept() -> None:
+    # A tenth of the book or more: the first chapters, their headings missed.
+    front = Section(None, [Paragraph(f"ტექსტი {n}.", 1) for n in range(20)])
+    chapter = Section(Heading(1, "თავი მეორე"), [Paragraph(f"ტექსტი {n}.", 9) for n in range(40)])
+    assert drop_front_matter([front, chapter]) == [front, chapter]
 
 
 def test_title_page_printed_again_before_a_volume_is_dropped() -> None:

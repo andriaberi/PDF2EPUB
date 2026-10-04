@@ -1,3 +1,4 @@
+from bookflow.labels import numeral_value
 from bookflow.pdf import Line, Page
 
 from .layout import (
@@ -60,6 +61,9 @@ def starts_paragraph(
     # A heading in a bigger font stands alone: the gap below a tall line measures
     # small, so the gap rule alone would glue the heading to the text after it.
     if is_tall(line, layout) or (previous is not None and is_tall(*previous)):
+        return True
+    # So does a chapter number alone on its line ("XII", "7."), whatever its size.
+    if numeral_value(line.text) or (previous is not None and numeral_value(previous[0].text)):
         return True
     # A line set apart from the text, like a right-aligned label, stands alone too,
     # even at the foot of a page.

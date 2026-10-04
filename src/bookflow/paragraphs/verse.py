@@ -1,7 +1,7 @@
 import statistics
 from itertools import pairwise
 
-from bookflow.labels import label_level
+from bookflow.labels import label_level, numeral_value
 from bookflow.pdf import Line
 
 from .layout import GAP, Layout, has_gap_before, is_indented, is_tall
@@ -45,6 +45,7 @@ def is_verse_line(line: Line, layout: Layout) -> bool:
         and not line.text.startswith(DIALOGUE)
         and not is_tall(line, layout)
         and label_level(line.text) is None
+        and numeral_value(line.text) is None
     )
 
 

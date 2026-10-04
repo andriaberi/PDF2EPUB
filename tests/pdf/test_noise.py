@@ -35,7 +35,7 @@ def test_page_numbers(text: str) -> None:
     assert is_page_number(text)
 
 
-@pytest.mark.parametrize("text", ["The End", "დასასრული"])
+@pytest.mark.parametrize("text", ["The End", "დასასრული", "XI", "I", "IV."])
 def test_not_page_numbers(text: str) -> None:
     assert not is_page_number(text)
 
@@ -58,6 +58,13 @@ def test_removes_running_headers() -> None:
         ["Text 3."],
         ["Text 4."],
     ]
+
+
+def test_keeps_chapter_numbers_at_the_top_of_pages() -> None:
+    # Each part has its own chapter VII: it repeats like a header, but it is a heading.
+    pages = [page(n, (20, "VII"), (100, f"Text {n}.")) for n in range(1, 5)]
+    first = remove_noise(pages)[0]
+    assert [line.text for line in first.lines] == ["VII", "Text 1."]
 
 
 def test_removes_page_number_glued_to_text() -> None:

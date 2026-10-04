@@ -1,0 +1,173 @@
+/* A plain utility window: system font, aligned form, one accent colour. */
+
+:root {
+  --bg: #f5f5f5;
+  --panel: #ffffff;
+  --text: #1f1f1f;
+  --muted: #6b6b6b;
+  --border: #d0d0d0;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --ok: #15803d;
+  --error: #b91c1c;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e1e;
+    --panel: #2a2a2a;
+    --text: #e8e8e8;
+    --muted: #9a9a9a;
+    --border: #444444;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --ok: #4ade80;
+    --error: #f87171;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", "Noto Sans", "Noto Sans Georgian", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  user-select: none;
+}
+
+.muted { color: var(--muted); }
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+h1 { margin: 0; font-size: 17px; font-weight: 600; }
+#version { font-size: 12px; }
+
+main { flex: 1; overflow: auto; padding: 20px; }
+
+/* Controls */
+
+button, input, select {
+  font: inherit;
+  color: var(--text);
+}
+
+input, select {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel);
+  min-width: 0;
+}
+input:focus, select:focus, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+input::placeholder { color: var(--muted); }
+
+button {
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel);
+  cursor: pointer;
+  white-space: nowrap;
+}
+button:hover:not(:disabled) { border-color: var(--muted); }
+button:disabled, input:disabled, select:disabled { opacity: 0.55; cursor: default; }
+
+button.primary {
+  min-width: 110px;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+button.primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+/* The PDF: a drop box, then the chosen file. */
+
+.drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+}
+body.dragging .drop { border-color: var(--accent); border-style: solid; }
+
+.drop-file { display: none; width: 100%; align-items: center; justify-content: space-between; gap: 12px; }
+.drop-file div { display: flex; flex-direction: column; min-width: 0; }
+.drop-file strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drop-file .muted { font-size: 12.5px; }
+body.has-pdf .drop { border-style: solid; justify-content: flex-start; }
+body.has-pdf .drop-empty { display: none; }
+body.has-pdf .drop-file { display: flex; }
+.drop-empty button { margin-left: 6px; }
+
+/* The details: labels on the left, fields on the right. */
+
+form {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px 14px;
+  align-items: center;
+}
+form label { color: var(--muted); text-align: right; }
+
+.file-field { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* After converting */
+
+.result {
+  display: none;
+  margin-top: 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ok);
+  border-radius: 5px;
+  background: var(--panel);
+}
+.result p { margin: 0 0 10px; }
+.result .buttons { display: flex; gap: 8px; }
+body.done .result { display: block; }
+
+/* Footer: progress and status on the left, the main button on the right. */
+
+footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+.status { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+#status { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#status.error { color: var(--error); }
+#status.ok { color: var(--ok); }
+
+progress { display: none; width: 140px; height: 6px; accent-color: var(--accent); }
+body.working progress { display: block; }

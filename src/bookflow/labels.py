@@ -60,3 +60,57 @@ def find_label(text: str) -> tuple[int, str] | None:
     if second in LABELS:
         return 1, second
     return None
+
+
+# Chapters numbered without a label word sit below every labelled division.
+NUMBER_LEVEL = 5
+
+# A chapter number alone on its line: "XII", "XII.", "7", "7.". Roman numerals are
+# upper case only, so a stray "i" or "v" is never one.
+NUMERAL = re.compile(r"^([IVXLCDM]{1,7}|\d{1,3})\.?$")
+
+ROMAN = [
+    (1000, "M"),
+    (900, "CM"),
+    (500, "D"),
+    (400, "CD"),
+    (100, "C"),
+    (90, "XC"),
+    (50, "L"),
+    (40, "XL"),
+    (10, "X"),
+    (9, "IX"),
+    (5, "V"),
+    (4, "IV"),
+    (1, "I"),
+]
+
+
+def numeral_value(text: str) -> int | None:
+    """The number of a lone chapter number like "XII" or "7.", or None for anything else."""
+    match = NUMERAL.match(text.strip())
+    if not match:
+        return None
+    number = match.group(1)
+    if number.isdigit():
+        return int(number) or None
+    value = roman_value(number)
+    # Only well-formed numerals: "IIII" or "IC" are letters, not numbers.
+    return value if to_roman(value) == number else None
+
+
+def roman_value(numeral: str) -> int:
+    values = [next(value for value, letter in ROMAN if letter == c) for c in numeral]
+    total = 0
+    for index, value in enumerate(values):
+        following = values[index + 1] if index + 1 < len(values) else 0
+        total += -value if value < following else value
+    return total
+
+
+def to_roman(value: int) -> str:
+    letters = []
+    for amount, letter in ROMAN:
+        count, value = divmod(value, amount)
+        letters.append(letter * count)
+    return "".join(letters)

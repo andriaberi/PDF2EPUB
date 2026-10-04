@@ -17,6 +17,9 @@ MIN_REPEATS = 3
 
 PUNCTUATION = re.compile(r"^\W+|\W+$")
 ROMAN = re.compile(r"^[ivxlcdm]+\.?$", re.IGNORECASE)
+# Books number front-matter pages in lower case ("xiv"); a numeral in capitals at the
+# top of a page is a chapter number ("XI").
+CHAPTER_NUMBER = re.compile(r"^[IVXLCDM]+\.?$")
 NUMBER = re.compile(r"^[\d.,:;/()\[\]–—-]+$")
 SEPARATOR = re.compile(r"^[*⁂•·~=_—–\- ]+$")
 
@@ -106,7 +109,8 @@ def is_word(token: str) -> bool:
 
 def is_furniture(line: Line, page: Page, repeated: set[str]) -> bool:
     in_margin = line.y1 < page.height * MARGIN or line.y0 > page.height * (1 - MARGIN)
-    if not in_margin:
+    # A chapter number repeats too, once in each part, but it is the book's text.
+    if not in_margin or CHAPTER_NUMBER.match(line.text.replace(" ", "")):
         return False
     return is_page_number(line.text) or furniture_key(line.text) in repeated
 
@@ -114,7 +118,7 @@ def is_furniture(line: Line, page: Page, repeated: set[str]) -> bool:
 def is_page_number(text: str) -> bool:
     """Short, with no real word: "12", "- 12 -", "xiv", or OCR misreads like "1,"."""
     compact = text.replace(" ", "")
-    if len(compact) > 8:
+    if len(compact) > 8 or CHAPTER_NUMBER.match(compact):
         return False
     if ROMAN.match(compact):
         return True

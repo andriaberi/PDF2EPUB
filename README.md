@@ -29,19 +29,23 @@ bookflow
 
 Run alone, `bookflow` opens a window:
 
-1. Click **Choose…** and pick the PDF. **Save as** fills in next to it; **Change…** picks
-   another place.
-2. Optionally fill in the **Book details**: title, author, language, pages and a cover
-   image.
-3. Click **Convert** (or press Enter). The status line follows each step and ends with
-   what was found. **Show in folder** opens the folder with the EPUB.
+1. **Drop a PDF** onto the window, or click **Browse…**. It shows the file's page count
+   and size.
+2. **Check the details.** Title and author come from the PDF where it has them. You can
+   also set the language, a page range, a cover image for PDFs without one, and where
+   to save.
+3. Click **Convert**. A progress bar and status line follow each step; when it's done,
+   it shows what it found with **Show in folder** and **Convert another**. If something
+   goes wrong, the status line says why.
 
-The window needs Tk. The python.org installers for Windows and macOS include it. On
-Linux, install it once:
+The window follows your system's light or dark mode.
+
+The window is a web page shown in your system's own web view: Windows and macOS have
+one built in. On Linux, Bookflow uses GTK's when Python can reach it, else Qt's:
 
 ```sh
-sudo apt install python3-tk      # Debian, Ubuntu
-sudo dnf install python3-tkinter # Fedora
+pip install "bookflow[qt]"                      # Qt's web view: works in any Python
+sudo apt install python3-gi gir1.2-webkit2-4.1  # or GTK's, for the system's Python
 ```
 
 ### The command line

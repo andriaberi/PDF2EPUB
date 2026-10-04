@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from bookflow.cli.commands import Args
+import pymupdf
 
-# The choices of the language box, and the code each one passes on.
+from bookflow.cli.commands import Args
+from bookflow.pdf.reader import metadata_text
+
+# The choices of the language switch, and the code each one passes on.
 LANGUAGES = {
-    "Detect automatically": None,
+    "Auto": None,
     "Georgian": "ka",
     "English": "en",
 }
@@ -23,7 +26,7 @@ class Form:
     output: str = ""
     title: str = ""
     author: str = ""
-    language: str = "Detect automatically"
+    language: str = "Auto"
     pages: str = ""
     cover: str = ""
 
@@ -44,6 +47,29 @@ def to_args(form: Form) -> Args:
         output=blank_to_none(form.output),
         cover=blank_to_none(form.cover),
     )
+
+
+@dataclass
+class PdfInfo:
+    """What the window shows about a chosen PDF before converting it."""
+
+    pages: int
+    title: str | None
+    author: str | None
+
+
+def describe_pdf(path: str) -> PdfInfo | None:
+    """The PDF's page count and metadata, or None when it can't be opened."""
+    try:
+        with pymupdf.open(path) as doc:
+            metadata = doc.metadata or {}
+            return PdfInfo(
+                pages=doc.page_count,
+                title=metadata_text(metadata.get("title")),
+                author=metadata_text(metadata.get("author")),
+            )
+    except (pymupdf.FileDataError, RuntimeError, ValueError):
+        return None
 
 
 def default_output(pdf: str) -> str:

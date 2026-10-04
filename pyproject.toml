@@ -11,7 +11,10 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Andria Beridze" }]
 requires-python = ">=3.12"
-dependencies = ["pymupdf>=1.24"]
+dependencies = [
+    "pymupdf>=1.24",
+    "pywebview>=5.3",  # the window: a web page in the platform's own web view
+]
 keywords = ["pdf", "epub", "ebook", "converter", "reflowable"]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -24,6 +27,10 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Text Processing :: Markup",
 ]
+
+[project.optional-dependencies]
+# Linux without GTK's Python bindings: Qt's web view instead (large, but installs anywhere).
+qt = ["pywebview[qt]>=5.3"]
 
 [project.urls]
 Homepage = "https://github.com/andriaberi/Bookflow"
@@ -54,6 +61,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "bookflow.epub" = ["fonts/*.ttf", "fonts/OFL.txt"]
+"bookflow.gui" = ["web/*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "bookflow.__version__" }
