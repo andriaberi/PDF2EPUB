@@ -1,7 +1,8 @@
+import re
 from html import escape
 
 from bookflow.cover import Cover
-from bookflow.structure import Heading, Section
+from bookflow.structure import Heading, Note, Section
 
 from .models import Metadata
 
@@ -20,6 +21,9 @@ lang="{lang}" xml:lang="{lang}">
 </body>
 </html>
 """
+
+# A note's mark as escaped in a paragraph: "ფრეილინა[1]".
+MARK = re.compile(r"\[(\d+)\]")
 
 # Between a book's sections, the sign of a new part.
 ORNAMENT = "⁂"
@@ -68,11 +72,53 @@ def section_page(section: Section, metadata: Metadata) -> str:
         parts.append(heading_html(heading))
     if division:
         parts.append(f'<p class="ornament">{ORNAMENT}</p>')
-    parts.extend(f"<p>{escape(paragraph.text)}</p>" for paragraph in section.paragraphs)
+    linked: set[str] = set()
+    parts.extend(
+        f"<p>{paragraph_html(paragraph.text, section.notes, linked)}</p>"
+        for paragraph in section.paragraphs
+    )
     parts.append("</section>")
 
     title = heading.text if heading else metadata.title
     return page(title, "\n".join(parts), metadata.language, css="../style.css")
+
+
+def paragraph_html(text: str, notes: dict[str, Note], linked: set[str]) -> str:
+    """The paragraph's text with its note marks as links to the notes.
+
+    The first link to a note on the page is where the note links back to.
+    """
+
+    def link(match: re.Match[str]) -> str:
+        note = notes.get(match.group(1))
+        if note is None:
+            return match.group(0)
+        anchor = "" if note.id in linked else f' id="ref-{note.id}"'
+        linked.add(note.id)
+        return (
+            f'<a class="noteref" epub:type="noteref" role="doc-noteref"{anchor} '
+            f'href="../notes.xhtml#{note.id}">{note.mark}</a>'
+        )
+
+    return MARK.sub(link, escape(text))
+
+
+def notes_page(notes: list[Note], sources: dict[str, str], title: str, language: str) -> str:
+    """All the book's notes, each with a link back to where the text refers to it."""
+    parts = [
+        '<section class="notes" epub:type="endnotes" role="doc-endnotes">',
+        f"<h1>{escape(title)}</h1>",
+    ]
+    for note in notes:
+        mark = escape(note.mark)
+        if note.id in sources:
+            mark = f'<a href="{sources[note.id]}#ref-{note.id}" role="doc-backlink">{mark}</a>'
+        parts.append(
+            f'<aside id="{note.id}" epub:type="endnote" role="doc-endnote">'
+            f'<p><span class="mark">{mark}</span> {escape(note.text)}</p></aside>'
+        )
+    parts.append("</section>")
+    return page(title, "\n".join(parts), language)
 
 
 def heading_html(heading: Heading) -> str:

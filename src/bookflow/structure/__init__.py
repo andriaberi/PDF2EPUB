@@ -1,4 +1,6 @@
 from .builder import build_sections
-from .models import Heading, Section
+from .contents import drop_printed_contents
+from .models import Heading, Note, Section
+from .notes import extract_notes
 
-__all__ = ["Heading", "Section", "build_sections"]
+__all__ = ["Heading", "Note", "Section", "build_sections", "drop_printed_contents", "extract_notes"]

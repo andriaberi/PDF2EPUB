@@ -8,7 +8,7 @@ from bookflow.cover import Cover, CoverError, find_cover, load_cover
 from bookflow.epub import Metadata, write_epub
 from bookflow.paragraphs import build_paragraphs
 from bookflow.pdf import ReadError, read_pdf
-from bookflow.structure import Section, build_sections
+from bookflow.structure import Section, build_sections, drop_printed_contents, extract_notes
 
 
 def run(args: Args) -> int:
@@ -28,22 +28,25 @@ def run(args: Args) -> int:
         identifier=book_identifier(pdf),
     )
 
-    paragraphs = build_paragraphs(book.pages)
-    sections = drop_title_page_reprints(build_sections(paragraphs, book.pages))
+    pages = drop_printed_contents(book.pages)
+    paragraphs = build_paragraphs(pages)
+    sections = drop_title_page_reprints(build_sections(paragraphs, pages))
     sections = drop_repeated_title(sections, metadata)
+    notes = extract_notes(sections)
 
     # The book's own cover comes first; --cover is for books without one.
     cover, source = choose_cover(find_cover(args.pdf), fallback_cover)
 
     output = Path(args.output) if args.output else pdf.with_suffix(".epub")
     try:
-        write_epub(output, sections, metadata, cover)
+        write_epub(output, sections, metadata, cover, notes)
     except OSError as e:
         print(f"bookflow: can't write {output}: {e.strerror}", file=sys.stderr)
         return 1
 
     headings = sum(1 for section in sections if section.heading)
-    print(f"Wrote {output}: {headings} headings, {len(paragraphs)} paragraphs, {source}")
+    found = f"{headings} headings, {len(paragraphs)} paragraphs, {len(notes)} notes"
+    print(f"Wrote {output}: {found}, {source}")
     return 0
 
 
@@ -71,13 +74,27 @@ def drop_title_page_reprints(sections: list[Section]) -> list[Section]:
 
 
 def drop_repeated_title(sections: list[Section], metadata: Metadata) -> list[Section]:
-    """The title page already shows the title and author; don't print them again."""
+    """The title page already shows the title and author; don't print them again.
+
+    The PDF often doesn't say what its title is, so the book's own title page goes
+    too, however it spells the title ("ალბერ კამიუ - უცხო").
+    """
     if not sections or sections[0].heading:
         return sections
     repeated = {metadata.title.casefold(), (metadata.author or "").casefold()}
     front = sections[0]
     front.paragraphs = [p for p in front.paragraphs if p.text.casefold() not in repeated]
-    return sections if front.paragraphs else sections[1:]
+    return sections if front.paragraphs and not is_title_page(front) else sections[1:]
+
+
+def is_title_page(section: Section) -> bool:
+    """A few lines on the first page, names rather than sentences: author, title."""
+    paragraphs = section.paragraphs
+    return (
+        len(paragraphs) <= TITLE_PAGE
+        and all(p.page == paragraphs[0].page for p in paragraphs)
+        and not any(p.text.endswith((".", "!", "?", "…")) for p in paragraphs)
+    )
 
 
 def book_identifier(pdf: Path) -> str:

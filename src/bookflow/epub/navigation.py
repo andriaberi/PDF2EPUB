@@ -7,6 +7,7 @@ from .pages import page
 Entry = tuple[int, Heading, str]  # level, heading, file
 
 CONTENTS = {"ka": "სარჩევი", "en": "Contents"}
+NOTES = {"ka": "შენიშვნები", "en": "Notes"}
 
 
 def entries(sections: list[Section], files: list[str]) -> list[Entry]:
@@ -22,6 +23,10 @@ def contents_title(language: str) -> str:
     return CONTENTS.get(language.split("-")[0], CONTENTS["en"])
 
 
+def notes_title(language: str) -> str:
+    return NOTES.get(language.split("-")[0], NOTES["en"])
+
+
 def nav_document(toc: list[Entry], language: str) -> str:
     """The table of contents, nested by heading level. It is also a page of the book."""
     title = contents_title(language)
@@ -32,7 +37,7 @@ def nav_document(toc: list[Entry], language: str) -> str:
         f"<h1>{escape(title)}</h1>",
     ]
     depth = 0
-    for level, heading, file in toc:
+    for index, (level, heading, file) in enumerate(toc):
         level = min(level, depth + 1)  # a level can only go one deeper than the last
         if level > depth:
             lines.append("<ol>")
@@ -40,12 +45,22 @@ def nav_document(toc: list[Entry], language: str) -> str:
             lines.append("</li>")
             for _ in range(depth - level):
                 lines.append("</ol></li>")
-        lines.append(f'<li><a href="{file}">{escape(heading.text)}</a>')
+        # A part or volume holding chapters stands out from the chapters under it.
+        group = index + 1 < len(toc) and toc[index + 1][0] > heading.level
+        lines.append(f"<li{' class="group"' if group else ''}>{contents_link(heading, file)}")
         depth = level
     for _ in range(depth):
         lines.append("</li></ol>")
     lines.append("</nav>")
     return page(title, "\n".join(lines), language)
+
+
+def contents_link(heading: Heading, file: str) -> str:
+    """ "თავი პირველი: ბატონი მირიელი", the label kept on one line."""
+    label = escape(heading.label.rstrip("."))
+    if not heading.title:
+        return f'<a href="{file}"><span class="label">{label}</span></a>'
+    return f'<a href="{file}"><span class="label">{label}:</span> {escape(heading.title)}</a>'
 
 
 def ncx_document(toc: list[Entry], title: str, identifier: str) -> str:

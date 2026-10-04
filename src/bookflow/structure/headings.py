@@ -1,70 +1,10 @@
-import re
-
+from bookflow.labels import label_level
 from bookflow.paragraphs import Paragraph
 from bookflow.paragraphs.layout import Layout
 from bookflow.pdf import Line
 
-# Division words, outermost first. Georgian: ტომი volume, ნაწილი part, წიგნი book,
-# თავი chapter.
-LABELS = {
-    "ტომი": 1,
-    "volume": 1,
-    "ნაწილი": 2,
-    "part": 2,
-    "წიგნი": 3,
-    "book": 3,
-    "თავი": 4,
-    "chapter": 4,
-}
-
-# "Chapter 12", "CHAPTER XII.", "თავი მეორე", "მესამე ნაწილი". The number is one
-# word because OCR garbles Georgian ordinals too much to spell-check them
-# ("მეეჭპვგჭსე"). Only a numeral may take a full stop, so a sentence like
-# "თავი დახარა." isn't a label.
-LABEL = re.compile(r"^(\w+)\s+(\w+|\d+\.|[IVXLCDM]+\.)$", re.IGNORECASE)
-
 # A title is a line or a few, never a paragraph of text.
 MAX_TITLE_LINES = 3
-
-
-def label_level(text: str) -> int | None:
-    """The division level of a label like "თავი მეორე", allowing one OCR misread letter."""
-    found = find_label(text)
-    return LABELS[found[1]] if found else None
-
-
-def fix_label(text: str) -> str:
-    """Spell the label word right: OCR's "თაჭი მეორე" becomes "თავი მეორე"."""
-    found = find_label(text)
-    if found is None:
-        return text
-    index, label = found
-    words = text.split()
-    word = words[index]
-    if word.isupper():
-        label = label.upper()
-    elif word[0].isupper():
-        label = label.capitalize()
-    words[index] = label
-    return " ".join(words)
-
-
-def find_label(text: str) -> tuple[int, str] | None:
-    """Which word of the line is the label word, and which label it is.
-
-    The label usually comes first ("ნაწილი მესამე") but may follow its number
-    ("მესამე ნაწილი"). Second place takes only an exact match: "მისი თავს" is text.
-    """
-    match = LABEL.match(text)
-    if not match:
-        return None
-    first, second = (word.lower() for word in match.groups())
-    for label in LABELS:
-        if len(first) == len(label) and sum(a != b for a, b in zip(first, label, strict=True)) <= 1:
-            return 0, label
-    if second in LABELS:
-        return 1, second
-    return None
 
 
 def is_short(line: Line, layout: Layout) -> bool:
@@ -83,11 +23,19 @@ def is_centred(line: Line, layout: Layout) -> bool:
     )
 
 
+def is_full_line(line: Line, layout: Layout) -> bool:
+    """A line of running text: from the left margin (or an indent) to the right edge."""
+    return line.x0 < layout.left + 2 * layout.line_height and not is_short(line, layout)
+
+
 def is_label(paragraph: Paragraph, layout: Layout) -> bool:
-    """A label alone on a short line, centred or not: books set headings either way."""
+    """A label alone on a line set any way but as running text.
+
+    Books set headings centred, flush left or right, so only a full line is ruled out.
+    """
     return (
         len(paragraph.lines) == 1
-        and is_short(paragraph.lines[0], layout)
+        and not is_full_line(paragraph.lines[0], layout)
         and label_level(paragraph.text) is not None
     )
 

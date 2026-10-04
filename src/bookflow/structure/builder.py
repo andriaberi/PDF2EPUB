@@ -1,5 +1,6 @@
 import statistics
 
+from bookflow.labels import find_label, fix_label, label_level
 from bookflow.paragraphs import Paragraph
 from bookflow.paragraphs.builder import join
 from bookflow.paragraphs.layout import Layout, is_tall, measure
@@ -7,14 +8,11 @@ from bookflow.pdf import Page
 
 from .headings import (
     MAX_TITLE_LINES,
-    find_label,
-    fix_label,
     gap_after,
     is_centred,
     is_label,
     is_short,
     is_title,
-    label_level,
 )
 from .models import Heading, Section
 

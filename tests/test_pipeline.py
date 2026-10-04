@@ -46,6 +46,13 @@ def test_front_matter_with_more_is_kept() -> None:
     assert [p.text for p in kept.paragraphs] == ["A preface."]
 
 
+def test_title_page_is_dropped_without_the_title_in_metadata() -> None:
+    metadata = Metadata(title="ucxo", author=None, language="ka", identifier="x")
+    front = Section(None, [Paragraph("ალბერ კამიუ - უცხო", 1)])
+    part = Section(Heading(1, "ნაწილი პირველი"))
+    assert drop_repeated_title([front, part], metadata) == [part]
+
+
 def test_title_page_printed_again_before_a_volume_is_dropped() -> None:
     front = Section(None, [Paragraph("ომი და მშვიდობა", 1)])
     chapter = Section(Heading(3, "თავი ოცდამეერთე"), [Paragraph("ტექსტი.", 2)])

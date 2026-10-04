@@ -16,6 +16,10 @@ SHORT = 2
 # A line this many times the usual height is set in a bigger font: a heading.
 TALL = 1.3
 
+# A line starting this many line heights right of the next one is set apart from
+# the text (centred or set right), not a paragraph's indented first line.
+SET_APART = 4
+
 # Text that stops above this share of the page height ends the page early.
 FULL_PAGE = 0.75
 
@@ -59,6 +63,11 @@ def has_gap_before(line: Line, previous: Line, layout: Layout) -> bool:
 def is_tall(line: Line, layout: Layout) -> bool:
     """Set in a bigger font than the text, as headings often are."""
     return line.height > TALL * layout.line_height
+
+
+def is_set_apart(line: Line, following: Line, layout: Layout) -> bool:
+    """Starts far right of the line after it, as a centred or right-aligned heading does."""
+    return line.x0 - following.x0 > SET_APART * layout.line_height
 
 
 def ends_page_early(line: Line, layout: Layout) -> bool:

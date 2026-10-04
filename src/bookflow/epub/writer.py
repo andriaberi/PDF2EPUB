@@ -5,11 +5,11 @@ from importlib.resources import files as package_files
 from pathlib import Path
 
 from bookflow.cover import Cover
-from bookflow.structure import Section
+from bookflow.structure import Heading, Note, Section
 
 from .models import Metadata
-from .navigation import entries, nav_document, ncx_document
-from .pages import cover_page, section_page, title_page
+from .navigation import entries, nav_document, ncx_document, notes_title
+from .pages import cover_page, notes_page, section_page, title_page
 from .style import STYLESHEET
 
 CONTAINER = """\
@@ -32,18 +32,32 @@ FONTS = [
 ]
 
 
+NOTES_FILE = "notes.xhtml"
+
+
 def write_epub(
-    path: Path, sections: list[Section], metadata: Metadata, cover: Cover | None = None
+    path: Path,
+    sections: list[Section],
+    metadata: Metadata,
+    cover: Cover | None = None,
+    notes: list[Note] | None = None,
 ) -> None:
-    """Write the book as an EPUB 3 file, one page per section, after the cover if any."""
+    """Write the book as an EPUB 3 file, one page per section, after the cover if any.
+
+    Notes, if the book has them, get a page of their own at the end.
+    """
     files = [f"text/section-{number:04}.xhtml" for number in range(1, len(sections) + 1)]
     toc = entries(sections, files)
+    if notes:
+        toc.append((1, Heading(1, notes_title(metadata.language)), NOTES_FILE))
 
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as epub:
         # The mimetype must come first and stay uncompressed.
         epub.writestr("mimetype", "application/epub+zip", compress_type=zipfile.ZIP_STORED)
         epub.writestr("META-INF/container.xml", CONTAINER)
-        epub.writestr("EPUB/content.opf", package_document(files, metadata, cover is not None))
+        epub.writestr(
+            "EPUB/content.opf", package_document(files, metadata, cover is not None, bool(notes))
+        )
         epub.writestr("EPUB/style.css", STYLESHEET)
         epub.writestr("EPUB/nav.xhtml", nav_document(toc, metadata.language))
         fonts = package_files("bookflow.epub") / "fonts"
@@ -56,9 +70,24 @@ def write_epub(
         epub.writestr("EPUB/title.xhtml", title_page(metadata))
         for section, file in zip(sections, files, strict=True):
             epub.writestr(f"EPUB/{file}", section_page(section, metadata))
+        if notes:
+            title = notes_title(metadata.language)
+            page = notes_page(notes, note_sources(sections, files), title, metadata.language)
+            epub.writestr(f"EPUB/{NOTES_FILE}", page)
 
 
-def package_document(files: list[str], metadata: Metadata, has_cover: bool) -> str:
+def note_sources(sections: list[Section], files: list[str]) -> dict[str, str]:
+    """The page each note is first referred to from, relative to the notes page."""
+    sources: dict[str, str] = {}
+    for section, file in zip(sections, files, strict=True):
+        for note in section.notes.values():
+            sources.setdefault(note.id, file)
+    return sources
+
+
+def package_document(
+    files: list[str], metadata: Metadata, has_cover: bool, has_notes: bool = False
+) -> str:
     modified = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     creator = f"<dc:creator>{escape(metadata.author)}</dc:creator>\n" if metadata.author else ""
     items = "\n".join(
@@ -80,6 +109,10 @@ def package_document(files: list[str], metadata: Metadata, has_cover: bool) -> s
         else ""
     )
     cover_spine = '<itemref idref="cover"/>\n' if has_cover else ""
+    notes_item = (
+        f'\n<item id="notes" href="{NOTES_FILE}" media-type="{XHTML}"/>' if has_notes else ""
+    )
+    notes_spine = '\n<itemref idref="notes"/>' if has_notes else ""
 
     return f"""\
 <?xml version="1.0" encoding="utf-8"?>
@@ -97,12 +130,12 @@ xml:lang="{escape(metadata.language)}">
 <item id="css" href="style.css" media-type="text/css"/>
 {cover_items}<item id="title" href="title.xhtml" media-type="{XHTML}"/>
 {fonts}
-{items}
+{items}{notes_item}
 </manifest>
 <spine toc="ncx">
 {cover_spine}<itemref idref="title"/>
 <itemref idref="nav"/>
-{spine}
+{spine}{notes_spine}
 </spine>
 </package>
 """

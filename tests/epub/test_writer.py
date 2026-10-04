@@ -6,7 +6,7 @@ from xml.etree import ElementTree
 from bookflow.cover import Cover
 from bookflow.epub import Metadata, write_epub
 from bookflow.paragraphs import Paragraph
-from bookflow.structure import Heading, Section
+from bookflow.structure import Heading, Note, Section
 
 METADATA = Metadata(title="საბრალონი", author="ვიქტორ ჰიუგო", language="ka", identifier="urn:x")
 
@@ -75,14 +75,20 @@ def test_table_of_contents_is_nested(tmp_path: Path) -> None:
 
     books = nav.findall(f".//{xhtml}nav/{xhtml}ol/{xhtml}li")
     assert [text(book.find(f"{xhtml}a")) for book in books] == [  # type: ignore[arg-type]
-        "წიგნი პირველი. კაცი მართალი",
+        "წიგნი პირველი: კაცი მართალი",
         "წიგნი მეორე",
     ]
     chapters = books[0].findall(f"{xhtml}ol/{xhtml}li/{xhtml}a")
     assert [text(chapter) for chapter in chapters] == [
-        "თავი პირველი. ბატონი მირიელი",
+        "თავი პირველი: ბატონი მირიელი",
         "თავი მეორე",
     ]
+
+
+def test_contents_marks_parts_holding_chapters(tmp_path: Path) -> None:
+    nav = written(tmp_path).read("EPUB/nav.xhtml").decode()
+    assert '<li class="group"><a href="text/section-0002.xhtml"><span class="label">' in nav
+    assert '<span class="label">თავი პირველი:</span> ბატონი მირიელი</a>' in nav
 
 
 def test_heading_without_title_shows_its_label_as_the_title(tmp_path: Path) -> None:
@@ -121,3 +127,25 @@ def test_no_cover_without_one(tmp_path: Path) -> None:
     epub = written(tmp_path)
     assert "EPUB/cover.xhtml" not in epub.namelist()
     assert "cover-image" not in epub.read("EPUB/content.opf").decode()
+
+
+def test_notes_get_a_page_and_marks_link_to_them(tmp_path: Path) -> None:
+    note = Note("note-1", "1", "ფრეილინა – მხლებელი.")
+    chapter = Section(Heading(1, "თავი პირველი"), [paragraph("ფრეილინა[1] & [2].")])
+    chapter.notes["1"] = note
+    path = tmp_path / "book.epub"
+    write_epub(path, [chapter], METADATA, notes=[note])
+    epub = zipfile.ZipFile(path)
+
+    text = epub.read("EPUB/text/section-0001.xhtml").decode()
+    assert 'id="ref-note-1" href="../notes.xhtml#note-1">1</a> &amp; [2].' in text
+    notes = epub.read("EPUB/notes.xhtml").decode()
+    assert '<aside id="note-1" epub:type="endnote"' in notes
+    assert 'href="text/section-0001.xhtml#ref-note-1"' in notes
+    minidom.parseString(notes)
+    assert '<itemref idref="notes"/>' in epub.read("EPUB/content.opf").decode()
+    assert '<a href="notes.xhtml">' in epub.read("EPUB/nav.xhtml").decode()
+
+
+def test_no_notes_page_without_notes(tmp_path: Path) -> None:
+    assert "EPUB/notes.xhtml" not in written(tmp_path).namelist()

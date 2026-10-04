@@ -11,7 +11,16 @@ class Heading:
 
     @property
     def text(self) -> str:
-        return f"{self.label}. {self.title}" if self.title else self.label
+        """ "თავი პირველი: ბატონი მირიელი", or the label alone."""
+        label = self.label.rstrip(".")
+        return f"{label}: {self.title}" if self.title else label
+
+
+@dataclass
+class Note:
+    id: str  # "note-12", the same nowhere else in the book
+    mark: str  # "12", as printed in the text: "ფრეილინა[12]"
+    text: str
 
 
 @dataclass
@@ -20,3 +29,4 @@ class Section:
 
     heading: Heading | None
     paragraphs: list[Paragraph] = field(default_factory=list)
+    notes: dict[str, Note] = field(default_factory=dict)  # the notes its marks refer to

@@ -1,9 +1,9 @@
 import pytest
 
+from bookflow.labels import fix_label, label_level
 from bookflow.paragraphs import Paragraph
 from bookflow.pdf import Line, Page
 from bookflow.structure import Heading, build_sections
-from bookflow.structure.headings import fix_label, label_level
 
 LEFT, RIGHT = 45.0, 385.0
 
