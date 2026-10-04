@@ -67,6 +67,21 @@ p {
   text-indent: 1.5em;
 }
 
+/* Verse and lists keep their lines, set in from the text, stanzas apart. A line
+   too long for the screen wraps under itself, indented, so it still reads as one. */
+div.verse {
+  margin: 0.8em 0 0.8em 1.5em;
+}
+
+div.verse p {
+  padding-left: 1.5em;
+  text-align: left;
+  text-indent: -1.5em;
+  -webkit-hyphens: none;
+  -epub-hyphens: none;
+  hyphens: none;
+}
+
 /* Headings: big, bold, centred, never hyphenated or left alone at a page end. */
 
 h1,

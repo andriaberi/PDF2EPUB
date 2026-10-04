@@ -52,6 +52,34 @@ def measure(page: Page) -> Layout:
     )
 
 
+def text_column(pages: list[Page]) -> Layout:
+    """The book's usual text column. Chapter openings are too sparse to measure alone."""
+    layouts = [measure(page) for page in pages if len(page.lines) >= 10] or [
+        measure(page) for page in pages if page.lines
+    ]
+    return Layout(
+        left=statistics.median(layout.left for layout in layouts),
+        right=statistics.median(layout.right for layout in layouts),
+        line_height=statistics.median(layout.line_height for layout in layouts),
+        gap=statistics.median(layout.gap for layout in layouts),
+        height=statistics.median(layout.height for layout in layouts),
+    )
+
+
+def fit(layout: Layout, column: Layout) -> Layout:
+    """A page's own margins, unless they are far off the book's.
+
+    A page of dialogue or verse has few full lines: its median line starts at the
+    indent and stops short, so the page would take its indent for the margin.
+    """
+    if (
+        layout.left - column.left > INDENT * column.line_height
+        or column.right - layout.right > SHORT * column.line_height
+    ):
+        return Layout(column.left, column.right, layout.line_height, layout.gap, layout.height)
+    return layout
+
+
 def is_indented(line: Line, layout: Layout) -> bool:
     return line.x0 - layout.left > INDENT * layout.line_height
 

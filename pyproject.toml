@@ -33,6 +33,10 @@ Issues = "https://github.com/andriaberi/Bookflow/issues"
 [project.scripts]
 bookflow = "bookflow.__main__:main"
 
+# A GUI script opens no console window on Windows.
+[project.gui-scripts]
+bookflow-gui = "bookflow.gui:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.3",

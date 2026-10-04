@@ -73,10 +73,13 @@ def section_page(section: Section, metadata: Metadata) -> str:
     if division:
         parts.append(f'<p class="ornament">{ORNAMENT}</p>')
     linked: set[str] = set()
-    parts.extend(
-        f"<p>{paragraph_html(paragraph.text, section.notes, linked)}</p>"
-        for paragraph in section.paragraphs
-    )
+    for paragraph in section.paragraphs:
+        if paragraph.verse:
+            # Each line as printed: a poem or a list loses its sense run together.
+            lines = (paragraph_html(line.text, section.notes, linked) for line in paragraph.lines)
+            parts.append(f'<div class="verse">{"".join(f"<p>{line}</p>" for line in lines)}</div>')
+        else:
+            parts.append(f"<p>{paragraph_html(paragraph.text, section.notes, linked)}</p>")
     parts.append("</section>")
 
     title = heading.text if heading else metadata.title

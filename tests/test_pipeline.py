@@ -8,7 +8,14 @@ from bookflow.cli.commands import Args
 from bookflow.cover import Cover
 from bookflow.epub import Metadata
 from bookflow.paragraphs import Paragraph
-from bookflow.pipeline import choose_cover, drop_repeated_title, drop_title_page_reprints, run
+from bookflow.pipeline import (
+    ConvertError,
+    choose_cover,
+    convert,
+    drop_repeated_title,
+    drop_title_page_reprints,
+    run,
+)
 from bookflow.structure import Heading, Section
 
 
@@ -30,6 +37,27 @@ def test_writes_next_to_the_pdf_by_default(make_pdf: Callable[..., str]) -> None
 def test_reports_read_errors(capsys: pytest.CaptureFixture[str]) -> None:
     assert run(Args(pdf="missing.pdf")) == 1
     assert "no such file" in capsys.readouterr().err
+
+
+def test_convert_reports_each_step(make_pdf: Callable[..., str], tmp_path: Path) -> None:
+    steps: list[str] = []
+    result = convert(
+        Args(pdf=make_pdf([["Hello world."]]), output=str(tmp_path / "out.epub")), steps.append
+    )
+    assert steps == [
+        "Reading the PDF",
+        "Finding paragraphs",
+        "Finding chapters",
+        "Writing the EPUB",
+    ]
+    assert result.output == tmp_path / "out.epub"
+    assert result.summary().startswith(f"Wrote {tmp_path / 'out.epub'}: 0 headings, 1 paragraphs")
+
+
+def test_convert_raises_instead_of_printing(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(ConvertError, match="no such file"):
+        convert(Args(pdf="missing.pdf"))
+    assert capsys.readouterr() == ("", "")
 
 
 def test_front_matter_repeating_the_title_is_dropped() -> None:

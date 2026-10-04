@@ -6,6 +6,7 @@ from xml.etree import ElementTree
 from bookflow.cover import Cover
 from bookflow.epub import Metadata, write_epub
 from bookflow.paragraphs import Paragraph
+from bookflow.pdf import Line
 from bookflow.structure import Heading, Note, Section
 
 METADATA = Metadata(title="საბრალონი", author="ვიქტორ ჰიუგო", language="ka", identifier="urn:x")
@@ -149,3 +150,12 @@ def test_notes_get_a_page_and_marks_link_to_them(tmp_path: Path) -> None:
 
 def test_no_notes_page_without_notes(tmp_path: Path) -> None:
     assert "EPUB/notes.xhtml" not in written(tmp_path).namelist()
+
+
+def test_verse_keeps_its_line_breaks(tmp_path: Path) -> None:
+    lines = [Line(text, 0, 0, 0, 0) for text in ("ერთი,", "ორი & სამი")]
+    verse = Paragraph("ერთი, ორი & სამი", 1, lines, verse=True)
+    path = tmp_path / "book.epub"
+    write_epub(path, [Section(Heading(1, "თავი პირველი"), [verse])], METADATA)
+    text = zipfile.ZipFile(path).read("EPUB/text/section-0001.xhtml").decode()
+    assert '<div class="verse"><p>ერთი,</p><p>ორი &amp; სამი</p></div>' in text

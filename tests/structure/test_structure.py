@@ -152,6 +152,18 @@ def test_flush_left_short_text_without_gap_is_not_a_title() -> None:
     assert [s.heading for s in sections] == [Heading(1, "Chapter 3")]
 
 
+def test_line_leading_into_speech_is_not_a_title() -> None:
+    # The page ends after it, so only its colon tells it from a title.
+    paragraphs = [
+        flush("თავი მერვე", 512),
+        flush("მზის სხივი ღრმა ორმოში", 524),
+        flush("მამასთან მივიდა და უთხრა:", 548, x1=250),
+    ]
+    [section] = build_sections(paragraphs, PAGES)
+    assert section.heading == Heading(1, "თავი მერვე", "მზის სხივი ღრმა ორმოში")
+    assert [p.text for p in section.paragraphs] == ["მამასთან მივიდა და უთხრა:"]
+
+
 def test_title_run_into_the_text_is_split_off() -> None:
     title_and_text = Paragraph(
         "მხიარულების მხიარული დასასრული მარტო რომ დარჩნენ",

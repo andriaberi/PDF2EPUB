@@ -1,4 +1,4 @@
-from bookflow.paragraphs import build_paragraphs
+from bookflow.paragraphs import Paragraph, build_paragraphs
 from bookflow.pdf import Line, Page
 
 LEFT = 45.0
@@ -91,3 +91,75 @@ def test_page_ending_early_ends_the_paragraph() -> None:
     first = page(1, line(300, "თბილისი — 1963", x0=170, x1=260))
     second = page(2, line(300, "ფრანგულიდან თარგმნა", x0=170, x1=260))
     assert texts([first, second]) == ["თბილისი — 1963", "ფრანგულიდან თარგმნა"]
+
+
+def full_page(number: int) -> Page:
+    """Ordinary text, so the book's column can be measured."""
+    return page(number, *(line(40 + 14 * row, "ტექსტი") for row in range(12)))
+
+
+def verse_of(paragraphs: list[Paragraph]) -> list[list[str]]:
+    return [[line.text for line in p.lines] for p in paragraphs if p.verse]
+
+
+def test_verse_keeps_its_lines() -> None:
+    p = page(
+        2,
+        line(100, "მერე ნიკოლაიმ იმღერა ჰანგი:", x1=200),
+        line(124, "В приятну ночь, при лунном свете,", x1=200),
+        line(138, "Представить счастливо себе,", x1=180),
+        line(152, "Что некто есть еще на свете,", x1=190),
+        line(166, "Кто думает и о тебе!", x1=150),
+        line(190, "ტექსტი გრძელდება და გრძელდება"),
+    )
+    paragraphs = build_paragraphs([full_page(1), p])
+    assert verse_of(paragraphs) == [
+        [
+            "В приятну ночь, при лунном свете,",
+            "Представить счастливо себе,",
+            "Что некто есть еще на свете,",
+            "Кто думает и о тебе!",
+        ]
+    ]
+    assert "მერე ნიკოლაიმ იმღერა ჰანგი:" in [p.text for p in paragraphs]
+
+
+def test_wider_gap_parts_stanzas() -> None:
+    lines = ["ერთი,", "ორი,", "სამი,", "ოთხი"]
+    p = page(
+        2,
+        *(line(100 + 14 * row, text, x1=150) for row, text in enumerate(lines)),
+        *(line(180 + 14 * row, text, x1=150) for row, text in enumerate(lines)),
+    )
+    assert verse_of(build_paragraphs([full_page(1), p])) == [lines, lines]
+
+
+def test_short_sentences_are_not_verse() -> None:
+    lines = ["მეორედ დააკაკუნა.", "ხმა შემოესმა.", "არავინაა.", "მესამედ დააკაკუნა."]
+    p = page(2, *(line(100 + 14 * row, text, INDENT, 200) for row, text in enumerate(lines)))
+    paragraphs = build_paragraphs([full_page(1), p])
+    assert verse_of(paragraphs) == []
+    assert [p.text for p in paragraphs[1:]] == lines
+
+
+def test_dialogue_is_not_verse() -> None:
+    lines = ["- ერთი,", "- ორი,", "- სამი,", "- ოთხი"]
+    p = page(2, *(line(100 + 14 * row, text, INDENT, 150) for row, text in enumerate(lines)))
+    assert verse_of(build_paragraphs([full_page(1), p])) == []
+
+
+def test_page_of_short_lines_keeps_the_books_margins() -> None:
+    # Measured alone, this page would take the indent for its margin and miss it.
+    p = page(
+        2,
+        line(100, "ხელი მოაწერინა:", INDENT, 200),
+        line(112, "„ბატონო ტენარდიე,", INDENT, 150),
+        line(124, "ჩააბარეთ ჩემი კოზეტი.", INDENT, 200),
+        line(136, "ფანტინი“.", INDENT, 120),
+    )
+    assert texts([full_page(1), p])[1:] == [
+        "ხელი მოაწერინა:",
+        "„ბატონო ტენარდიე,",
+        "ჩააბარეთ ჩემი კოზეტი.",
+        "ფანტინი“.",
+    ]

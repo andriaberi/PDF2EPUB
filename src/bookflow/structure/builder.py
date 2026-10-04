@@ -1,9 +1,7 @@
-import statistics
-
 from bookflow.labels import find_label, fix_label, label_level
 from bookflow.paragraphs import Paragraph
 from bookflow.paragraphs.builder import join
-from bookflow.paragraphs.layout import Layout, is_tall, measure
+from bookflow.paragraphs.layout import Layout, is_tall, text_column
 from bookflow.pdf import Page
 
 from .headings import (
@@ -58,20 +56,6 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
     return sections
 
 
-def text_column(pages: list[Page]) -> Layout:
-    """The book's usual text column. Chapter openings are too sparse to measure alone."""
-    layouts = [measure(page) for page in pages if len(page.lines) >= 10] or [
-        measure(page) for page in pages if page.lines
-    ]
-    return Layout(
-        left=statistics.median(layout.left for layout in layouts),
-        right=statistics.median(layout.right for layout in layouts),
-        line_height=statistics.median(layout.line_height for layout in layouts),
-        gap=statistics.median(layout.gap for layout in layouts),
-        height=statistics.median(layout.height for layout in layouts),
-    )
-
-
 def is_set_off(title: list[Paragraph], following: list[Paragraph], column: Layout) -> bool:
     centred = all(is_centred(line, column) for part in title for line in part.lines)
     return centred or gap_after(title[-1], following[0] if following else None, column)
@@ -94,8 +78,10 @@ def split_title(paragraph: Paragraph, column: Layout) -> tuple[str, Paragraph] |
 
 def is_title_part(paragraph: Paragraph, title: list[Paragraph], column: Layout, tall: bool) -> bool:
     lines = sum(len(part.lines) for part in title) + len(paragraph.lines)
+    # "…ხელზე და უთხრა:" leads into speech; a title never does.
     return (
         lines <= MAX_TITLE_LINES
+        and not paragraph.text.endswith(":")
         and (not tall or all(is_tall(line, column) for line in paragraph.lines))
         and is_title(paragraph, column)
         and not is_label(paragraph, column)

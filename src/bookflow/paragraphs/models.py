@@ -8,3 +8,4 @@ class Paragraph:
     text: str
     page: int  # the page it starts on
     lines: list[Line] = field(default_factory=list)  # kept for heading detection
+    verse: bool = False  # keeps its line breaks: a poem, a list

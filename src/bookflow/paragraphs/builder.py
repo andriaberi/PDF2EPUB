@@ -4,31 +4,47 @@ from .layout import (
     Layout,
     ends_page_early,
     ends_paragraph,
+    fit,
     has_gap_before,
     is_indented,
     is_set_apart,
     is_tall,
     measure,
+    text_column,
 )
 from .models import Paragraph
+from .verse import find_verse
 
 
 def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
     """Join the lines of all pages into paragraphs, across page breaks too."""
     paragraphs: list[Paragraph] = []
     previous: tuple[Line, Layout] | None = None
+    if not any(page.lines for page in pages):
+        return paragraphs
+    column = text_column(pages)
 
     for page in pages:
         if not page.lines:
             continue
-        layout = measure(page)
+        layout = fit(measure(page), column)
+        verse = find_verse(page.lines, layout)
         for index, line in enumerate(page.lines):
             above = page.lines[index - 1] if index else None
-            if not paragraphs or starts_paragraph(line, above, layout, previous):
-                paragraphs.append(Paragraph(line.text, page.number, [line]))
+            if index in verse:
+                # Verse goes on line by line until a stanza ends; text never joins it.
+                starts = verse[index] or not paragraphs or not paragraphs[-1].verse
+            else:
+                starts = (
+                    not paragraphs
+                    or paragraphs[-1].verse
+                    or starts_paragraph(line, above, layout, previous)
+                )
+            if starts:
+                paragraphs.append(Paragraph(line.text, page.number, [line], index in verse))
             else:
                 last = paragraphs[-1]
-                last.text = join(last.text, line.text)
+                last.text = f"{last.text} {line.text}" if last.verse else join(last.text, line.text)
                 last.lines.append(line)
             previous = (line, layout)
 
