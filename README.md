@@ -82,11 +82,14 @@ bookflow ucxo.pdf --title "უცხო" --author "ალბერ კამი�
 ## What Bookflow does with a book
 
 - **Cleans the text.** Page numbers, running headers and footers, OCR specks and
-  dashes misread as two, words broken at line ends, ligatures.
+  dashes misread as two, words broken at line ends, ligatures. It puts back the spaces
+  in PDFs that set words apart by position alone.
 - **Rebuilds paragraphs** from indents, gaps and short last lines, across page breaks.
 - **Finds the book's divisions.** These are volumes, parts, books and chapters, with
   their titles: "ნაწილი პირველი", "თავი მეორე: ...", "Chapter 3", or chapters numbered
-  "I", "II", ... Headings may be centred, flush left, flush right or in a bigger font.
+  "I", "II", ... Forewords, prologues and epilogues get headings too. Headings may be
+  centred, flush left, flush right or in a bigger font, with the title below the label
+  or on the same line.
 - **Builds the table of contents** from those headings and drops the printed one.
 - **Drops the printed title page** and other front matter before the first heading,
   since the EPUB has its own title page.
@@ -102,9 +105,9 @@ bookflow ucxo.pdf --title "უცხო" --author "ალბერ კამი�
 
 - **Scanned PDFs need a text layer.** Bookflow reads text and doesn't do OCR itself.
   Run `ocrmypdf` first.
-- **Headings need a label word or a number.** A heading is a word like თავი, ნაწილი,
-  Chapter or Part plus one number word, or a chapter number alone ("XII", "7.").
-  Sections such as Prologue or ეპილოგი stay as text.
+- **Headings need a label word, a number or a section name.** A heading is a word like
+  თავი, ნაწილი, Chapter or Part plus one number word, a chapter number alone ("XII",
+  "7."), or a named section such as წინათქმა, ეპილოგი, Preface or Epilogue.
 - **Footnotes at the foot of a page are removed, not linked.** Only notes collected in
   a notes section are linked.
 - **Verse needs at least four lines.** Shorter verse, such as couplets, reads as text.

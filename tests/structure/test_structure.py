@@ -368,3 +368,9 @@ def test_named_section_is_a_heading_at_the_outermost_level() -> None:
         Heading(1, "ნაწილი პირველი"),
         Heading(2, "თავი პირველი"),
     ]
+
+
+def test_title_in_capitals_may_fill_the_line() -> None:
+    title = "SOLUS CUM SOLO, IN LOCO REMOTO, NON COGITABUNTUR ORARE PATER NOSTER"
+    paragraphs = [flush("თავი მეცამეტე", 100), text(title, 112), text("ფიქრს გაეტაცა.", 150)]
+    assert headings(paragraphs) == [Heading(1, "თავი მეცამეტე", title)]

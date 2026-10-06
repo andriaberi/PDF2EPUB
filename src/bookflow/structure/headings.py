@@ -57,10 +57,12 @@ def run_in_label(paragraph: Paragraph, layout: Layout) -> tuple[str, str] | None
 
 
 def is_title(paragraph: Paragraph, layout: Layout) -> bool:
-    """A line or a few, each centred or short: never a run of full lines of text."""
-    return len(paragraph.lines) <= MAX_TITLE_LINES and all(
-        is_centred(line, layout) or is_short(line, layout) for line in paragraph.lines
-    )
+    """A line or a few, each centred or short, or all in capitals: never running text."""
+    if len(paragraph.lines) > MAX_TITLE_LINES:
+        return False
+    if paragraph.text.isupper():
+        return True
+    return all(is_centred(line, layout) or is_short(line, layout) for line in paragraph.lines)
 
 
 def gap_after(paragraph: Paragraph, following: Paragraph | None, layout: Layout) -> bool:

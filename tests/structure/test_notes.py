@@ -45,3 +45,16 @@ def test_marks_without_a_notes_title_stay_text() -> None:
     chapter = section("[1] ტექსტი, არა შენიშვნა.")
     assert extract_notes([chapter]) == []
     assert chapter.paragraphs[0].text == "[1] ტექსტი, არა შენიშვნა."
+
+
+def test_notes_without_a_title_are_known_by_their_numbers() -> None:
+    chapter = section("tesoro,[1] coterie[2] და bébé.[3]", "[1] (იტალ.) ჩემო საუნჯევ.")
+    chapter.paragraphs += [Paragraph("[2] (ფრანგ.) პარტია.", 1), Paragraph("[3] ბავშვი.", 1)]
+    notes = extract_notes([chapter])
+    assert [note.text for note in notes] == ["(იტალ.) ჩემო საუნჯევ.", "(ფრანგ.) პარტია.", "ბავშვი."]
+    assert [p.text for p in chapter.paragraphs] == ["tesoro,[1] coterie[2] და bébé.[3]"]
+
+
+def test_a_few_numbered_paragraphs_are_not_notes() -> None:
+    chapter = section("ტექსტი.", "[1] პირველი.", "[3] მესამე.", "[4] მეოთხე.")
+    assert extract_notes([chapter]) == []

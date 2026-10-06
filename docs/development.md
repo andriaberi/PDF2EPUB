@@ -34,7 +34,7 @@ src/bookflow/
                    page can call, form.py checks the fields, web/ is the page itself
   pipeline.py      runs the stages (convert) and reports the result
   labels.py        division words: ტომი, ნაწილი, წიგნი, თავი, Volume, Part, ...
-  pdf/             PDF → pages of clean lines (reader, text, noise, language)
+  pdf/             PDF → pages of clean lines (reader, spacing, text, noise, language)
   paragraphs/      lines → paragraphs (layout rules, verse)
   structure/       paragraphs → sections (headings, front matter, printed contents,
                    notes)
@@ -81,6 +81,9 @@ both `paragraphs` (verse must not swallow a heading) and `structure` need the la
 **A new division word** (e.g. "Section"): add it to `LABELS` in `labels.py` with its
 level. Label words must be lower case. Add cases to `test_label_level` in
 `tests/structure/test_structure.py`.
+
+**A new section name** (e.g. "Interlude"): add it to `SECTION_NAMES` in `labels.py`, in
+lower case.
 
 **A new notes or contents title**: add it to `TITLES` in `structure/notes.py` or
 `structure/contents.py`, in lower case.

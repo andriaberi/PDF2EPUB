@@ -15,6 +15,10 @@ MARK = re.compile(r"\[(\d+)\]")
 # Some PDFs keep a stray superscript after the mark: "[24]1 საამო ღამეს".
 NOTE_START = re.compile(r"(?:^|(?<=\s))\[(\d+)\]\d*\s+")
 
+# Notes without a title are known by their numbers: at least this many paragraphs in
+# a row starting "[1] ", "[2] ", "[3] ".
+MIN_UNTITLED_NOTES = 3
+
 
 def extract_notes(sections: list[Section]) -> list[Note]:
     """Take the notes out of the text and link the marks in the text to them.
@@ -27,11 +31,11 @@ def extract_notes(sections: list[Section]) -> list[Note]:
     for section in sections:
         waiting.append(section)
         while (block := find_block(section.paragraphs)) is not None:
-            start, end = block
+            start, first, end = block
             found = {
                 mark: Note(f"note-{len(notes) + number}", mark, text)
                 for number, (mark, text) in enumerate(
-                    split_notes(section.paragraphs[start + 1 : end]), start=1
+                    split_notes(section.paragraphs[first:end]), start=1
                 )
             }
             notes.extend(found.values())
@@ -42,23 +46,36 @@ def extract_notes(sections: list[Section]) -> list[Note]:
     return notes
 
 
-def find_block(paragraphs: list[Paragraph]) -> tuple[int, int] | None:
-    """Where a notes title and the notes under it are: [start, end).
+def find_block(paragraphs: list[Paragraph]) -> tuple[int, int, int] | None:
+    """Where a block of notes is, with its title if it has one: [start, end), the
+    notes themselves from `first` on.
 
     A long note may go on in a paragraph of its own, so the notes reach the last
     paragraph that starts one.
     """
-    for index, paragraph in enumerate(paragraphs[:-1]):
-        if paragraph.text.strip().casefold() in TITLES and NOTE_START.match(
-            paragraphs[index + 1].text
-        ):
-            starts = [
-                number
-                for number in range(index + 1, len(paragraphs))
-                if NOTE_START.match(paragraphs[number].text)
-            ]
-            return index, starts[-1] + 1
+    for index, paragraph in enumerate(paragraphs):
+        titled = (
+            paragraph.text.strip().casefold() in TITLES
+            and index + 1 < len(paragraphs)
+            and NOTE_START.match(paragraphs[index + 1].text) is not None
+        )
+        if not titled and not starts_numbered_notes(paragraphs[index:]):
+            continue
+        first = index + 1 if titled else index
+        starts = [
+            number
+            for number in range(first, len(paragraphs))
+            if NOTE_START.match(paragraphs[number].text)
+        ]
+        return index, first, starts[-1] + 1
     return None
+
+
+def starts_numbered_notes(paragraphs: list[Paragraph]) -> bool:
+    """Notes printed without a title: "[1] ...", "[2] ...", "[3] ..." one under another."""
+    wanted = [str(number) for number in range(1, MIN_UNTITLED_NOTES + 1)]
+    marks = [NOTE_START.match(p.text) for p in paragraphs[:MIN_UNTITLED_NOTES]]
+    return [match.group(1) if match else None for match in marks] == wanted
 
 
 def split_notes(paragraphs: list[Paragraph]) -> list[tuple[str, str]]:

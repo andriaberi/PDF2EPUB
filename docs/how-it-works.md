@@ -25,6 +25,16 @@ a list of `Page`s, each a list of `Line`s with their text and position.
 
 - **Lines.** PyMuPDF can split one printed line into several pieces. Pieces on the same
   row are joined left to right (`merge_rows`).
+- **Missing spaces** (`spacing.py`). Some PDFs place every word where it belongs but
+  leave out the spaces, and their font widths are wrong, so no gap shows between the
+  letters either. When less than 5% of a book's characters are spaces (text normally
+  has about 14%), Bookflow reads each letter's position instead:
+  - Inside a word a letter always moves the next one along by the same amount, its
+    width. The most common distance after each letter in the book is that width.
+  - Where a letter moves the next one more than 0.15 font sizes further than its width,
+    a new word starts. A real space is about 0.25.
+  - A letter right after a comma, full stop or other closing punctuation starts a new
+    word too.
 - **Text cleaning** (`text.py`) is done line by line:
   - Unicode NFC, with ligatures (`ﬁ`) spelled out and invisible characters removed.
   - Runs of dashes that OCR made from one ("–-") become one em dash.
@@ -35,7 +45,10 @@ a list of `Page`s, each a list of `Line`s with their text and position.
     or with more broken words than real ones.
   - **Page numbers:** short lines with no word, in the top or bottom 12% of the page.
   - **Running headers and footers:** edge lines whose words repeat on 3 or more pages.
-    Digits are ignored, so "Chapter 3 · 41" and "Chapter 3 · 42" match.
+    Digits are ignored, so "Chapter 3 · 41" and "Chapter 3 · 42" match. A chapter
+    label at the top or foot of a page repeats too, since every book of a novel has
+    its "თავი მესამე", so a label counts as a header only when it is on the edge of
+    two pages in a row.
   - **Glued page numbers:** OCR sometimes puts the page number on the line next to it.
     These are found once the printed numbers' offset from the PDF's page numbers is known.
   - **Footnotes:** a block of at most 6 lines at the foot of the page, below a wide gap,
@@ -71,13 +84,16 @@ wins:
 
 1. The line above ends in a broken word: **never a new paragraph**.
 2. Either this line or the one above is tall (more than 1.3× the usual height): a heading.
-3. The line above starts more than 4 line heights to the right of this one. It was
+   So is a chapter number alone on its line, "XII" or "7.".
+3. The line above is a short line reading as a heading: a label ("თავი მეორე"), a label
+   with its title, or a section name ("წინათქმა"). Some books leave no gap after one.
+4. The line above starts more than 4 line heights to the right of this one. It was
    centred or flush right, like a heading.
-4. The line is indented by more than 0.8 line heights.
-5. There is a gap above it wider than the usual gap plus 0.8 line heights.
-6. It is the first line of a page, and the last page's text stopped above 75% of the
+5. The line is indented by more than 0.8 line heights.
+6. There is a gap above it wider than the usual gap plus 0.8 line heights.
+7. It is the first line of a page, and the last page's text stopped above 75% of the
    page height (a chapter end).
-7. The line above ends a sentence and stops more than 2 line heights short of the
+8. The line above ends a sentence and stops more than 2 line heights short of the
    right edge.
 
 Words broken at a line end are rejoined ("დარჩე-" + "ნია" → "დარჩენია").
@@ -133,6 +149,21 @@ A **label** is a division word plus one number word, alone on its line
 - The label word is put in the same place throughout the contents, whichever order
   most of the book uses.
 
+### Label and title on one line
+
+Some books print the title on the label's line: "თავი მეშვიდე გასეირნება სანაპიროზე",
+"თავი მეექვსე - FONTIS". Such a line is a heading if it is short, starts with a label
+word spelled exactly, then a number (a numeral, a Georgian ordinal such as მეშვიდე, or
+an English number word), and doesn't end a sentence. A dash between label and title is
+dropped. A label followed by a dash alone takes its title from the next line.
+
+### Named sections
+
+A section name alone on a short line is a heading without a number: წინათქმა,
+წინასიტყვაობა, შესავალი, პროლოგი, ეპილოგი, ბოლოთქმა, Foreword, Preface, Introduction,
+Prologue, Epilogue, Afterword. It takes the outermost level the book uses, so a
+foreword stands beside the parts, or beside the chapters in a book without parts.
+
 ### Numbered chapters
 
 A chapter number alone on its line, "XII" or "7." (Roman numerals in capitals only),
@@ -154,7 +185,7 @@ that runs from the margin to the right edge rules a label out.
 The paragraphs after a label are its **title** if they:
 
 - are at most 3 lines in all,
-- are each centred or short,
+- are each centred or short, or written all in capitals,
 - are on the same page as the label,
 - don't end with a colon, which leads into speech, and
 - are set off from the text after them, either by being centred or by a gap.
