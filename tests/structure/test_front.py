@@ -4,6 +4,7 @@ from bookflow.structure.front import (
     drop_repeated_title,
     drop_text_before_first_heading,
     drop_title_page_reprints,
+    title_page_spelling,
 )
 
 
@@ -60,3 +61,33 @@ def test_title_page_printed_again_before_a_volume_is_dropped() -> None:
     volume = Section(Heading(1, "ტომი II"))
     drop_title_page_reprints([front, chapter, volume])
     assert [p.text for p in chapter.paragraphs] == ["ტექსტი."]
+
+
+def test_title_page_reprinted_for_the_next_volume_is_dropped() -> None:
+    front = Section(
+        None,
+        [
+            Paragraph("ლევ ტოლსტოი", 1),
+            Paragraph("ანა კარენინა (ტომი I)", 1),
+            Paragraph("თარგმანი", 1),
+            Paragraph("ჩემი არს შურისგება, და მე მივაგო.", 1),
+        ],
+    )
+    chapter = Section(Heading(2, "XXIII"), [Paragraph("ტექსტი.", 2)])
+    chapter.paragraphs += [Paragraph(text, 3) for text in ("ლევ ტოლსტოი", "ანა კარენინა (ტომი II)")]
+    drop_title_page_reprints([front, chapter])
+    assert [p.text for p in chapter.paragraphs] == ["ტექსტი."]
+
+
+def test_metadata_in_latin_is_spelled_as_the_title_page_does() -> None:
+    front = Section(None, [Paragraph("ლევ ტოლსტოი", 1), Paragraph("ანა კარენინა (ტომი I)", 1)])
+    sections = [front, Section(Heading(1, "ნაწილი პირველი"))]
+    assert title_page_spelling(sections, "Ana karenina II", "Leo Tolstoy") == (
+        "ანა კარენინა",
+        "ლევ ტოლსტოი",
+    )
+
+
+def test_metadata_without_a_matching_line_is_kept() -> None:
+    sections = [Section(None, [Paragraph("ალბერ კამიუ - უცხო", 1)])]
+    assert title_page_spelling(sections, "Henry V", None) == ("Henry V", None)

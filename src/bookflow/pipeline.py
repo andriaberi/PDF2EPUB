@@ -15,6 +15,7 @@ from bookflow.structure import (
     drop_front_matter,
     drop_printed_contents,
     extract_notes,
+    title_page_spelling,
 )
 
 
@@ -56,19 +57,20 @@ def convert(args: Args, progress: Callable[[str], None] = lambda step: None) -> 
     except (CoverError, ReadError, ValueError) as e:
         raise ConvertError(str(e)) from None
 
-    pdf = Path(args.pdf)
-    metadata = Metadata(
-        title=args.title or book.title or pdf.stem,
-        author=args.author or book.author,
-        language=args.language or book.language or "und",
-        identifier=book_identifier(pdf),
-    )
-
     progress("Finding paragraphs")
     pages = drop_printed_contents(book.pages)
     paragraphs = build_paragraphs(pages)
     progress("Finding chapters")
     sections = build_sections(paragraphs, pages)
+
+    pdf = Path(args.pdf)
+    title, author = title_page_spelling(sections, book.title, book.author)
+    metadata = Metadata(
+        title=args.title or title or pdf.stem,
+        author=args.author or author,
+        language=args.language or book.language or "und",
+        identifier=book_identifier(pdf),
+    )
     sections = drop_front_matter(sections, metadata.title, metadata.author)
     notes = extract_notes(sections)
 

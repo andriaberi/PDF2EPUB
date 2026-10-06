@@ -66,7 +66,7 @@ Options work the same as the window's fields:
 |---|---|
 | `-o`, `--output PATH` | Where to write the EPUB. Default: next to the PDF, with `.epub`. |
 | `--pages SPEC` | Convert only some pages, 1-based: `1-3,7,10-12`. |
-| `--title TEXT` | The book's title. Default: the PDF's metadata, else the file name. |
+| `--title TEXT` | The book's title. Default: the PDF's metadata (spelled as the book's title page spells it), else the file name. |
 | `--author TEXT` | The book's author. Default: the PDF's metadata. |
 | `--language CODE` | The book's language, such as `ka` or `en`. Default: the PDF's own language tag, else detected from the text. |
 | `--cover IMAGE` | A cover image (JPEG, PNG, ...) for books whose PDF has no cover. A PDF that has one keeps its own. |
@@ -93,8 +93,9 @@ bookflow ucxo.pdf --title "უცხო" --author "ალბერ კამი�
 - **Builds the table of contents** from those headings and drops the printed one.
 - **Drops the printed title page** and other front matter before the first heading,
   since the EPUB has its own title page.
-- **Links notes.** A notes section ("შენიშვნები", "Notes") with `[1] ...` entries
-  becomes a notes page, and each mark in the text links to its note and back.
+- **Links notes.** A notes section ("შენიშვნები", "Notes", or just a list numbered
+  `[1] ...`, `[2] ...`) becomes a notes page, and each mark in the text links to its
+  note and back.
 - **Keeps verse and lists line by line**, with stanzas apart.
 - **Uses the PDF's cover** when its first page is a picture, or the `--cover` image.
 - **Embeds fonts** (Noto Serif, Noto Serif Georgian) so every reader shows the same type.

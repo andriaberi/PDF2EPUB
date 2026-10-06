@@ -50,6 +50,11 @@ def test_keeps_numbers_in_the_body() -> None:
     assert [line.text for line in result.lines] == ["Some text here.", "1815", "More."]
 
 
+@pytest.mark.parametrize("text", ["ეს ფასტი.[2]", "à კიტის.[40]", "Lady“.[54]"])
+def test_a_note_mark_doesnt_make_a_line_junk(text: str) -> None:
+    assert not is_junk(text)
+
+
 def test_removes_running_headers() -> None:
     pages = [page(n, (20, f"Les Misérables {n}"), (100, f"Text {n}.")) for n in range(1, 5)]
     assert [[line.text for line in p.lines] for p in remove_noise(pages)] == [

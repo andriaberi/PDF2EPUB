@@ -25,6 +25,9 @@ CHAPTER_NUMBER = re.compile(r"^[IVXLCDM]+\.?$")
 NUMBER = re.compile(r"^[\d.,:;/()\[\]–—-]+$")
 SEPARATOR = re.compile(r"^[*⁂•·~=_—–\- ]+$")
 
+# A note's mark glued to a word, "ფასტი.[2]": the word is still a word.
+NOTE_MARK = re.compile(r"\[\d+\]")
+
 # Footnotes sit in the bottom part of the page, below a gap wider than this many
 # ordinary line gaps (or half a line), and take up at most this many lines.
 FOOTNOTE_AREA = 0.6
@@ -80,6 +83,7 @@ def drop_junk(lines: list[Line]) -> list[Line]:
 def is_junk(text: str) -> bool:
     if SEPARATOR.match(text) or NUMBER.match(text) or ROMAN.match(text):
         return False
+    text = NOTE_MARK.sub("", text)
 
     good = bad = 0
     for token in text.split():

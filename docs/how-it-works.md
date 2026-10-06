@@ -202,7 +202,13 @@ short first line is split off as the title.
   a sentence, is the book's own title page. It is dropped because the EPUB
   makes its own. Lines repeating the title or author are dropped too.
 - **Title page reprints:** a title page printed again before a later volume is
-  removed from the end of the section before it.
+  removed from the end of the section before it. It may name its own volume,
+  "(ტომი II)" where the first said "(ტომი I)", and the first title page may have up
+  to 6 lines, with an epigraph or the translators.
+- **Title and author:** a Georgian book's metadata is often in Latin letters ("Leo
+  Tolstoy"). When a line of the book's title page reads the same in Latin letters
+  ("ლევ ტოლსტოი" → "lev tolstoi"), that line is used instead, without a volume note
+  in brackets.
 - **Other front matter:** what is left before the first heading (credits, an epigraph,
   a translator's note) is dropped too, unless it is more than a tenth of the book. That
   much text is the book itself, its first headings missed. A book without headings
@@ -213,7 +219,8 @@ These rules are in `structure/front.py`.
 ## 5. Notes (`structure/notes.py`)
 
 A notes section is a paragraph reading შენიშვნები, Notes or Endnotes, followed by
-paragraphs starting with a mark: `[12] ფრეილინა – ...`.
+paragraphs starting with a mark: `[12] ფრეილინა – ...`. Without a title, at least three
+paragraphs in a row starting `[1] `, `[2] `, `[3] ` are notes too.
 
 - **Where it ends:** the section runs to the last paragraph that starts with a mark.
   Paragraphs in between belong to the note before them, since long notes go on.
