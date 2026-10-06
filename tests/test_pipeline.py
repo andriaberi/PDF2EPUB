@@ -6,18 +6,12 @@ import pytest
 
 from bookflow.cli.commands import Args
 from bookflow.cover import Cover
-from bookflow.epub import Metadata
-from bookflow.paragraphs import Paragraph
 from bookflow.pipeline import (
     ConvertError,
     choose_cover,
     convert,
-    drop_front_matter,
-    drop_repeated_title,
-    drop_title_page_reprints,
     run,
 )
-from bookflow.structure import Heading, Section
 
 
 def test_writes_an_epub(
@@ -61,61 +55,6 @@ def test_convert_raises_instead_of_printing(capsys: pytest.CaptureFixture[str]) 
     assert capsys.readouterr() == ("", "")
 
 
-def test_front_matter_repeating_the_title_is_dropped() -> None:
-    metadata = Metadata(title="Les Misérables", author="Victor Hugo", language="en", identifier="x")
-    front = Section(None, [Paragraph("Victor Hugo", 1), Paragraph("LES MISÉRABLES", 1)])
-    chapter = Section(Heading(1, "Chapter 1"), [Paragraph("Text.", 2)])
-    assert drop_repeated_title([front, chapter], metadata) == [chapter]
-
-
-def test_front_matter_with_more_is_kept() -> None:
-    metadata = Metadata(title="Les Misérables", author=None, language="en", identifier="x")
-    front = Section(None, [Paragraph("Les Misérables", 1), Paragraph("A preface.", 1)])
-    [kept] = drop_repeated_title([front], metadata)
-    assert [p.text for p in kept.paragraphs] == ["A preface."]
-
-
-def test_title_page_is_dropped_without_the_title_in_metadata() -> None:
-    metadata = Metadata(title="ucxo", author=None, language="ka", identifier="x")
-    front = Section(None, [Paragraph("ალბერ კამიუ - უცხო", 1)])
-    part = Section(Heading(1, "ნაწილი პირველი"))
-    assert drop_repeated_title([front, part], metadata) == [part]
-
-
-def test_text_before_the_first_heading_is_dropped() -> None:
-    front = Section(
-        None,
-        [
-            Paragraph("ლევ ტოლსტოი", 1),
-            Paragraph("ლარისა ტიტვინიძისა და თამარ საყვარელიძის თარგმანი", 1),
-            Paragraph("ჩემი არს შურისგება, და მე მივაგო.", 1),
-        ],
-    )
-    part = Section(Heading(1, "ნაწილი პირველი"), [Paragraph(f"ტექსტი {n}.", 2) for n in range(40)])
-    assert drop_front_matter([front, part]) == [part]
-
-
-def test_a_book_without_headings_keeps_its_text() -> None:
-    only = Section(None, [Paragraph("ტექსტი.", 1)])
-    assert drop_front_matter([only]) == [only]
-
-
-def test_long_text_before_the_first_heading_is_kept() -> None:
-    # A tenth of the book or more: the first chapters, their headings missed.
-    front = Section(None, [Paragraph(f"ტექსტი {n}.", 1) for n in range(20)])
-    chapter = Section(Heading(1, "თავი მეორე"), [Paragraph(f"ტექსტი {n}.", 9) for n in range(40)])
-    assert drop_front_matter([front, chapter]) == [front, chapter]
-
-
-def test_title_page_printed_again_before_a_volume_is_dropped() -> None:
-    front = Section(None, [Paragraph("ომი და მშვიდობა", 1)])
-    chapter = Section(Heading(3, "თავი ოცდამეერთე"), [Paragraph("ტექსტი.", 2)])
-    chapter.paragraphs.append(Paragraph("ომი და მშვიდობა", 3))
-    volume = Section(Heading(1, "ტომი II"))
-    drop_title_page_reprints([front, chapter, volume])
-    assert [p.text for p in chapter.paragraphs] == ["ტექსტი."]
-
-
 OWN = Cover(b"own", 1, 1)
 GIVEN = Cover(b"given", 1, 1)
 
@@ -139,7 +78,7 @@ def test_cover_flag_is_used_without_a_cover_in_the_pdf(
     pymupdf.open().new_page().get_pixmap().save(image)
     output = tmp_path / "out.epub"
     assert run(Args(pdf=make_pdf([["Hello."]]), cover=str(image), output=str(output))) == 0
-    assert "cover from --cover" in capsys.readouterr().out
+    assert "cover from the given image" in capsys.readouterr().out
     assert "EPUB/images/cover.jpg" in zipfile.ZipFile(output).namelist()
 
 

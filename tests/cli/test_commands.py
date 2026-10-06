@@ -1,35 +1,30 @@
-import sys
-
 import pytest
 
-from bookflow.cli.commands import Args, extract_args
+from bookflow import __version__
+from bookflow.cli.commands import Args, parse_args
 
 
-def parse(monkeypatch: pytest.MonkeyPatch, *argv: str) -> Args:
-    monkeypatch.setattr(sys, "argv", ["bookflow", *argv])
-    return extract_args()
+def test_pdf_only() -> None:
+    assert parse_args(["book.pdf"]) == Args(pdf="book.pdf")
 
 
-def test_pdf_only(monkeypatch: pytest.MonkeyPatch) -> None:
-    assert parse(monkeypatch, "book.pdf") == Args(pdf="book.pdf")
-
-
-def test_all_options(monkeypatch: pytest.MonkeyPatch) -> None:
-    args = parse(
-        monkeypatch,
-        "book.pdf",
-        "--pages",
-        "1-20",
-        "--title",
-        "Title",
-        "--author",
-        "Author",
-        "--language",
-        "ka",
-        "--output",
-        "out.epub",
-        "--cover",
-        "cover.jpg",
+def test_all_options() -> None:
+    args = parse_args(
+        [
+            "book.pdf",
+            "--pages",
+            "1-20",
+            "--title",
+            "Title",
+            "--author",
+            "Author",
+            "--language",
+            "ka",
+            "--output",
+            "out.epub",
+            "--cover",
+            "cover.jpg",
+        ]
     )
     assert args == Args(
         pdf="book.pdf",
@@ -42,7 +37,14 @@ def test_all_options(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-def test_missing_pdf_exits(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_missing_pdf_exits() -> None:
     with pytest.raises(SystemExit) as exc:
-        parse(monkeypatch)
+        parse_args([])
     assert exc.value.code == 2
+
+
+def test_version(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        parse_args(["--version"])
+    assert exc.value.code == 0
+    assert capsys.readouterr().out == f"bookflow {__version__}\n"

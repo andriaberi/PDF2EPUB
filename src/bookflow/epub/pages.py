@@ -3,6 +3,7 @@ from html import escape
 
 from bookflow.cover import Cover
 from bookflow.structure import Heading, Note, Section
+from bookflow.structure.notes import MARK
 
 from .models import Metadata
 
@@ -21,9 +22,6 @@ lang="{lang}" xml:lang="{lang}">
 </body>
 </html>
 """
-
-# A note's mark as escaped in a paragraph: "ფრეილინა[1]".
-MARK = re.compile(r"\[(\d+)\]")
 
 # Between a book's sections, the sign of a new part.
 ORNAMENT = "⁂"

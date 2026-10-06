@@ -1,6 +1,6 @@
 import sys
 
-from bookflow.cli.commands import extract_args
+from bookflow.cli.commands import parse_args
 from bookflow.pipeline import run
 
 
@@ -10,8 +10,7 @@ def main() -> int:
         from bookflow.gui import main as gui
 
         return gui()
-    args = extract_args()
-    return run(args)
+    return run(parse_args())
 
 
 if __name__ == "__main__":
