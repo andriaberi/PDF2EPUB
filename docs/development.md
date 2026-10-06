@@ -32,11 +32,12 @@ src/bookflow/
   cli/             command-line options (Args)
   gui/             the window (pywebview): window.py opens it, api.py is what the
                    page can call, form.py checks the fields, web/ is the page itself
-  pipeline.py      runs the stages (convert); title-page clean-up
+  pipeline.py      runs the stages (convert) and reports the result
   labels.py        division words: ტომი, ნაწილი, წიგნი, თავი, Volume, Part, ...
   pdf/             PDF → pages of clean lines (reader, text, noise, language)
   paragraphs/      lines → paragraphs (layout rules, verse)
-  structure/       paragraphs → sections (headings, printed contents, notes)
+  structure/       paragraphs → sections (headings, front matter, printed contents,
+                   notes)
   cover/           cover from the PDF or an image file
   epub/            sections → EPUB 3 (pages, contents, style, fonts)
 tests/             one folder per package, plus test_pipeline.py

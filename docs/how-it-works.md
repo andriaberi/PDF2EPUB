@@ -133,6 +133,18 @@ A **label** is a division word plus one number word, alone on its line
 - The label word is put in the same place throughout the contents, whichever order
   most of the book uses.
 
+### Numbered chapters
+
+A chapter number alone on its line, "XII" or "7." (Roman numerals in capitals only),
+is a chapter heading below every labelled division, if:
+
+- the book has at least 3 of them, and
+- each counts up from the last one by at most 2, or starts again at 1 (in a new part).
+
+A stray "7" in the text, out of step with the numbers around it, stays as text.
+
+### Placement
+
 The label's line can be placed **any way except as a full line of running text**:
 centred, flush left, flush right, or in a bigger font. Books differ, and only a line
 that runs from the margin to the right edge rules a label out.
@@ -160,6 +172,12 @@ short first line is split off as the title.
   makes its own. Lines repeating the title or author are dropped too.
 - **Title page reprints:** a title page printed again before a later volume is
   removed from the end of the section before it.
+- **Other front matter:** what is left before the first heading (credits, an epigraph,
+  a translator's note) is dropped too, unless it is more than a tenth of the book. That
+  much text is the book itself, its first headings missed. A book without headings
+  keeps all its text.
+
+These rules are in `structure/front.py`.
 
 ## 5. Notes (`structure/notes.py`)
 

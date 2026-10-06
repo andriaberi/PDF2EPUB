@@ -156,11 +156,10 @@ def file_size(path: str) -> str:
         size = float(Path(path).stat().st_size)
     except OSError:
         return ""
-    for unit in ("bytes", "KB", "MB"):
-        if size < 1024 or unit == "MB":
-            return f"{size:.0f} {unit}" if unit == "bytes" else f"{size:.1f} {unit}"
-        size /= 1024
-    return ""
+    if size < 1024:
+        return f"{size:.0f} bytes"
+    size /= 1024
+    return f"{size:.1f} KB" if size < 1024 else f"{size / 1024:.1f} MB"
 
 
 def show_in_folder(path: Path) -> None:

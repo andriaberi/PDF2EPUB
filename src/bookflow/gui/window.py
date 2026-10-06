@@ -19,7 +19,7 @@ PAGE = Path(__file__).parent / "web" / "index.html"
 SIZE = (640, 640)
 MIN_SIZE = (520, 500)
 
-# Shown behind the page while it loads, so the window doesn't flash white in dark mode.
+# Shown behind the page while it loads: the page's own light background.
 BACKGROUND = "#f5f5f5"
 
 INSTALL_BACKEND = """\
@@ -125,6 +125,5 @@ def main() -> int:
         window.dom.document.events.drop += handler  # type: ignore[arg-type]
 
     window.events.loaded += loaded
-    # Not private, so the page remembers a theme the user picked.
-    webview.start(gui=gui, private_mode=False)
+    webview.start(gui=gui)
     return 0

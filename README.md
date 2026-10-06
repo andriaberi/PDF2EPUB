@@ -70,6 +70,7 @@ Options work the same as the window's fields:
 | `--author TEXT` | The book's author. Default: the PDF's metadata. |
 | `--language CODE` | The book's language, such as `ka` or `en`. Default: the PDF's own language tag, else detected from the text. |
 | `--cover IMAGE` | A cover image (JPEG, PNG, ...) for books whose PDF has no cover. A PDF that has one keeps its own. |
+| `--version` | Print Bookflow's version. |
 
 Many PDFs have no title or author in their metadata, so the title page would read
 `book`. Pass `--title` and `--author` to fix that:
@@ -84,10 +85,11 @@ bookflow ucxo.pdf --title "უცხო" --author "ალბერ კამი�
   dashes misread as two, words broken at line ends, ligatures.
 - **Rebuilds paragraphs** from indents, gaps and short last lines, across page breaks.
 - **Finds the book's divisions.** These are volumes, parts, books and chapters, with
-  their titles: "ნაწილი პირველი", "თავი მეორე: ...", "Chapter 3". Headings may be
-  centred, flush left, flush right or in a bigger font.
+  their titles: "ნაწილი პირველი", "თავი მეორე: ...", "Chapter 3", or chapters numbered
+  "I", "II", ... Headings may be centred, flush left, flush right or in a bigger font.
 - **Builds the table of contents** from those headings and drops the printed one.
-- **Drops the printed title page**, since the EPUB has its own.
+- **Drops the printed title page** and other front matter before the first heading,
+  since the EPUB has its own title page.
 - **Links notes.** A notes section ("შენიშვნები", "Notes") with `[1] ...` entries
   becomes a notes page, and each mark in the text links to its note and back.
 - **Keeps verse and lists line by line**, with stanzas apart.
@@ -100,9 +102,9 @@ bookflow ucxo.pdf --title "უცხო" --author "ალბერ კამი�
 
 - **Scanned PDFs need a text layer.** Bookflow reads text and doesn't do OCR itself.
   Run `ocrmypdf` first.
-- **Headings need a label word.** A chapter needs a word like თავი, ნაწილი, Chapter or
-  Part plus one number word. Chapters numbered only "I" or "1.", and sections such as
-  Prologue or ეპილოგი, stay as text.
+- **Headings need a label word or a number.** A heading is a word like თავი, ნაწილი,
+  Chapter or Part plus one number word, or a chapter number alone ("XII", "7.").
+  Sections such as Prologue or ეპილოგი stay as text.
 - **Footnotes at the foot of a page are removed, not linked.** Only notes collected in
   a notes section are linked.
 - **Verse needs at least four lines.** Shorter verse, such as couplets, reads as text.
