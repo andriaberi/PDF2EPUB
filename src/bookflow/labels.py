@@ -62,6 +62,54 @@ def find_label(text: str) -> tuple[int, str] | None:
     return None
 
 
+# Sections a book names instead of numbering. They sit at the book's outermost level.
+SECTION_NAMES = {
+    "წინათქმა",  # foreword
+    "წინასიტყვაობა",  # preface
+    "შესავალი",  # introduction
+    "პროლოგი",
+    "ეპილოგი",
+    "ბოლოთქმა",  # afterword
+    "foreword",
+    "preface",
+    "introduction",
+    "prologue",
+    "epilogue",
+    "afterword",
+}
+
+
+def is_section_name(text: str) -> bool:
+    """A named section's heading: "წინათქმა", "Prologue", "EPILOGUE"."""
+    return text.strip().casefold() in SECTION_NAMES
+
+
+# The number of a label printed with its title on one line: "თავი მეშვიდე ...".
+# Stricter than a label alone, since the line goes on: a numeral, a Georgian
+# ordinal or an English number word.
+NUMBER_WORD = re.compile(
+    r"^(\d+\.?|[IVXLCDM]+\.?|პირველი|მე\w+ე|one|two|three|four|five|six|seven|eight|nine"
+    r"|ten|eleven|twelve)$",
+    re.IGNORECASE,
+)
+
+
+def split_label(text: str) -> tuple[str, str] | None:
+    """A label and its title printed on one line: "თავი მეშვიდე გასეირნება სანაპიროზე",
+    "თავი მეექვსე - FONTIS". The title is empty when only a dash follows the label.
+
+    The label word must be spelled right and come first, and the line must not end
+    a sentence, so a sentence like "თავი მეორედ დახარა." stays text.
+    """
+    words = text.split()
+    if len(words) < 3 or words[0].lower() not in LABELS or not NUMBER_WORD.match(words[1]):
+        return None
+    if text.endswith((".", ",", ";", ":", "!", "?", "…")):
+        return None
+    title = " ".join(words[2:]).lstrip("-–— ")
+    return f"{words[0]} {words[1]}", title
+
+
 # Chapters numbered without a label word sit below every labelled division.
 NUMBER_LEVEL = 5
 

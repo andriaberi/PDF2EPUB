@@ -1,6 +1,6 @@
 import pytest
 
-from bookflow.labels import fix_label, label_level, numeral_value
+from bookflow.labels import fix_label, is_section_name, label_level, numeral_value, split_label
 from bookflow.paragraphs import Paragraph
 from bookflow.pdf import Line, Page
 from bookflow.structure import Heading, build_sections
@@ -318,4 +318,53 @@ def test_label_order_can_follow_a_book_that_puts_the_number_first() -> None:
         "პირველი თავი",
         "მეორე თავი",
         "მესამე თავი",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("text", "split"),
+    [
+        ("თავი მეშვიდე გასეირნება სანაპიროზე", ("თავი მეშვიდე", "გასეირნება სანაპიროზე")),
+        ("თავი მეექვსე - FONTIS", ("თავი მეექვსე", "FONTIS")),
+        ("თავი მეექვსე -", ("თავი მეექვსე", "")),
+        ("Chapter 3 The Storm", ("Chapter 3", "The Storm")),
+    ],
+)
+def test_split_label(text: str, split: tuple[str, str]) -> None:
+    assert split_label(text) == split
+
+
+@pytest.mark.parametrize(
+    "text", ["თავი მეორედ დახარა.", "თავი დახარა და წავიდა", "თავი მეშვიდე", "მისი თავი მეორე იყო"]
+)
+def test_not_split_labels(text: str) -> None:
+    assert split_label(text) is None
+
+
+@pytest.mark.parametrize("text", ["წინათქმა", "EPILOGUE", "Prologue", "ეპილოგი"])
+def test_section_names(text: str) -> None:
+    assert is_section_name(text)
+
+
+def test_label_and_title_on_one_line() -> None:
+    paragraphs = [flush("თავი მეშვიდე გასეირნება სანაპიროზე", 100, x1=300), text("ტექსტი.", 112)]
+    sections = build_sections(paragraphs, PAGES)
+    assert [s.heading for s in sections] == [Heading(1, "თავი მეშვიდე", "გასეირნება სანაპიროზე")]
+    assert [p.text for p in sections[0].paragraphs] == ["ტექსტი."]
+
+
+def test_label_and_dash_take_the_title_below() -> None:
+    paragraphs = [flush("თავი მეექვსე -", 100), flush("მცირე რამ ისტორიიდან", 112)]
+    paragraphs.append(text("ტექსტი.", 140))
+    assert headings(paragraphs) == [Heading(1, "თავი მეექვსე", "მცირე რამ ისტორიიდან")]
+
+
+def test_named_section_is_a_heading_at_the_outermost_level() -> None:
+    paragraphs = [flush("წინათქმა", 50), text("წინასიტყვა.", 62)]
+    paragraphs += [flush("ნაწილი პირველი", 50, page=2), flush("თავი პირველი", 100, page=2)]
+    paragraphs.append(text("ტექსტი.", 200, page=2))
+    assert headings(paragraphs) == [
+        Heading(1, "წინათქმა"),
+        Heading(1, "ნაწილი პირველი"),
+        Heading(2, "თავი პირველი"),
     ]

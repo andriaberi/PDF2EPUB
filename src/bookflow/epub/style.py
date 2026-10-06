@@ -39,9 +39,11 @@ STYLESHEET = """\
   src: url(fonts/NotoSerifGeorgian-Bold.ttf);
 }
 
+/* A little larger than readers' default, about 17.6px rather than 16px. */
 body {
   margin: 0 5%;
   font-family: "Bookflow Serif", "Bookflow Georgian", serif;
+  font-size: 1.1em;
   line-height: 1.5;
   text-align: justify;
   -webkit-hyphens: auto;

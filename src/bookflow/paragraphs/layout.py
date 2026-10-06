@@ -103,7 +103,11 @@ def ends_page_early(line: Line, layout: Layout) -> bool:
     return line.y1 < FULL_PAGE * layout.height
 
 
+def is_short(line: Line, layout: Layout) -> bool:
+    """Stops short of the right edge: not a full line of text."""
+    return layout.right - line.x1 > SHORT * layout.line_height
+
+
 def ends_paragraph(line: Line, layout: Layout) -> bool:
     """Stops short of the right edge after the end of a sentence."""
-    short = layout.right - line.x1 > SHORT * layout.line_height
-    return short and line.text.endswith(SENTENCE_END)
+    return is_short(line, layout) and line.text.endswith(SENTENCE_END)

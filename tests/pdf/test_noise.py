@@ -67,6 +67,19 @@ def test_keeps_chapter_numbers_at_the_top_of_pages() -> None:
     assert [line.text for line in first.lines] == ["VII", "Text 1."]
 
 
+def test_keeps_a_label_repeated_across_the_book() -> None:
+    # Every book of a novel has its chapter three, at the top of some page.
+    pages = [page(n, (100, f"Text {n}.")) for n in range(1, 10)]
+    for number in (2, 5, 8):
+        pages[number - 1].lines.insert(0, Line("თავი მესამე", 50, 20, 100, 30))
+    assert [line.text for line in remove_noise(pages)[4].lines] == ["თავი მესამე", "Text 5."]
+
+
+def test_removes_a_label_running_as_a_header() -> None:
+    pages = [page(n, (20, "Chapter Three"), (100, f"Text {n}.")) for n in range(1, 5)]
+    assert [line.text for line in remove_noise(pages)[1].lines] == ["Text 2."]
+
+
 def test_removes_page_number_glued_to_text() -> None:
     pages = [page(n, (100, "Text."), (570, str(n + 1))) for n in range(1, 5)]
     pages.append(page(5, (100, "Text."), (560, "the last line. 6")))

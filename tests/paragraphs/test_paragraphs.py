@@ -168,3 +168,16 @@ def test_page_of_short_lines_keeps_the_books_margins() -> None:
 def test_chapter_number_stands_alone() -> None:
     p = page(1, line(100, "XII", x1=80), line(114, "სტეპან არკადიჩი პირუთვნელი იყო."))
     assert texts([p]) == ["XII", "სტეპან არკადიჩი პირუთვნელი იყო."]
+
+
+def test_text_right_after_a_label_starts_a_paragraph() -> None:
+    p = page(1, line(100, "წინათქმა", x1=100), line(112, "ამ წიგნში ჰანს კასტორპის"))
+    p.lines.append(line(124, "თავგადასავალი გვინდა გიამბოთ.", x1=200))
+    assert texts([p]) == ["წინათქმა", "ამ წიგნში ჰანს კასტორპის თავგადასავალი გვინდა გიამბოთ."]
+
+
+def test_line_of_text_starting_with_a_label_word_carries_on() -> None:
+    p = page(
+        1, line(100, "თავი მეორე სართულის ფანჯრიდან გადმოყო და"), line(112, "დაიძახა.", x1=100)
+    )
+    assert texts([p]) == ["თავი მეორე სართულის ფანჯრიდან გადმოყო და დაიძახა."]

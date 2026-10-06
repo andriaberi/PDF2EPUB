@@ -3,6 +3,8 @@ import statistics
 from collections import Counter
 from itertools import pairwise
 
+from bookflow.labels import label_level
+
 from .models import Line, Page
 from .text import script_of, strip_edge_debris
 
@@ -44,7 +46,8 @@ def remove_noise(pages: list[Page]) -> list[Page]:
             page.lines = []
 
     repeated = repeated_edge_lines(pages)
-    removed = {page.number: strip_edges(page, repeated) for page in pages}
+    running = running_labels(pages)
+    removed = {page.number: strip_edges(page, repeated, running) for page in pages}
 
     offset = page_number_offset(removed)
     if offset is not None:
@@ -107,10 +110,14 @@ def is_word(token: str) -> bool:
     return all(c.isalpha() or c in "'’-." for c in token)
 
 
-def is_furniture(line: Line, page: Page, repeated: set[str]) -> bool:
+def is_furniture(line: Line, page: Page, repeated: set[str], running: set[str]) -> bool:
     in_margin = line.y1 < page.height * MARGIN or line.y0 > page.height * (1 - MARGIN)
     # A chapter number repeats too, once in each part, but it is the book's text.
     if not in_margin or CHAPTER_NUMBER.match(line.text.replace(" ", "")):
+        return False
+    # So does a label: every book of a novel has its "თავი მესამე". A label is a
+    # header only when it runs on from page to page.
+    if label_level(line.text) is not None and line.text.casefold() not in running:
         return False
     return is_page_number(line.text) or furniture_key(line.text) in repeated
 
@@ -145,13 +152,26 @@ def repeated_edge_lines(pages: list[Page]) -> set[str]:
     return {key for key, count in counts.items() if count >= MIN_REPEATS}
 
 
-def strip_edges(page: Page, repeated: set[str]) -> list[Line]:
+def running_labels(pages: list[Page]) -> set[str]:
+    """Labels at the edges of two pages in a row: a running header like "თავი მესამე"."""
+    edges = {
+        page.number: {
+            line.text.casefold() for line in edge_lines(page) if label_level(line.text) is not None
+        }
+        for page in pages
+    }
+    return {
+        text for number, texts in edges.items() for text in texts & edges.get(number + 1, set())
+    }
+
+
+def strip_edges(page: Page, repeated: set[str], running: set[str]) -> list[Line]:
     """Peel furniture off the top and bottom of the page and return what was removed."""
     removed = []
     for _ in range(MAX_EDGE_LINES):
-        if page.lines and is_furniture(page.lines[0], page, repeated):
+        if page.lines and is_furniture(page.lines[0], page, repeated, running):
             removed.append(page.lines.pop(0))
-        if page.lines and is_furniture(page.lines[-1], page, repeated):
+        if page.lines and is_furniture(page.lines[-1], page, repeated, running):
             removed.append(page.lines.pop())
     return removed
 

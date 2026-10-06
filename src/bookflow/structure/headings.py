@@ -1,4 +1,4 @@
-from bookflow.labels import label_level
+from bookflow.labels import is_section_name, label_level, split_label
 from bookflow.paragraphs import Paragraph
 from bookflow.paragraphs.layout import Layout
 from bookflow.pdf import Line
@@ -38,6 +38,22 @@ def is_label(paragraph: Paragraph, layout: Layout) -> bool:
         and not is_full_line(paragraph.lines[0], layout)
         and label_level(paragraph.text) is not None
     )
+
+
+def is_named_section(paragraph: Paragraph, layout: Layout) -> bool:
+    """A section named, not numbered, alone on a line: "წინათქმა", "Prologue"."""
+    return (
+        len(paragraph.lines) == 1
+        and not is_full_line(paragraph.lines[0], layout)
+        and is_section_name(paragraph.text)
+    )
+
+
+def run_in_label(paragraph: Paragraph, layout: Layout) -> tuple[str, str] | None:
+    """A label and its title on one line, short of the right margin: "თავი მეშვიდე ..."."""
+    if len(paragraph.lines) != 1 or not is_short(paragraph.lines[0], layout):
+        return None
+    return split_label(paragraph.text)
 
 
 def is_title(paragraph: Paragraph, layout: Layout) -> bool:

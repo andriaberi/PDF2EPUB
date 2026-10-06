@@ -7,6 +7,7 @@ from .language import detect_language
 from .models import Book, Line, Page
 from .noise import remove_noise
 from .pages import parse_pages
+from .spacing import Advances, Glyph, lacks_spaces, learn_advances, spaced_text
 from .text import clean_text
 
 
@@ -27,7 +28,10 @@ def read_pdf(path: str, spec: str | None = None) -> Book:
         if doc.needs_pass:
             raise ReadError(f"the PDF is password-protected: {path}")
 
-        pages = [read_page(doc[index]) for index in parse_pages(spec, doc.page_count)]
+        selected = [doc[index] for index in parse_pages(spec, doc.page_count)]
+        pages = [read_page(page, text_lines(page)) for page in selected]
+        if lacks_spaces(line.text for page in pages for line in page.lines):
+            pages = read_unspaced(selected)
         if not any(page.lines for page in pages):
             raise ReadError(f"no text found in {path}; is it a scan without OCR? Try ocrmypdf.")
 
@@ -41,19 +45,47 @@ def read_pdf(path: str, spec: str | None = None) -> Book:
         )
 
 
-def read_page(page: pymupdf.Page) -> Page:
+def read_page(
+    page: pymupdf.Page, lines: list[dict[str, Any]], advances: Advances | None = None
+) -> Page:
+    """The page's lines; with `advances`, spaces are put back between the words."""
     pieces: list[Line] = []
-    for block in page.get_text("dict", flags=pymupdf.TEXT_MEDIABOX_CLIP)["blocks"]:
-        for line in block.get("lines", []):
-            # Skip vertical or rotated text such as margin notes and spine labels.
-            if abs(line["dir"][0]) < 0.9:
-                continue
+    for line in lines:
+        if advances is None:
             text = "".join(span["text"] for span in line["spans"])
-            if text.strip():
-                pieces.append(Line(text, *line["bbox"]))
+        else:
+            text = spaced_text(glyphs(line), advances)
+        if text.strip():
+            pieces.append(Line(text, *line["bbox"]))
 
-    lines = [line for line in merge_rows(pieces) if line.text]
-    return Page(page.number + 1, page.rect.width, page.rect.height, lines)
+    merged = [line for line in merge_rows(pieces) if line.text]
+    return Page(page.number + 1, page.rect.width, page.rect.height, merged)
+
+
+def read_unspaced(pages: list[pymupdf.Page]) -> list[Page]:
+    """Read pages whose words are set apart by position alone, without spaces."""
+    lines = [text_lines(page, raw=True) for page in pages]
+    advances = learn_advances(glyphs(line) for page in lines for line in page)
+    return [
+        read_page(page, page_lines, advances) for page, page_lines in zip(pages, lines, strict=True)
+    ]
+
+
+def text_lines(page: pymupdf.Page, raw: bool = False) -> list[dict[str, Any]]:
+    """PyMuPDF's lines of horizontal text; `raw` gives each letter with its position."""
+    blocks = page.get_text("rawdict" if raw else "dict", flags=pymupdf.TEXT_MEDIABOX_CLIP)["blocks"]
+    # Skip vertical or rotated text such as margin notes and spine labels.
+    return [
+        line for block in blocks for line in block.get("lines", []) if abs(line["dir"][0]) >= 0.9
+    ]
+
+
+def glyphs(line: dict[str, Any]) -> list[Glyph]:
+    return [
+        Glyph(char["c"], char["origin"][0], span["size"], span["font"])
+        for span in line["spans"]
+        for char in span["chars"]
+    ]
 
 
 def merge_rows(pieces: list[Line]) -> list[Line]:

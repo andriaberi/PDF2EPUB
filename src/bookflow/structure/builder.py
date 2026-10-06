@@ -9,8 +9,10 @@ from .headings import (
     gap_after,
     is_centred,
     is_label,
+    is_named_section,
     is_short,
     is_title,
+    run_in_label,
 )
 from .models import Heading, Section
 
@@ -19,6 +21,10 @@ MIN_NUMBERED = 3
 
 # A number may skip this many: OCR loses one now and then.
 MAX_SKIP = 2
+
+# Named sections ("წინათქმა", "Epilogue") take the outermost level the book uses,
+# known only once all headings are found.
+SECTION_LEVEL = 0
 
 
 def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Section]:
@@ -35,6 +41,14 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
             heading = Heading(label_level(paragraph.text) or 0, fix_label(paragraph.text))
         elif id(paragraph) in numbered:
             heading = Heading(NUMBER_LEVEL, paragraph.text.rstrip("."))
+        elif is_named_section(paragraph, column):
+            heading = Heading(SECTION_LEVEL, paragraph.text)
+        elif run_in := run_in_label(paragraph, column):
+            label, run_in_title = run_in
+            heading = Heading(label_level(label) or 0, label, run_in_title or None)
+            if run_in_title:
+                sections.append(Section(heading))
+                continue
         else:
             sections[-1].paragraphs.append(paragraph)
             continue
@@ -61,6 +75,7 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
 
     if not sections[0].paragraphs:
         sections.pop(0)
+    place_named_sections(sections)
     renumber_levels(sections)
     match_label_order(sections)
     return sections
@@ -117,9 +132,20 @@ def is_title_part(paragraph: Paragraph, title: list[Paragraph], column: Layout, 
         and (not tall or all(is_tall(line, column) for line in paragraph.lines))
         and is_title(paragraph, column)
         and not is_label(paragraph, column)
+        and not is_named_section(paragraph, column)
+        and run_in_label(paragraph, column) is None
         and numeral_value(paragraph.text) is None
         and (not title or paragraph.page == title[-1].page)
     )
+
+
+def place_named_sections(sections: list[Section]) -> None:
+    """Put a foreword or an epilogue at the outermost level of the book's divisions."""
+    headings = [s.heading for s in sections if s.heading]
+    levels = [h.level for h in headings if h.level != SECTION_LEVEL]
+    for heading in headings:
+        if heading.level == SECTION_LEVEL:
+            heading.level = min(levels, default=1)
 
 
 def renumber_levels(sections: list[Section]) -> None:

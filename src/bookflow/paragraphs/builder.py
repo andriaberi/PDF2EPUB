@@ -1,4 +1,4 @@
-from bookflow.labels import numeral_value
+from bookflow.labels import is_section_name, label_level, numeral_value, split_label
 from bookflow.pdf import Line, Page
 
 from .layout import (
@@ -9,6 +9,7 @@ from .layout import (
     has_gap_before,
     is_indented,
     is_set_apart,
+    is_short,
     is_tall,
     measure,
     text_column,
@@ -65,6 +66,9 @@ def starts_paragraph(
     # So does a chapter number alone on its line ("XII", "7."), whatever its size.
     if numeral_value(line.text) or (previous is not None and numeral_value(previous[0].text)):
         return True
+    # Text after a label or a named section starts afresh, even with no gap between.
+    if previous is not None and is_heading_line(*previous):
+        return True
     # A line set apart from the text, like a right-aligned label, stands alone too,
     # even at the foot of a page.
     if previous is not None and is_set_apart(previous[0], line, layout):
@@ -79,6 +83,14 @@ def starts_paragraph(
     # indent is lost. It also decides whether a page's first line carries on the last
     # page's paragraph.
     return previous is not None and ends_paragraph(*previous)
+
+
+def is_heading_line(line: Line, layout: Layout) -> bool:
+    """A short line reading "თავი მეორე", "წინათქმა", or a label with its title."""
+    text = line.text
+    return is_short(line, layout) and (
+        label_level(text) is not None or is_section_name(text) or split_label(text) is not None
+    )
 
 
 def breaks_word(text: str) -> bool:
