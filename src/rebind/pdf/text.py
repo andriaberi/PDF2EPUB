@@ -29,6 +29,15 @@ GLUED_DEBRIS = re.compile("^[\"'|](?=[\u10d0-\u10ff])")
 
 SPACES = re.compile(r"\s+")
 
+# A heading set letter-spaced, alone on its line with a number or a dash at most:
+# "IV წ ი გ ნ ი", "თ ა ლ ე ჲ ა", "C h a p t e r 3". Letter-spaced emphasis inside the text
+# stays as printed: it may wrap onto the next line, where a half-joined word reads worse.
+LETTER_SPACED = re.compile(
+    r"^((?:[^\w\s]+ |(?:\d+|[IVXLCDM]+)\.? )??[^\w\s]*)"  # "IV ", "- ", "„"
+    r"([^\W\d_](?: [^\W\d_]){2,})"  # "წ ი გ ნ ი"
+    r"([!?“”»\"]*(?: \d+)?)$"  # "!“", " 3"; a heading ends with no full stop or comma
+)
+
 
 def clean_text(text: str) -> str:
     """Normalise one line of PDF text so later steps can compare and join lines."""
@@ -40,8 +49,12 @@ def clean_text(text: str) -> str:
     text = INVISIBLE.sub("", text)
     text = DASH_RUN.sub("\u2014", text)
     text = STRAY_DOT.sub(" ", text)
+    text = SPACES.sub(" ", text).strip()
 
-    return SPACES.sub(" ", text).strip()
+    if spaced := LETTER_SPACED.match(text):
+        lead, word, end = spaced.groups()
+        return lead + word.replace(" ", "") + end
+    return text
 
 
 def strip_edge_debris(text: str) -> str:

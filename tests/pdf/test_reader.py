@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from rebind.pdf import ReadError, read_pdf
+from rebind.pdf.reader import metadata_text
 
 MakePdf = Callable[..., str]
 
@@ -46,3 +47,18 @@ def test_no_text_layer(make_pdf: MakePdf, tmp_path: Path) -> None:
     doc.save(path)
     with pytest.raises(ReadError, match="no text found"):
         read_pdf(str(path))
+
+
+@pytest.mark.parametrize(
+    ("value", "kept"),
+    [
+        ("ჰეროდოტე", "ჰეროდოტე"),
+        ("Admin", None),
+        ("USER", None),
+        ("Microsoft Word - draft.doc", None),
+        ("000427", None),
+        (None, None),
+    ],
+)
+def test_metadata_text(value: str | None, kept: str | None) -> None:
+    assert metadata_text(value) == kept

@@ -20,7 +20,7 @@ at the top of each module.
   from where each letter starts. Inside a word a letter always moves the next by its
   own width, so a larger step starts a new word.
 - **Text:** Unicode NFC, ligatures spelled out, invisible characters removed, OCR dash
-  runs ("–-") made one em dash.
+  runs ("–-") made one em dash, and a letter-spaced heading line ("IV წ ი გ ნ ი") joined.
 - **Noise:** page numbers, running headers and footers (edge lines repeating on several
   pages), and footnote blocks at the foot of a page are removed. A chapter label at a
   page edge is a header only if it is on two pages in a row. Only scanned pages (an
@@ -43,14 +43,17 @@ whether the book has stray space mid-sentence, as Word exports with hard line br
 
 A line then starts a new paragraph when it is indented, set below a gap or a paragraph's
 space, follows a short line ending a sentence, follows a heading line, or is a scene
-break or a tall line. A line never starts one after a word broken at the line end, which
-is rejoined, or after a quote opened at the line end. Nor does a short line between an
-unfinished sentence and a line opening with closing punctuation: some books set a
-foreign word on a line of its own mid-sentence. A page that is mostly dialogue or verse
-would mistake its indent for its margin, so it uses the book's column instead.
+break or a tall line. In a book of numbered sections, a line opening with the next
+section's number ("29. ") after a finished sentence starts one too. A line never starts
+one after a word broken at the line end, which is rejoined, or after a quote opened at
+the line end. Nor does a short line between an unfinished sentence and a line opening
+with closing punctuation: some books set a foreign word on a line of its own mid-
+sentence. A page that is mostly dialogue or verse would mistake its indent for its
+margin, so it uses the book's column instead.
 
 A paragraph that starts well below a finished sentence is marked `apart`: it may be a
-heading set in the text.
+heading set in the text. Such a heading runs straight into the text below it, with no
+space, and its last line stops well short of the margin.
 
 **Verse** (`verse.py`): a run of at least four short lines, or two after a line ending
 with a colon or a short line ending with a comma, where at most half end a sentence and
@@ -72,8 +75,9 @@ than the verse's own starts a new stanza.
   level.
 - **Headings set in the text:** short `apart` paragraphs that run straight into the text.
 
-The short centred or capitalised paragraphs after a label are its **title**. Levels are
-renumbered from 1, and the label word is put in the same place throughout.
+The short centred, flush-right or capitalised paragraphs after a label are its
+**title**. Levels are renumbered from 1, and the label word is put in the same place
+throughout.
 
 **Front matter** (`front.py`): the book's title page, its reprints before later
 volumes, and text before the first heading are dropped, unless that text is over a

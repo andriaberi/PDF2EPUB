@@ -23,6 +23,25 @@ def test_ocr_dash_runs_become_one_dash() -> None:
     assert clean_text("–- ვინ არის, –– მიუგო") == "— ვინ არის, — მიუგო"
 
 
+@pytest.mark.parametrize(
+    ("text", "joined"),
+    [
+        ("IV წ ი გ ნ ი", "IV წიგნი"),
+        ("თ ა ლ ე ჲ ა", "თალეჲა"),
+        ("C h a p t e r 3", "Chapter 3"),
+        ("- პ უ რ ი!", "- პური!"),
+        ("ე ბ ი.", "ე ბ ი."),  # the end of a word wrapped from the line above
+        ("„ჟ ი ვ ი ო!“", "„ჟივიო!“"),
+        ("ე ბ ი. – თქვა მან", "ე ბ ი. – თქვა მან"),
+        ("ა და ბ", "ა და ბ"),  # one-letter words in prose stay apart
+        ("თქვა სიტყვა ფ ა ქ ტ", "თქვა სიტყვა ფ ა ქ ტ"),  # emphasis in the text stays
+        ("J. R. R. Tolkien", "J. R. R. Tolkien"),
+    ],
+)
+def test_joins_letter_spaced_words(text: str, joined: str) -> None:
+    assert clean_text(text) == joined
+
+
 def test_line_end_hyphen_is_normalised() -> None:
     assert clean_text("ატე–-") == "ატე-"
     assert clean_text("მოთხრო–") == "მოთხრო-"

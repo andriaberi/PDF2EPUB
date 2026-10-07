@@ -35,6 +35,8 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
     column = text_column(pages)
     # The paragraph started far below the text above it: it may be a heading.
     apart = False
+    # The number of the last numbered section started: "28. ...".
+    section: int | None = None
 
     texts = [page for page in pages if page.lines]
     for number, page in enumerate(texts):
@@ -61,6 +63,7 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
                     not paragraphs
                     or paragraphs[-1].verse
                     or titled
+                    or starts_next_section(line, previous, section)
                     or starts_paragraph(line, above, layout, previous, heading, below)
                 )
             if starts:
@@ -72,6 +75,8 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
                     and ends_sentence(above.text)
                 )
                 paragraphs[-1].apart = apart
+                if opening := SECTION_NUMBER.match(line.text):
+                    section = int(opening.group(1))
             else:
                 last = paragraphs[-1]
                 last.text = f"{last.text} {line.text}" if last.verse else join(last.text, line.text)
@@ -158,6 +163,9 @@ CLOSES = re.compile(r"^(?:[.!?;:)»](?!\.)|,(?!,)|“(?=[\s.,;:!?)]))")
 
 OPENING_QUOTES = ("„", "«")
 
+# A numbered section's opening: "29. როდესაც კროჲსოსმა ...".
+SECTION_NUMBER = re.compile(r"^(\d{1,3})\. ")
+
 # Note marks at the end of a line: "...mon cher, taut miux.[10]".
 NOTE_MARKS = re.compile(r"\[\d+\]")
 
@@ -168,20 +176,44 @@ CLAUSE_BREAK = re.compile(r"[.,;:]\s")
 SET_TITLE_WORDS = 6
 SET_TITLE_WIDTH = 0.6
 
+# A heading run into the text ends well short of the margin, at most this share of
+# the column; a paragraph's first line stops only a word or two short.
+MAX_HEADING_WIDTH = 0.8
+
 # A line ending in these is a clause or a sentence, not a heading set in the text.
 TITLE_ENDS = (".", ",", ":", ";", "!", "?", "…", "-", "–", "—", "“", "»", '"', ")")
+
+
+def starts_next_section(
+    line: Line, previous: tuple[Line, Layout] | None, section: int | None
+) -> bool:
+    """The next numbered section, "29. როდესაც ...", after section 28's last sentence.
+
+    Some books number their sections and set them apart only by space, which a page
+    break hides, or not at all.
+    """
+    number = SECTION_NUMBER.match(line.text)
+    return (
+        number is not None
+        and previous is not None
+        and ends_sentence(previous[0].text)
+        and int(number.group(1)) in {1, (section or 0) + 1}
+    )
 
 
 def ends_heading(paragraph: Paragraph, line: Line, layout: Layout) -> bool:
     """A heading set apart above but run straight into the text below it.
 
-    It is a line or a few, the last one short, and the text below starts with a
-    full line: "ტინაპელებთან ცხოვრებისა და ... / ამბავი" then the chapter's text,
-    on the same page or the next.
+    It is a line or a few, the last one well short of the margin, and the text below
+    starts with a full line: "ტინაპელებთან ცხოვრებისა და ... / ამბავი" then the
+    chapter's text, on the same page or the next. A paragraph's first line stopping
+    a few words short is not one: "3. შემდეგ, როდესაც ჰისტიაჲოსს ... თუ რატომ".
     """
+    last = paragraph.lines[-1]
     return (
         len(paragraph.lines) <= TITLE_LINES
-        and is_short(paragraph.lines[-1], layout)
+        and is_short(last, layout)
+        and last.x1 - last.x0 < MAX_HEADING_WIDTH * (layout.right - layout.left)
         and not is_short(line, layout)
     )
 
@@ -224,6 +256,9 @@ def is_set_title(
         and not any(is_glued(word) for word in text.split())
         and below is not None
         and not is_short(below, layout)
+        # It runs straight into the text: a stray word before a paragraph's space isn't
+        # a heading, "ჰეფაჲსტოსის" / "152. ადრე ეს ფსმეტიქოსი ...".
+        and not has_gap_before(below, line, layout)
         # A bracketed translation goes on the text, "(პირველქმნილი მატერია (ლათ.).)",
         # unless it translates a heading in capitals: "OPERATIONES SPIRITUALES".
         and (not below.text.startswith("(") or in_latin_capitals(text))

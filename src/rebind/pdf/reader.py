@@ -15,6 +15,9 @@ class ReadError(Exception):
     """The PDF can't be opened or has no text to extract."""
 
 
+# Names programs put in as the author when nobody set one.
+ACCOUNT_NAMES = {"admin", "administrator", "user", "owner", "author", "unknown", "pc"}
+
 # A scanned page is an image covering at least this share of the page.
 SCAN_AREA = 0.5
 
@@ -135,11 +138,16 @@ def middle(line: Line) -> float:
 
 
 def metadata_text(value: str | None) -> str | None:
-    """Metadata fields are often junk like "000427" or "Microsoft Word - draft.doc"."""
+    """Metadata fields are often junk like "000427", "Microsoft Word - draft.doc" or the
+    name of the computer's account, "Admin"."""
     if not value:
         return None
     value = clean_text(value)
-    if not any(c.isalpha() for c in value) or value.lower().endswith((".doc", ".docx", ".pdf")):
+    if (
+        not any(c.isalpha() for c in value)
+        or value.lower().endswith((".doc", ".docx", ".pdf"))
+        or value.casefold() in ACCOUNT_NAMES
+    ):
         return None
     return value
 

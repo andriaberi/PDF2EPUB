@@ -210,6 +210,13 @@ def test_flush_left_label_and_title() -> None:
     ]
 
 
+def test_label_and_title_set_flush_right() -> None:
+    # Both end at the page's right margin, past the text column.
+    label = Paragraph("I წიგნი", 1, [Line("I წიგნი", 370, 60, 400, 70)])
+    title = Paragraph("კლიო", 1, [Line("კლიო", 376, 76, 400, 86)])
+    assert headings([label, title, body("ტექსტი.")]) == [Heading(1, "I წიგნი", "კლიო")]
+
+
 def test_flush_left_short_text_without_gap_is_not_a_title() -> None:
     paragraphs = [flush("Chapter 3", 100), flush("Yes.", 112), text("And then.", 124)]
     sections = build_sections(paragraphs, PAGES)
