@@ -148,6 +148,57 @@ def test_dialogue_is_not_verse() -> None:
     assert verse_of(build_paragraphs([full_page(1), p])) == []
 
 
+def verse_page(*texts: str, intro: str | None = None, after: str | None = None) -> Page:
+    """Short indented lines, with a line of text leading in and one following."""
+    lines = [line(100, intro, x1=200)] if intro else []
+    lines += [line(114 + 14 * row, text, INDENT, 180) for row, text in enumerate(texts)]
+    if after:
+        lines.append(line(114 + 14 * len(texts), after, INDENT, RIGHT))
+    return page(2, *lines)
+
+
+def test_two_lines_after_a_colon_are_verse() -> None:
+    p = verse_page(
+        "ხელი რა ნაზია,",
+        "ფეხიც ლამაზია,",
+        intro="ჩამოჯდა და სიმღერა დაიწყო:",
+        after="იდაყვი მუხლზე დაედო და სიმღერას ფეხის ქნევას აყოლებდა.",
+    )
+    assert verse_of(build_paragraphs([full_page(1), p])) == [["ხელი რა ნაზია,", "ფეხიც ლამაზია,"]]
+
+
+def test_two_short_lines_without_a_colon_are_text() -> None:
+    p = verse_page("ხელი რა ნაზია,", "ფეხიც ლამაზია,", intro="ჩამოჯდა და სიმღერა დაიწყო.")
+    assert verse_of(build_paragraphs([full_page(1), p])) == []
+
+
+def test_speech_inside_a_song_stays_in_it() -> None:
+    song = [
+        "ო, თეთრო ვარდო, პაწაწინა ყვავილო,",
+        "ო, თეთრო ვარდო, ნაზო ყვავილო,",
+        "- ტილო გარეცხე!",
+        "- სად გავრეცხო?",
+        "კაბის საკერად მოემზადე,",
+        "კაბას სამკერდეც მიაყოლე,",
+    ]
+    p = verse_page(*song, intro="თან მღეროდა:")
+    assert verse_of(build_paragraphs([full_page(1), p])) == [song]
+
+
+def test_verse_doesnt_end_with_the_speech_after_it() -> None:
+    p = verse_page(
+        "წვა-დაგვაში გაატარა დრონი,",
+        "დღე და ღამე ტვირთი ზიდა,",
+        "არც აჭმევდნენ, არც ასმევდნენ,",
+        "სიკვდილის დროს მათრახი სცეს,",
+        "- საწყალი ცხენი, - ამოიოხრა.",
+        "დალიამ იუცხოვა ეს სიბრალული:",
+        intro="დაიწყო:",
+    )
+    [verse] = verse_of(build_paragraphs([full_page(1), p]))
+    assert verse[-1] == "სიკვდილის დროს მათრახი სცეს,"
+
+
 def test_page_of_short_lines_keeps_the_books_margins() -> None:
     # Measured alone, this page would take the indent for its margin and miss it.
     p = page(
@@ -285,3 +336,23 @@ def test_heading_set_in_the_text_without_space() -> None:
     paragraphs = build_paragraphs([p])
     assert paragraphs[-2].text == "Hippe"
     assert paragraphs[-2].apart
+
+
+def test_heading_in_capitals_before_its_translation() -> None:
+    p = justified_page(
+        (460, "The feeling had long gone.", RIGHT),
+        (474, "OPERATIONES SPIRITUALES", 200),
+        (488, "(Spiritual exercises (Lat.).) Naphta was born in a small town", RIGHT),
+    )
+    paragraphs = build_paragraphs([p])
+    assert paragraphs[-2].text == "OPERATIONES SPIRITUALES"
+    assert paragraphs[-2].apart
+
+
+def test_text_before_a_bracketed_translation_carries_on() -> None:
+    p = justified_page(
+        (460, "The feeling had long gone.", RIGHT),
+        (474, "nothing but prima materia", 200),
+        (488, "(the first matter (Lat.).) and so it went on and on and on", RIGHT),
+    )
+    assert "gone. nothing but prima materia (the first matter" in texts([p])[-1]

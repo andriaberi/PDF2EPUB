@@ -141,7 +141,7 @@ def test_notes_get_a_page_and_marks_link_to_them(tmp_path: Path) -> None:
     text = epub.read("EPUB/text/section-0001.xhtml").decode()
     assert 'id="ref-note-1" href="../notes.xhtml#note-1">1</a> &amp; [2].' in text
     notes = epub.read("EPUB/notes.xhtml").decode()
-    assert '<aside id="note-1" epub:type="endnote"' in notes
+    assert '<li id="note-1" epub:type="endnote">' in notes
     assert 'href="text/section-0001.xhtml#ref-note-1"' in notes
     minidom.parseString(notes)
     assert '<itemref idref="notes"/>' in epub.read("EPUB/content.opf").decode()

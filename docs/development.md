@@ -72,6 +72,10 @@ both `paragraphs` (verse must not swallow a heading) and `structure` need the la
 - **Check other books for regressions.** Before and after a change to detection, compare
   the heading list and the paragraph count on several real books. A change that fixes one
   book should not move the others unless that's an improvement too.
+- **Check the EPUB is valid** after changing what `epub/` writes, with the W3C's
+  [epubcheck](https://github.com/w3c/epubcheck/releases) (it needs Java 11 or newer):
+  `java -jar epubcheck.jar book.epub` should report no errors or warnings. Stores and
+  some readers reject a book that fails it.
 - **Commits** have a short imperative subject and no body ("Keep the line breaks of
   verse and lists"). A larger change is split into commits in the order it was built,
   each passing `make check`. A release is its own commit: "Version update to 1.2.0".

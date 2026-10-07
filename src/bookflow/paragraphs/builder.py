@@ -177,6 +177,12 @@ def is_glued(word: str) -> bool:
     return len(scripts) > 1 and any(c.islower() and script_of(c) == "LATIN" for c in word)
 
 
+def in_latin_capitals(text: str) -> bool:
+    """Its Latin letters, two or more, all capitals: "OPERATIონეშ შპIღIთუალეშ" as printed."""
+    latin = [c for c in text if script_of(c) == "LATIN"]
+    return len(latin) >= 2 and all(c.isupper() for c in latin)
+
+
 def ends_sentence(text: str) -> bool:
     return text.endswith((*SENTENCE_END, ")", "]"))
 
@@ -203,8 +209,9 @@ def is_set_title(
         and not any(is_glued(word) for word in text.split())
         and below is not None
         and not is_short(below, layout)
-        # A bracketed translation goes on the text: "(პირველქმნილი მატერია (ლათ.).)".
-        and not below.text.startswith("(")
+        # A bracketed translation goes on the text, "(პირველქმნილი მატერია (ლათ.).)",
+        # unless it translates a heading in capitals: "OPERATIONES SPIRITUALES".
+        and (not below.text.startswith("(") or in_latin_capitals(text))
     )
 
 

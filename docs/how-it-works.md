@@ -139,8 +139,10 @@ size: "რესტორანში", "#34". A paragraph that may be such a he
   lines close below it go on the heading: "გაალმასება." / "და კიდევ ერთი … რამ".
 - **Without space,** in a book with no indents: a line of at most 6 words and less than
   60% of the column, flush left, after a finished sentence and before a full line, that
-  ends with no punctuation and has none inside ("ჰიპე"). A line before a bracketed
-  translation, or with a foreign word glued on ("…სხვაHybris"), is the text's own.
+  ends with no punctuation and has none inside ("ჰიპე"). A line with a foreign word
+  glued on ("…სხვაHybris") is the text's own, and so is a line before a bracketed
+  translation, unless its Latin letters are capitals: a heading and its translation,
+  "OPERATIONES SPIRITUALES" / "(სულიერი წვრთნა (ლათ.).)".
 
 The structure stage decides which of these are headings.
 
@@ -150,18 +152,25 @@ Songs, poems, lists and inscriptions lose their sense when their lines run toget
 so they become **verse paragraphs**. These keep each line as printed. A run of lines
 on a page is verse if:
 
-- **It has at least 4 lines,** each:
+- **It has at least 4 lines,** or at least 2 right after a line ending with a colon
+  ("…და სიმღერა დაიწყო:"). Each line is:
   - stopping more than 4 line heights short of the right edge,
-  - not starting with a dialogue dash (`-`, `–`, `—`),
+  - not opening with closing punctuation (`.` `,` `!` `?` `;` `)` `»`),
   - not tall, and
   - not a chapter label.
-- **At most half of them end a sentence** (`.`, `!`, `?`, `…`, before any closing
-  quote). Short lines that each end a sentence are short paragraphs of text, such as
-  quick dialogue or narration.
+- **At most half of its own lines end a sentence** (`.`, `!`, `?`, `…`, before any
+  closing quote). Short lines that each end a sentence are short paragraphs of text,
+  such as quick dialogue or narration.
+- **At most a third of its lines are speech,** opening with a dialogue dash (`-`, `–`,
+  `—`): a song may have a dialogue in it ("- ტილო გარეცხე!" / "- სად გავრეცხო?"). Speech
+  doesn't count towards the sentence ends. A run that fails with its speech may still
+  have verse in the parts between the speech.
 
-Text that leads into the verse is trimmed off its start first:
-- the last line of the paragraph above (no indent, no gap before it), and
-- short lines ending a sentence or with a colon ("…ლექსი დაუწერა:").
+Text around the verse is trimmed off first:
+- from its start: speech, the last line of the paragraph above (no indent, no gap
+  before it), and short lines ending a sentence or with a colon ("…ლექსი დაუწერა:");
+- from its end: speech and lines ending with a colon, the narration after a song
+  ("- საწყალი ცხენი, - ამოიოხრა ფანტინმა." / "დალიამ იუცხოვა ეს სიბრალული:").
 
 **Stanzas** are split where the gap between two verse lines is wider than the verse's
 own usual gap plus 0.8 line heights. The verse's own gap matters because some books

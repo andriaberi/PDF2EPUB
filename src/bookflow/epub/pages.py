@@ -107,20 +107,25 @@ def paragraph_html(text: str, notes: dict[str, Note], linked: set[str]) -> str:
 
 
 def notes_page(notes: list[Note], sources: dict[str, str], title: str, language: str) -> str:
-    """All the book's notes, each with a link back to where the text refers to it."""
+    """All the book's notes, each with a link back to where the text refers to it.
+
+    The notes are a list, as DPUB-ARIA asks of endnotes; each shows its own mark as
+    the book prints it instead of the list's numbers.
+    """
     parts = [
         '<section class="notes" epub:type="endnotes" role="doc-endnotes">',
         f"<h1>{escape(title)}</h1>",
+        "<ol>",
     ]
     for note in notes:
         mark = escape(note.mark)
         if note.id in sources:
             mark = f'<a href="{sources[note.id]}#ref-{note.id}" role="doc-backlink">{mark}</a>'
         parts.append(
-            f'<aside id="{note.id}" epub:type="endnote" role="doc-endnote">'
-            f'<p><span class="mark">{mark}</span> {escape(note.text)}</p></aside>'
+            f'<li id="{note.id}" epub:type="endnote">'
+            f'<p><span class="mark">{mark}</span> {escape(note.text)}</p></li>'
         )
-    parts.append("</section>")
+    parts.append("</ol>\n</section>")
     return page(title, "\n".join(parts), language)
 
 

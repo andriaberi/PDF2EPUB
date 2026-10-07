@@ -268,7 +268,13 @@ a.noteref {
   margin: 1.5em 0 1.5em;
 }
 
-.notes aside {
+.notes ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notes li {
   margin: 0 0 0.6em;
 }
 
