@@ -43,7 +43,10 @@ FOOTNOTE_MARK = re.compile(r"^[\d*†‡§'’\"“”!%^°¹²³⁰⁴-⁹]{1,3
 def remove_noise(pages: list[Page]) -> list[Page]:
     """Drop OCR junk, page numbers and running headers and footers."""
     for page in pages:
-        page.lines = drop_junk(page.lines)
+        # Only OCR misreads pictures as junk; a born-digital page's odd lines ("#34",
+        # "A", "Lise-მაც") are the book's own text.
+        if page.scanned:
+            page.lines = drop_junk(page.lines)
         # A page without a single real word is a cover or a plate read as text.
         if not any(has_long_word(line.text) for line in page.lines):
             page.lines = []
@@ -60,9 +63,10 @@ def remove_noise(pages: list[Page]) -> list[Page]:
     for page in pages:
         # Footnote marks look like specks, so clean the edges only once footnotes are out.
         split_footnotes(page)
-        for line in page.lines:
-            line.text = strip_edge_debris(line.text)
-        page.lines = [line for line in page.lines if line.text]
+        if page.scanned:
+            for line in page.lines:
+                line.text = strip_edge_debris(line.text)
+            page.lines = [line for line in page.lines if line.text]
 
     return pages
 

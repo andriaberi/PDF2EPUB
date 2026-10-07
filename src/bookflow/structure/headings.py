@@ -1,10 +1,10 @@
 from bookflow.labels import is_section_name, label_level, split_label
 from bookflow.paragraphs import Paragraph
-from bookflow.paragraphs.layout import Layout
+from bookflow.paragraphs.layout import TITLE_LINES, Layout
 from bookflow.pdf import Line
 
 # A title is a line or a few, never a paragraph of text.
-MAX_TITLE_LINES = 3
+MAX_TITLE_LINES = TITLE_LINES
 
 
 def is_short(line: Line, layout: Layout) -> bool:

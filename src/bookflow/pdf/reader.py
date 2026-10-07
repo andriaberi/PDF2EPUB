@@ -15,6 +15,10 @@ class ReadError(Exception):
     """The PDF can't be opened or has no text to extract."""
 
 
+# A scanned page is an image covering at least this share of the page.
+SCAN_AREA = 0.5
+
+
 def read_pdf(path: str, spec: str | None = None) -> Book:
     """Read the text lines of the selected pages, with page furniture and OCR noise removed."""
     if not Path(path).is_file():
@@ -59,7 +63,16 @@ def read_page(
             pieces.append(Line(text, *line["bbox"]))
 
     merged = [line for line in merge_rows(pieces) if line.text]
-    return Page(page.number + 1, page.rect.width, page.rect.height, merged)
+    return Page(page.number + 1, page.rect.width, page.rect.height, merged, scanned=is_scan(page))
+
+
+def is_scan(page: pymupdf.Page) -> bool:
+    """An image covering most of the page: a scan, its text an OCR layer on top."""
+    area = abs(page.rect)
+    return any(
+        abs(pymupdf.Rect(image["bbox"]) & page.rect) >= SCAN_AREA * area
+        for image in page.get_image_info()
+    )
 
 
 def read_unspaced(pages: list[pymupdf.Page]) -> list[Page]:

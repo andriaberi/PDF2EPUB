@@ -57,7 +57,7 @@ bookflow book.pdf
 This writes `book.epub` next to the PDF and prints what it found:
 
 ```
-Wrote book.epub: 160 headings, 5977 paragraphs, 206 notes, cover from the PDF
+Wrote book.epub: 172 headings, 6316 paragraphs, 206 notes, cover from the PDF
 ```
 
 Options work the same as the window's fields:

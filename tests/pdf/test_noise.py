@@ -4,8 +4,9 @@ from bookflow.pdf.models import Line, Page
 from bookflow.pdf.noise import is_junk, is_page_number, remove_noise
 
 
-def page(number: int, *rows: tuple[float, str]) -> Page:
-    return Page(number, 400, 600, [Line(text, 50, y, 350, y + 10) for y, text in rows])
+def page(number: int, *rows: tuple[float, str], scanned: bool = True) -> Page:
+    lines = [Line(text, 50, y, 350, y + 10) for y, text in rows]
+    return Page(number, 400, 600, lines, scanned=scanned)
 
 
 @pytest.mark.parametrize(
@@ -109,6 +110,13 @@ def test_clears_junk_heavy_pages() -> None:
         [page(1, (100, "#22222X”>I>2."), (150, "72<2C"), (200, "M"), (300, "საქართველო"))]
     )
     assert [line.text for line in result.lines] == ["საქართველო"]
+
+
+def test_keeps_odd_lines_of_a_born_digital_page() -> None:
+    # Only OCR makes junk: a printed page's "#34" or "A" is a heading, "!" a line's end.
+    rows = [(100, "#34"), (120, "A"), (140, "Lise-მაც ამოიოხრა."), (160, "!"), (180, "' ლივრი")]
+    [result] = remove_noise([page(1, *rows, scanned=False)])
+    assert texts(result.lines) == ["#34", "A", "Lise-მაც ამოიოხრა.", "!", "' ლივრი"]
 
 
 def body(number: int, rows: int, *extra: tuple[float, str]) -> Page:

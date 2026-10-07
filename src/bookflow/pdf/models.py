@@ -21,6 +21,8 @@ class Page:
     height: float
     lines: list[Line]
     footnotes: list[Line] = field(default_factory=list)
+    # A scan with an OCR text layer: its text may hold misreads to clean up.
+    scanned: bool = False
 
 
 @dataclass

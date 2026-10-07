@@ -155,6 +155,13 @@ h3 + p {
   text-indent: 0;
 }
 
+/* A scene break inside a chapter, as the book prints it: "*", "* * *". */
+.scene-break {
+  margin: 1em 0;
+  text-align: center;
+  text-indent: 0;
+}
+
 /* Cover: the picture alone, filling the screen. */
 
 body.cover {

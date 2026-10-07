@@ -42,7 +42,10 @@ a list of `Page`s, each a list of `Line`s with their text and position.
   - Stray middle dots become spaces.
 - **Noise** (`noise.py`) is removed page by page:
   - **Junk lines:** OCR misreads of pictures and stains, meaning lines with no real word,
-    or with more broken words than real ones.
+    or with more broken words than real ones. Only **scanned pages** are cleaned this
+    way: pages that an image covers at least half of, with the OCR text on top. On a
+    born-digital page an odd line ("#34", "A", "Lise-მაც ამოიოხრა.") is the book's own
+    text, so it stays, and so do symbols at a line's edges.
   - **Page numbers:** short lines with no word, in the top or bottom 12% of the page.
   - **Running headers and footers:** edge lines whose words repeat on 3 or more pages.
     Digits are ignored, so "Chapter 3 · 41" and "Chapter 3 · 42" match. A chapter
@@ -79,24 +82,67 @@ lines, though, and would mistake its indent for its margin. If a page's left edg
 more than 0.8 line heights inside the book's, or its right edge more than 2 line
 heights short of it, the page uses the book's column instead (`fit`).
 
+Books mark paragraphs in different ways, so before building them Bookflow learns four
+things about the whole book (`text_column`), from its pages with at least ten lines:
+
+- **Spaced paragraphs.** Some books leave out the indent and put a little space above
+  each paragraph instead. A step from one line to the next of 1.2 to 2.5 times the usual
+  one is a wide step. When at least 2% of steps are wide and at least 90% of those
+  follow the end of a sentence (or a note mark), the book spaces its paragraphs. The
+  paragraph step is then halfway between the usual step and the usual wide one.
+- **Loose spacing.** When wide steps are that common but fewer than 90% follow a sentence
+  end, the space means nothing. A Word export with a hard break every few lines puts
+  the paragraph space after each of them, mid-sentence too.
+- **Indents.** The book indents its paragraphs if at least 3% of lines start between
+  0.8 and 4 line heights inside the margin.
+- **Justified text.** In justified text a line stops within half a line height of the
+  right margin, or well short of it as a paragraph's last line. The book is justified
+  if at least 60% of its lines are flush and at most 5% stop in between.
+
 A line **starts a new paragraph** if any of these is true. The first rule that applies
 wins:
 
-1. The line above ends in a broken word: **never a new paragraph**.
-2. Either this line or the one above is tall (more than 1.3× the usual height): a heading.
+1. The line above ends in a broken word, or is a dialogue dash alone ("-"): **never a
+   new paragraph**. Neither is a line opening with closing punctuation (`.` `,` `!` `?`
+   `;` `:` `)` `»`), which ends the sentence above: "Est modus in rebus" / ". დიახ".
+2. Either this line or the one above is a scene break: only `*`, `⁂`, `•` and the like,
+   or a row of three dashes or more.
+3. Either this line or the one above is tall (more than 1.3× the usual height): a heading.
    So is a chapter number alone on its line, "XII" or "7.".
-3. The line above is a short line reading as a heading: a label ("თავი მეორე"), a label
+4. The line above is a short line reading as a heading: a label ("თავი მეორე"), a label
    with its title, or a section name ("წინათქმა"). Some books leave no gap after one.
-4. The line above starts more than 4 line heights to the right of this one. It was
+5. The line above starts more than 4 line heights to the right of this one. It was
    centred or flush right, like a heading.
-5. The line is indented by more than 0.8 line heights.
-6. There is a gap above it wider than the usual gap plus 0.8 line heights.
-7. It is the first line of a page, and the last page's text stopped above 75% of the
+6. The line is indented by more than 0.8 line heights.
+7. There is a gap above it wider than the usual gap plus 0.8 line heights. In a loosely
+   spaced book a long line (over 60% of the column) running on mid-sentence carries
+   on across the gap, unless this line opens speech or a quote.
+8. In a book that spaces its paragraphs, the step from the line above is at least the
+   paragraph step, and the line above ends a sentence or this line opens speech or a
+   quote. A sentence running on across the space carries on.
+9. It is the first line of a page, and the last page's text stopped above 75% of the
    page height (a chapter end).
-8. The line above ends a sentence and stops more than 2 line heights short of the
-   right edge.
+10. A heading set in the text ends (see below).
+11. The line above ends a sentence and stops more than 2 line heights short of the
+    right edge, or more than half a line height in justified text.
 
 Words broken at a line end are rejoined ("დარჩე-" + "ნია" → "დარჩენია").
+
+### Headings set in the text
+
+Some books set a section's name between paragraphs, with no label and in the text's
+size: "რესტორანში", "#34". A paragraph that may be such a heading is marked `apart`:
+
+- **With space:** it starts after a finished sentence, more than 1.8 times the usual
+  step below it (1.8 paragraph steps in a book that spaces paragraphs). The heading
+  ends at its short last line, at most 3 lines in, when a full line follows. Short
+  lines close below it go on the heading: "გაალმასება." / "და კიდევ ერთი … რამ".
+- **Without space,** in a book with no indents: a line of at most 6 words and less than
+  60% of the column, flush left, after a finished sentence and before a full line, that
+  ends with no punctuation and has none inside ("ჰიპე"). A line before a bracketed
+  translation, or with a foreign word glued on ("…სხვაHybris"), is the text's own.
+
+The structure stage decides which of these are headings.
 
 ### Verse and lists (`paragraphs/verse.py`)
 
@@ -196,6 +242,26 @@ size is the chapter's first line, and the chapter has no title.
 When a title has run into the first paragraph, as across a page break, the paragraph's
 short first line is split off as the title.
 
+A **long title** may fill a line or more, set like a paragraph: "წინასწარ უნდა
+ყოფილიყო ჯაჭვი განზრახ დაზიანებული, რომ ასე ადვილად / გამწყდარიყო". A paragraph right
+after a label is its title if it is at most 3 lines, isn't a label, doesn't start with
+speech or a quote and doesn't end like a sentence or clause, and the text below it starts
+more than 1.8 times the usual step further down (1.8 paragraph steps in a book that
+spaces paragraphs).
+
+A scene break is never a title.
+
+### Headings set in the text
+
+A paragraph marked `apart` (see Paragraphs) is a **section below the chapters**, with
+its text as its name, if:
+
+- it is at most 3 lines and its last line is short,
+- it is not verse, a scene break or a notes title (შენიშვნები),
+- it doesn't end with `.` `,` `:` `;` or a dash, and doesn't start with a dash or a
+  bracket (it may exclaim or ask: "დედაკაცია, რაღა თქმა უნდა!"), and
+- the text below runs straight on from it, on the same page or at the top of the next.
+
 ### Front matter
 
 - **Title page:** front matter of at most 3 paragraphs on one page, with none ending
@@ -246,8 +312,9 @@ table of contents. The spine is in this order:
 5. **Notes page**, if the book has notes. Marks link to it (`epub:type="noteref"`),
    and each note links back to its first mark.
 
-All pages share one stylesheet (`epub/style.py`). It sets large centred headings and
-verse set in from the text, with a hanging indent for wrapped lines. Text is justified
+All pages share one stylesheet (`epub/style.py`). It sets large centred headings,
+verse set in from the text with a hanging indent for wrapped lines, and scene breaks
+centred as the book prints them. Text is justified
 and hyphenated, except in Georgian books: readers rarely hyphenate Georgian, and its
 long words open wide gaps in justified lines, so it is set ragged-right. The fonts are
 embedded so every reader shows the same type.

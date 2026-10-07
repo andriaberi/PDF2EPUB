@@ -374,3 +374,41 @@ def test_title_in_capitals_may_fill_the_line() -> None:
     title = "SOLUS CUM SOLO, IN LOCO REMOTO, NON COGITABUNTUR ORARE PATER NOSTER"
     paragraphs = [flush("თავი მეცამეტე", 100), text(title, 112), text("ფიქრს გაეტაცა.", 150)]
     assert headings(paragraphs) == [Heading(1, "თავი მეცამეტე", title)]
+
+
+def test_title_as_long_as_a_line() -> None:
+    title = Paragraph(
+        "წინასწარ უნდა ყოფილიყო ჯაჭვი განზრახ დაზიანებული, რომ ასე ადვილად გამწყდარიყო",
+        1,
+        [
+            Line("წინასწარ უნდა ყოფილიყო ჯაჭვი", 50, 112, RIGHT, 123),
+            Line("გამწყდარიყო", LEFT, 124, 95, 135),
+        ],
+    )
+    paragraphs = [flush("თავი მესამე", 100), title, text("იმავე წლის ოქტომბრის ბოლოს.", 161)]
+    [section] = build_sections(paragraphs, PAGES)
+    assert section.heading == Heading(1, "თავი მესამე", title.text)
+    assert [p.text for p in section.paragraphs] == ["იმავე წლის ოქტომბრის ბოლოს."]
+
+
+def test_heading_set_in_the_text_is_a_section_below_the_chapter() -> None:
+    restaurant = flush("რესტორანში", 200)
+    restaurant.apart = True
+    paragraphs = [
+        flush("თავი პირველი", 100),
+        flush("ჩამოსვლა", 112),
+        text("ერთი უბრალო ყმაწვილი კაცი.", 140),
+        restaurant,
+        text("ნათელი, მყუდრო რესტორანი.", 212),
+    ]
+    assert headings(paragraphs) == [
+        Heading(1, "თავი პირველი", "ჩამოსვლა"),
+        Heading(2, "რესტორანში"),
+    ]
+
+
+def test_sentence_set_apart_is_not_a_heading() -> None:
+    sentence = flush("კარი გაიღო.", 200)
+    sentence.apart = True
+    paragraphs = [flush("თავი პირველი", 100), text("ტექსტი.", 140), sentence, text("მერე.", 212)]
+    assert headings(paragraphs) == [Heading(1, "თავი პირველი")]

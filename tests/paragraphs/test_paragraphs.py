@@ -181,3 +181,107 @@ def test_line_of_text_starting_with_a_label_word_carries_on() -> None:
         1, line(100, "თავი მეორე სართულის ფანჯრიდან გადმოყო და"), line(112, "დაიძახა.", x1=100)
     )
     assert texts([p]) == ["თავი მეორე სართულის ფანჯრიდან გადმოყო და დაიძახა."]
+
+
+def lines_page(number: int, rows: list[tuple[float, str, float]], x0: float = LEFT) -> Page:
+    """A page of lines (y, text, x1), all from the left margin."""
+    return page(number, *(line(y, text, x0=x0, x1=x1) for y, text, x1 in rows))
+
+
+def spaced_book(step: float, joined_at: int | None = None) -> list[Page]:
+    """Twelve paragraphs of three full lines, set apart by a wider step, no indent."""
+    rows = []
+    y = 40.0
+    for number in range(12):
+        for row in range(3):
+            end = "." if row == 2 and number != joined_at else ""
+            rows.append((y, f"Paragraph {number} line {row}{end}", RIGHT))
+            y += 14
+        y += step - 14
+    return [lines_page(1, rows)]
+
+
+def test_space_between_paragraphs_starts_one() -> None:
+    # Every line is full, so only the space tells where paragraphs end.
+    paragraphs = texts(spaced_book(22))
+    assert len(paragraphs) == 12
+    assert paragraphs[0] == "Paragraph 0 line 0 Paragraph 0 line 1 Paragraph 0 line 2."
+
+
+def test_sentence_running_on_across_the_space_carries_on() -> None:
+    paragraphs = texts(spaced_book(22, joined_at=4))
+    assert len(paragraphs) == 11
+    assert "Paragraph 4 line 2 Paragraph 5 line 0" in paragraphs[4]
+
+
+def test_space_mid_sentence_in_a_loosely_spaced_book_is_no_break() -> None:
+    # A Word export: space after every second line, half the time mid-sentence.
+    rows = []
+    y = 40.0
+    for number in range(16):
+        end = "." if number % 2 else ""
+        rows.append((y, f"Line {number} of text", 350.0))
+        rows.append((y + 18, f"and more of it{end}", 360.0))
+        y += 46
+    paragraphs = texts([lines_page(1, rows)])
+    assert paragraphs[0] == "Line 0 of text and more of it Line 1 of text and more of it."
+    assert len(paragraphs) == 8
+
+
+def justified_page(*extra: tuple[float, str, float]) -> Page:
+    rows = [(40 + 14 * row, f"Justified text line {row}", RIGHT) for row in range(30)]
+    return lines_page(1, rows + list(extra))
+
+
+def test_justified_line_a_little_short_ends_the_paragraph() -> None:
+    p = justified_page((460, "It ends a word short.", RIGHT - 8), (474, "Next one.", RIGHT))
+    *_, last, following = texts([p])
+    assert last.endswith("line 29 It ends a word short.")
+    assert following == "Next one."
+
+
+def test_line_opening_with_a_full_stop_ends_the_sentence_above() -> None:
+    p = page(
+        1,
+        line(100, "Est modus in rebus", x0=INDENT, x1=150),
+        line(114, ". დიახ, სადილსაც კი ბოლო უნდა ჰქონდეს.", x0=INDENT, x1=300),
+    )
+    assert texts([p]) == ["Est modus in rebus. დიახ, სადილსაც კი ბოლო უნდა ჰქონდეს."]
+
+
+def test_dash_alone_on_its_line_opens_the_speech_below() -> None:
+    p = page(1, line(100, "-", x0=INDENT, x1=70), line(114, "Vermis sum.", x0=INDENT, x1=150))
+    assert texts([p]) == ["- Vermis sum."]
+
+
+def test_scene_break_stands_alone() -> None:
+    p = page(1, line(100, "The end of it.", x1=150), line(114, "*", x1=60), line(128, "Then"))
+    paragraphs = build_paragraphs([p])
+    assert [x.text for x in paragraphs] == ["The end of it.", "*", "Then"]
+    assert paragraphs[1].scene_break
+
+
+def test_heading_set_in_the_text_stands_apart() -> None:
+    p = justified_page(
+        (460, "The section ends.", 200),
+        (494, "Restaurant", 120),
+        (508, "Bright and cosy, the restaurant", RIGHT),
+        (522, "was on the right.", 200),
+    )
+    paragraphs = build_paragraphs([p])
+    assert [x.text for x in paragraphs[-2:]] == [
+        "Restaurant",
+        "Bright and cosy, the restaurant was on the right.",
+    ]
+    assert paragraphs[-2].apart
+
+
+def test_heading_set_in_the_text_without_space() -> None:
+    p = justified_page(
+        (460, "The orchestra played a polka.", 300),
+        (474, "Hippe", 80),
+        (488, "So went the Sundays up there, and", RIGHT),
+    )
+    paragraphs = build_paragraphs([p])
+    assert paragraphs[-2].text == "Hippe"
+    assert paragraphs[-2].apart

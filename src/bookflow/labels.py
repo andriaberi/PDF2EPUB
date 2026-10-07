@@ -113,6 +113,9 @@ def split_label(text: str) -> tuple[str, str] | None:
 # Chapters numbered without a label word sit below every labelled division.
 NUMBER_LEVEL = 5
 
+# Headings named but not numbered, set in a chapter's text, sit below them all.
+SUBHEADING_LEVEL = 6
+
 # A chapter number alone on its line: "XII", "XII.", "7", "7.". Roman numerals are
 # upper case only, so a stray "i" or "v" is never one.
 NUMERAL = re.compile(r"^([IVXLCDM]{1,7}|\d{1,3})\.?$")

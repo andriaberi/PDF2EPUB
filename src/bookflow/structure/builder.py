@@ -1,7 +1,14 @@
-from bookflow.labels import NUMBER_LEVEL, find_label, fix_label, label_level, numeral_value
+from bookflow.labels import (
+    NUMBER_LEVEL,
+    SUBHEADING_LEVEL,
+    find_label,
+    fix_label,
+    label_level,
+    numeral_value,
+)
 from bookflow.paragraphs import Paragraph
 from bookflow.paragraphs.builder import join
-from bookflow.paragraphs.layout import Layout, is_tall, text_column
+from bookflow.paragraphs.layout import TITLE_SPACE, Layout, is_tall, stands_apart, text_column
 from bookflow.pdf import Page
 
 from .headings import (
@@ -15,12 +22,19 @@ from .headings import (
     run_in_label,
 )
 from .models import Heading, Section
+from .notes import TITLES as NOTES_TITLES
 
 # Lone numbers count as chapter numbers only when the book has at least this many.
 MIN_NUMBERED = 3
 
 # A number may skip this many: OCR loses one now and then.
 MAX_SKIP = 2
+
+# A long title ends with no full stop, question, comma or dash of running text.
+TEXT_ENDS = (".", "!", "?", "…", ":", ";", ",", "-", "–", "—", "»", "“", '"')
+
+# A heading in the text may exclaim or ask, but doesn't end like a clause.
+SUBHEADING_ENDS = (".", ",", ":", ";", "-", "–", "—")
 
 # Named sections ("წინათქმა", "Epilogue") take the outermost level the book uses,
 # known only once all headings are found.
@@ -49,6 +63,11 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
             if run_in_title:
                 sections.append(Section(heading))
                 continue
+        elif is_subheading(
+            paragraph, paragraphs[index] if index < len(paragraphs) else None, column
+        ):
+            sections.append(Section(Heading(SUBHEADING_LEVEL, paragraph.text)))
+            continue
         else:
             sections[-1].paragraphs.append(paragraph)
             continue
@@ -67,8 +86,12 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
             title.pop()
             index -= 1
         following = paragraphs[index] if index < len(paragraphs) else None
+        after = paragraphs[index + 1] if index + 1 < len(paragraphs) else None
         if title:
             heading.title = " ".join(part.text for part in title)
+        elif following and not tall and is_long_title(following, after, column):
+            heading.title = following.text
+            index += 1
         elif following and not tall and (split := split_title(following, column)):
             heading.title, paragraphs[index] = split
         sections.append(Section(heading))
@@ -119,6 +142,57 @@ def split_title(paragraph: Paragraph, column: Layout) -> tuple[str, Paragraph] |
     return first.text, Paragraph(text, paragraph.page, rest)
 
 
+def is_subheading(paragraph: Paragraph, following: Paragraph | None, column: Layout) -> bool:
+    """A heading set in the text, named but not numbered: "რესტორანში", "#34".
+
+    It stands far below the finished text above and runs straight into the text
+    below, a line or a few that end short and read as a name, not a sentence.
+    """
+    text = paragraph.text
+    return (
+        paragraph.apart
+        and text.casefold() not in NOTES_TITLES
+        and len(paragraph.lines) <= MAX_TITLE_LINES
+        and is_short(paragraph.lines[-1], column)
+        and not paragraph.verse
+        and not paragraph.scene_break
+        and not text.endswith(SUBHEADING_ENDS)
+        and not text.startswith(("-", "–", "—", "(", "["))
+        and following is not None
+        and (
+            following.page == paragraph.page + 1
+            or (
+                following.page == paragraph.page
+                and not stands_apart(following.lines[0], paragraph.lines[-1], column)
+            )
+        )
+    )
+
+
+def is_long_title(paragraph: Paragraph, following: Paragraph | None, column: Layout) -> bool:
+    """A title as long as a line or more, set like a paragraph but standing apart.
+
+    "წინასწარ უნდა ყოფილიყო ჯაჭვი განზრახ დაზიანებული, რომ ასე ადვილად / გამწყდარიყო":
+    no sentence ends in it, and more space than between paragraphs sets it off.
+    """
+    text = paragraph.text
+    if following is None or following.page != paragraph.page:
+        return False
+    step = following.lines[0].y0 - paragraph.lines[-1].y0
+    usual = column.line_height + column.gap
+    return (
+        len(paragraph.lines) <= MAX_TITLE_LINES
+        and not text.endswith(TEXT_ENDS)
+        and not text.startswith(("-", "–", "—", "„", "«", '"'))
+        and not paragraph.verse
+        and not is_label(paragraph, column)
+        and not is_named_section(paragraph, column)
+        and run_in_label(paragraph, column) is None
+        and numeral_value(text) is None
+        and step > TITLE_SPACE * (column.paragraph_step or usual)
+    )
+
+
 def is_title_part(paragraph: Paragraph, title: list[Paragraph], column: Layout, tall: bool) -> bool:
     lines = sum(len(part.lines) for part in title) + len(paragraph.lines)
     # "…ხელზე და უთხრა:" leads into speech, "– მოვიდნენ!" is speech and "…იწვა." ends a
@@ -126,6 +200,7 @@ def is_title_part(paragraph: Paragraph, title: list[Paragraph], column: Layout, 
     text = paragraph.text
     return (
         lines <= MAX_TITLE_LINES
+        and not paragraph.scene_break
         and not text.endswith(":")
         and not (text.endswith(".") and not text.endswith(".."))
         and not text.startswith(("-", "–", "—"))
