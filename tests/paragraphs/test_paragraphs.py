@@ -1,5 +1,5 @@
-from bookflow.paragraphs import Paragraph, build_paragraphs
-from bookflow.pdf import Line, Page
+from rebind.paragraphs import Paragraph, build_paragraphs
+from rebind.pdf import Line, Page
 
 LEFT = 45.0
 RIGHT = 385.0

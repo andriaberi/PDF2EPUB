@@ -1,6 +1,6 @@
-# How Bookflow works
+# How Rebind works
 
-Bookflow turns a PDF into an EPUB in stages. Each stage takes the previous one's
+Rebind turns a PDF into an EPUB in stages. Each stage takes the previous one's
 output and knows nothing about the stages after it:
 
 ```
@@ -28,7 +28,7 @@ a list of `Page`s, each a list of `Line`s with their text and position.
 - **Missing spaces** (`spacing.py`). Some PDFs place every word where it belongs but
   leave out the spaces, and their font widths are wrong, so no gap shows between the
   letters either. When less than 5% of a book's characters are spaces (text normally
-  has about 14%), Bookflow reads each letter's position instead:
+  has about 14%), Rebind reads each letter's position instead:
   - Inside a word a letter always moves the next one along by the same amount, its
     width. The most common distance after each letter in the book is that width.
   - Where a letter moves the next one more than 0.15 font sizes further than its width,
@@ -82,7 +82,7 @@ lines, though, and would mistake its indent for its margin. If a page's left edg
 more than 0.8 line heights inside the book's, or its right edge more than 2 line
 heights short of it, the page uses the book's column instead (`fit`).
 
-Books mark paragraphs in different ways, so before building them Bookflow learns four
+Books mark paragraphs in different ways, so before building them Rebind learns four
 things about the whole book (`text_column`), from its pages with at least ten lines:
 
 - **Spaced paragraphs.** Some books leave out the indent and put a little space above
@@ -184,7 +184,7 @@ paragraphs up to the next one. Text before the first heading is front matter.
 ### Labels
 
 A **label** is a division word plus one number word, alone on its line
-(`bookflow/labels.py`):
+(`rebind/labels.py`):
 
 | Level | Georgian | English |
 |---|---|---|

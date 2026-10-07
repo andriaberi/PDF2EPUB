@@ -1,7 +1,7 @@
 import pytest
 
-from bookflow.pdf.language import detect_language
-from bookflow.pdf.models import Line, Page
+from rebind.pdf.language import detect_language
+from rebind.pdf.models import Line, Page
 
 
 def book(*texts: str) -> list[Page]:

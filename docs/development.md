@@ -3,12 +3,12 @@
 ## Setup
 
 ```sh
-git clone https://github.com/andriaberi/Bookflow
-cd Bookflow
+git clone https://github.com/andriaberi/Rebind
+cd Rebind
 make install
 ```
 
-`make install` creates `.venv`, installs Bookflow in editable mode with its dev tools
+`make install` creates `.venv`, installs Rebind in editable mode with its dev tools
 (ruff, mypy, pytest, pre-commit), and installs the git hooks. Run `make` alone for the
 full list of commands.
 
@@ -17,17 +17,17 @@ full list of commands.
 | `make check` | Lint, type-check and test: what CI runs. Run it before every commit. |
 | `make format` | Format the code and fix what can be fixed. |
 | `make test` / `make cov` | Run the tests, without or with a coverage report. |
-| `make bump TO=patch\|minor\|major\|1.2.3` | Set the version in `src/bookflow/__init__.py`. |
+| `make bump TO=patch\|minor\|major\|1.2.3` | Set the version in `src/rebind/__init__.py`. |
 | `make build` | Build the package into `dist/`. |
 
-Run the converter from the clone with `.venv/bin/bookflow book.pdf`, or
-`.venv/bin/bookflow` alone for the window. On Linux the dev setup needs a web view for
+Run the converter from the clone with `.venv/bin/rebind book.pdf`, or
+`.venv/bin/rebind` alone for the window. On Linux the dev setup needs a web view for
 the window: `.venv/bin/pip install -e ".[qt]"` (see the README).
 
 ## Layout
 
 ```
-src/bookflow/
+src/rebind/
   __main__.py      entry point: the window without arguments, the CLI with a PDF
   cli/             command-line options (Args)
   gui/             the window (pywebview): window.py opens it, api.py is what the
@@ -49,7 +49,7 @@ window runs `convert` in a background thread and sends each step to the page.
 
 The window is plain HTML, CSS and JavaScript in `gui/web/`, with no build step. The page
 calls Python through `window.pywebview.api` (the public methods of `Api`), and Python
-calls back into `window.bookflow` (`onPicked`, `onProgress`, `onDone`, `onError`).
+calls back into `window.rebind` (`onPicked`, `onProgress`, `onDone`, `onError`).
 Keep everything Python does in `Api`, so it is tested without a window; open
 `web/index.html` in a browser with a stand-in `window.pywebview.api` to work on the
 design.
@@ -104,7 +104,7 @@ lower case.
 fires or doesn't:
 
 ```python
-from bookflow.pdf import read_pdf
+from rebind.pdf import read_pdf
 
 book = read_pdf("book.pdf", "157")
 for line in book.pages[0].lines:

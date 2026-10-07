@@ -1,5 +1,5 @@
-from bookflow.paragraphs import Paragraph
-from bookflow.structure import Heading, Section, extract_notes
+from rebind.paragraphs import Paragraph
+from rebind.structure import Heading, Section, extract_notes
 
 
 def section(*texts: str) -> Section:

@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bookflow"
+name = "rebind"
 dynamic = ["version"]
 description = "A fast, clean Python tool for converting PDF books into well-structured, reflowable EPUBs"
 readme = "README.md"
@@ -39,16 +39,16 @@ classifiers = [
 qt = ["pywebview[qt]>=5.3"]
 
 [project.urls]
-Homepage = "https://github.com/andriaberi/Bookflow"
-Repository = "https://github.com/andriaberi/Bookflow"
-Issues = "https://github.com/andriaberi/Bookflow/issues"
+Homepage = "https://github.com/andriaberi/Rebind"
+Repository = "https://github.com/andriaberi/Rebind"
+Issues = "https://github.com/andriaberi/Rebind/issues"
 
 [project.scripts]
-bookflow = "bookflow.__main__:main"
+rebind = "rebind.__main__:main"
 
 # A GUI script opens no console window on Windows.
 [project.gui-scripts]
-bookflow-gui = "bookflow.gui:main"
+rebind-gui = "rebind.gui:main"
 
 [dependency-groups]
 dev = [
@@ -67,11 +67,11 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-"bookflow.epub" = ["fonts/*.ttf", "fonts/OFL.txt"]
-"bookflow.gui" = ["web/*"]
+"rebind.epub" = ["fonts/*.ttf", "fonts/OFL.txt"]
+"rebind.gui" = ["web/*"]
 
 [tool.setuptools.dynamic]
-version = { attr = "bookflow.__version__" }
+version = { attr = "rebind.__version__" }
 
 # Ruff
 
@@ -124,7 +124,7 @@ filterwarnings = ["error"]
 # Coverage
 
 [tool.coverage.run]
-source = ["bookflow"]
+source = ["rebind"]
 branch = true
 
 [tool.coverage.report]

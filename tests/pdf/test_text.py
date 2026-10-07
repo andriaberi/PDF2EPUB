@@ -1,6 +1,6 @@
 import pytest
 
-from bookflow.pdf.text import clean_text, script_of, strip_edge_debris
+from rebind.pdf.text import clean_text, script_of, strip_edge_debris
 
 
 def test_collapses_whitespace() -> None:

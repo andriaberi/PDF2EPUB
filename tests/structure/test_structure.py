@@ -1,9 +1,9 @@
 import pytest
 
-from bookflow.labels import fix_label, is_section_name, label_level, numeral_value, split_label
-from bookflow.paragraphs import Paragraph
-from bookflow.pdf import Line, Page
-from bookflow.structure import Heading, build_sections
+from rebind.labels import fix_label, is_section_name, label_level, numeral_value, split_label
+from rebind.paragraphs import Paragraph
+from rebind.pdf import Line, Page
+from rebind.structure import Heading, build_sections
 
 LEFT, RIGHT = 45.0, 385.0
 

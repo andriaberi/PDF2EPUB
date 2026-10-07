@@ -1,5 +1,5 @@
-from bookflow.pdf import Line, Page
-from bookflow.structure import drop_printed_contents
+from rebind.pdf import Line, Page
+from rebind.structure import drop_printed_contents
 
 
 def page(number: int, texts: list[str]) -> Page:

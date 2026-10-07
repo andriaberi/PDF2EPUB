@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from bookflow.pdf import ReadError, read_pdf
+from rebind.pdf import ReadError, read_pdf
 
 MakePdf = Callable[..., str]
 

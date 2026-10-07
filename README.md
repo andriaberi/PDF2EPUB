@@ -1,8 +1,8 @@
-# Bookflow
+# Rebind
 
 A fast, clean Python tool for converting PDF books into well-structured, reflowable EPUBs.
 
-Bookflow reads the text of a PDF book, throws away what only made sense on a printed page
+Rebind reads the text of a PDF book, throws away what only made sense on a printed page
 (page numbers, running headers, the printed table of contents), and rebuilds the book as
 an EPUB 3: paragraphs that reflow on any screen, one page per chapter, a working table of
 contents, linked notes, and verse that keeps its lines.
@@ -11,10 +11,10 @@ It is written with Georgian books in mind and handles English too.
 
 ## Install
 
-Bookflow needs Python 3.12 or newer.
+Rebind needs Python 3.12 or newer.
 
 ```sh
-pip install git+https://github.com/andriaberi/Bookflow
+pip install git+https://github.com/andriaberi/Rebind
 ```
 
 Or from a clone, for working on it: `make install` (see [Development](docs/development.md)).
@@ -24,10 +24,10 @@ Or from a clone, for working on it: `make install` (see [Development](docs/devel
 ### The window
 
 ```sh
-bookflow
+rebind
 ```
 
-Run alone, `bookflow` opens a window:
+Run alone, `rebind` opens a window:
 
 1. **Drop a PDF** onto the window, or click **Browse…**. It shows the file's page count
    and size.
@@ -41,17 +41,17 @@ Run alone, `bookflow` opens a window:
 The window follows your system's light or dark mode.
 
 The window is a web page shown in your system's own web view: Windows and macOS have
-one built in. On Linux, Bookflow uses GTK's when Python can reach it, else Qt's:
+one built in. On Linux, Rebind uses GTK's when Python can reach it, else Qt's:
 
 ```sh
-pip install "bookflow[qt]"                      # Qt's web view: works in any Python
+pip install "rebind[qt]"                      # Qt's web view: works in any Python
 sudo apt install python3-gi gir1.2-webkit2-4.1  # or GTK's, for the system's Python
 ```
 
 ### The command line
 
 ```sh
-bookflow book.pdf
+rebind book.pdf
 ```
 
 This writes `book.epub` next to the PDF and prints what it found:
@@ -70,16 +70,16 @@ Options work the same as the window's fields:
 | `--author TEXT` | The book's author. Default: the PDF's metadata. |
 | `--language CODE` | The book's language, such as `ka` or `en`. Default: the PDF's own language tag, else detected from the text. |
 | `--cover IMAGE` | A cover image (JPEG, PNG, ...) for books whose PDF has no cover. A PDF that has one keeps its own. |
-| `--version` | Print Bookflow's version. |
+| `--version` | Print Rebind's version. |
 
 Many PDFs have no title or author in their metadata, so the title page would read
 `book`. Pass `--title` and `--author` to fix that:
 
 ```sh
-bookflow ucxo.pdf --title "უცხო" --author "ალბერ კამიუ"
+rebind ucxo.pdf --title "უცხო" --author "ალბერ კამიუ"
 ```
 
-## What Bookflow does with a book
+## What Rebind does with a book
 
 - **Cleans the text.** Page numbers, running headers and footers, OCR specks and
   dashes misread as two, words broken at line ends, ligatures. It puts back the spaces
@@ -104,7 +104,7 @@ bookflow ucxo.pdf --title "უცხო" --author "ალბერ კამი�
 
 ## Limits
 
-- **Scanned PDFs need a text layer.** Bookflow reads text and doesn't do OCR itself.
+- **Scanned PDFs need a text layer.** Rebind reads text and doesn't do OCR itself.
   Run `ocrmypdf` first.
 - **Headings need a label word, a number or a section name.** A heading is a word like
   თავი, ნაწილი, Chapter or Part plus one number word, a chapter number alone ("XII",
@@ -119,4 +119,4 @@ bookflow ucxo.pdf --title "უცხო" --author "ალბერ კამი�
 ## License
 
 MIT. The embedded Noto fonts are under the SIL Open Font License
-(`src/bookflow/epub/fonts/OFL.txt`).
+(`src/rebind/epub/fonts/OFL.txt`).

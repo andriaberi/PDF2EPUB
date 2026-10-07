@@ -1,7 +1,7 @@
 import pytest
 
-from bookflow.pdf.models import Line, Page
-from bookflow.pdf.noise import is_junk, is_page_number, remove_noise
+from rebind.pdf.models import Line, Page
+from rebind.pdf.noise import is_junk, is_page_number, remove_noise
 
 
 def page(number: int, *rows: tuple[float, str], scanned: bool = True) -> Page:
@@ -101,8 +101,8 @@ def test_strips_debris_but_keeps_footnote_marks() -> None:
     p = body(1, 30, (500, "' ვ. ი ლენინი, თხზულებანი."))
     p.lines.insert(0, Line("' ლივრი", 50, 80, 350, 90))
     [result] = remove_noise([p])
-    assert result.lines[0].text == "ლივრი"
-    assert texts(result.footnotes) == ["' ვ. ი ლენინი, თხზულებანი."]
+    assert texts(result.lines)[0] == "ლივრი"
+    assert texts(result.lines)[-1] == "Body text line 29."
 
 
 def test_clears_junk_heavy_pages() -> None:
@@ -129,29 +129,27 @@ def texts(lines: list[Line]) -> list[str]:
     return [line.text for line in lines]
 
 
-def test_moves_footnotes_to_their_own_list() -> None:
+def test_drops_footnotes() -> None:
     p = body(1, 30, (500, "'! კ. მარქსი და ფ. ენგელსი, გვ. 447."), (513, "31 მორის ტორეზი."))
     [result] = remove_noise([p])
-    assert texts(result.footnotes) == ["'! კ. მარქსი და ფ. ენგელსი, გვ. 447.", "31 მორის ტორეზი."]
     assert texts(result.lines)[-1] == "Body text line 29."
 
 
 def test_keeps_a_last_line_without_a_mark() -> None:
     [result] = remove_noise([body(1, 30, (500, "The end of the chapter."))])
-    assert result.footnotes == []
     assert texts(result.lines)[-1] == "The end of the chapter."
 
 
 def test_keeps_a_marked_line_without_a_gap() -> None:
     [result] = remove_noise([body(1, 30, (460, "1 more line of the body."))])
-    assert result.footnotes == []
+    assert texts(result.lines)[-1] == "1 more line of the body."
 
 
 def test_keeps_a_section_that_runs_on_to_the_next_page() -> None:
     [result] = remove_noise([body(1, 30, (500, "1. A numbered section that goes on-"))])
-    assert result.footnotes == []
+    assert texts(result.lines)[-1] == "1. A numbered section that goes on-"
 
 
 def test_keeps_dialogue_after_a_gap() -> None:
     [result] = remove_noise([body(1, 30, (500, "— ვინ არის ეს პატარა კაცი?"))])
-    assert result.footnotes == []
+    assert texts(result.lines)[-1] == "— ვინ არის ეს პატარა კაცი?"

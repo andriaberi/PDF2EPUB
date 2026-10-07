@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from bookflow.cli.commands import Args
-from bookflow.cover import Cover
-from bookflow.pipeline import (
+from rebind.cli.commands import Args
+from rebind.cover import Cover
+from rebind.pipeline import (
     ConvertError,
     choose_cover,
     convert,

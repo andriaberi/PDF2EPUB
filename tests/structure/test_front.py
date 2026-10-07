@@ -1,6 +1,6 @@
-from bookflow.paragraphs import Paragraph
-from bookflow.structure import Heading, Section
-from bookflow.structure.front import (
+from rebind.paragraphs import Paragraph
+from rebind.structure import Heading, Section
+from rebind.structure.front import (
     drop_repeated_title,
     drop_text_before_first_heading,
     drop_title_page_reprints,

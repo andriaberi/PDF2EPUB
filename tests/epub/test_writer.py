@@ -3,11 +3,11 @@ from pathlib import Path
 from xml.dom import minidom
 from xml.etree import ElementTree
 
-from bookflow.cover import Cover
-from bookflow.epub import Metadata, write_epub
-from bookflow.paragraphs import Paragraph
-from bookflow.pdf import Line
-from bookflow.structure import Heading, Note, Section
+from rebind.cover import Cover
+from rebind.epub import Metadata, write_epub
+from rebind.paragraphs import Paragraph
+from rebind.pdf import Line
+from rebind.structure import Heading, Note, Section
 
 METADATA = Metadata(title="საბრალონი", author="ვიქტორ ჰიუგო", language="ka", identifier="urn:x")
 
