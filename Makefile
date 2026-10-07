@@ -1,15 +1,33 @@
-# Thin wrapper around tools/cli.sh, which does the work. Run `make` for usage.
+PYTHON ?= .venv/bin/python
 
-# Recipes are indented with spaces instead of tabs (GNU Make >= 3.82).
-empty :=
-.RECIPEPREFIX := $(empty) $(empty)
+.PHONY: install format check test build clean bump
 
-.DEFAULT_GOAL := help
-.PHONY: help install format lint typecheck test cov check version bump outdated upgrade build clean
+install:
+	python3 -m venv .venv
+	$(PYTHON) -m pip install -q --upgrade pip
+	$(PYTHON) -m pip install -q -e . --group dev
+	.venv/bin/pre-commit install
 
-# `make bump TO=patch|minor|major|1.2.3` (TO defaults to patch).
+format:
+	$(PYTHON) -m ruff format .
+	$(PYTHON) -m ruff check --fix .
+
+check:
+	$(PYTHON) -m ruff format --check .
+	$(PYTHON) -m ruff check .
+	$(PYTHON) -m mypy
+	$(PYTHON) -m pytest -q
+
+test:
+	$(PYTHON) -m pytest -q
+
+build: clean
+	$(PYTHON) -m build
+
+clean:
+	rm -rf build dist src/*.egg-info .pytest_cache .mypy_cache .ruff_cache
+	find . -name __pycache__ -not -path "./.venv/*" -exec rm -rf {} +
+
+# make bump VERSION=1.2.3
 bump:
-    @bash tools/cli.sh bump $(TO)
-
-help install format lint typecheck test cov check version outdated upgrade build clean:
-    @bash tools/cli.sh $@
+	sed -i 's/^__version__ = .*/__version__ = "$(VERSION)"/' src/rebind/__init__.py

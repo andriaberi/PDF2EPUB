@@ -172,6 +172,26 @@ def test_two_short_lines_without_a_colon_are_text() -> None:
     assert verse_of(build_paragraphs([full_page(1), p])) == []
 
 
+def test_two_lines_after_a_short_line_ending_in_a_comma_are_verse() -> None:
+    p = page(
+        2,
+        line(86, "მაგიდაზე წესრიგი სუფევდა და მაგიდის ქვეშ კი - უწესობა."),
+        line(100, "მოლიერისა არ იყოს,", x1=200),
+        line(114, "ისეთ რამეს აკეთებდნენ მაგიდის ქვეშ ფეხით,", INDENT, 180),
+        line(128, "ყველაფერი ზანზარებდა, გრგვინვა იყო მეხის.", INDENT, 180),
+    )
+    assert verse_of(build_paragraphs([full_page(1), p])) == [
+        ["ისეთ რამეს აკეთებდნენ მაგიდის ქვეშ ფეხით,", "ყველაფერი ზანზარებდა, გრგვინვა იყო მეხის."]
+    ]
+
+
+def test_narration_after_verse_is_left_out() -> None:
+    song = ["ვერაფრით წინ ვერ წავედი,", "ესეც ვოლტერის ბრალია,", "ჩემს ბედს გაუტყდა ბორბალი,"]
+    song.append("ესეც სულ რუსოს ბრალია.")
+    p = verse_page(*song, "გავროში მღეროდა, ისინი ესროდნენ.")
+    assert verse_of(build_paragraphs([full_page(1), p])) == [song]
+
+
 def test_speech_inside_a_song_stays_in_it() -> None:
     song = [
         "ო, თეთრო ვარდო, პაწაწინა ყვავილო,",
@@ -298,6 +318,43 @@ def test_line_opening_with_a_full_stop_ends_the_sentence_above() -> None:
         line(114, ". დიახ, სადილსაც კი ბოლო უნდა ჰქონდეს.", x0=INDENT, x1=300),
     )
     assert texts([p]) == ["Est modus in rebus. დიახ, სადილსაც კი ბოლო უნდა ჰქონდეს."]
+
+
+def test_word_set_apart_mid_sentence_carries_on() -> None:
+    p = page(
+        1,
+        line(100, "მელოტს. ყველაფერს საზღვარი უნდა ჰქონდეს", x1=230),
+        line(114, "Est modus in rebus", x0=INDENT, x1=150),
+        line(128, ". დიახ, სადილსაც კი ბოლო უნდა ჰქონდეს. ვაშლის ქადა", x0=INDENT),
+        line(142, "ძალიან გიყვართ.", x1=150),
+    )
+    assert texts([p]) == [
+        "მელოტს. ყველაფერს საზღვარი უნდა ჰქონდეს Est modus in rebus. დიახ, სადილსაც კი"
+        " ბოლო უნდა ჰქონდეს. ვაშლის ქადა ძალიან გიყვართ."
+    ]
+
+
+def test_quote_opened_at_a_line_end_carries_on() -> None:
+    p = page(
+        1,
+        line(100, "გამოაქანდაკეს სიტყვა „აღსდგა“ - „", x1=200),
+        line(114, "Redivivus", x0=INDENT, x1=100),
+        line(128, "“; პიე, რომელიც ცხოვრობდა ტერეზის ქ. #4-ში, ამზადებდა", x0=INDENT),
+        line(142, "კრებებს.", x1=150),
+    )
+    assert texts([p]) == [
+        "გამოაქანდაკეს სიტყვა „აღსდგა“ - „Redivivus“; პიე, რომელიც ცხოვრობდა ტერეზის ქ."
+        " #4-ში, ამზადებდა კრებებს."
+    ]
+
+
+def test_english_opening_quote_starts_a_paragraph() -> None:
+    p = page(
+        1,
+        line(100, "He said nothing.", x1=150),
+        line(114, "“Come in,” she said.", x0=INDENT, x1=200),
+    )
+    assert texts([p]) == ["He said nothing.", "“Come in,” she said."]
 
 
 def test_dash_alone_on_its_line_opens_the_speech_below() -> None:

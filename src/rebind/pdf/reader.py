@@ -3,7 +3,7 @@ from typing import Any
 
 import pymupdf
 
-from .language import detect_language
+from .language import book_language
 from .models import Book, Line, Page
 from .noise import remove_noise
 from .pages import parse_pages
@@ -44,7 +44,7 @@ def read_pdf(path: str, spec: str | None = None) -> Book:
         return Book(
             title=metadata_text(metadata.get("title")),
             author=metadata_text(metadata.get("author")),
-            language=declared_language(doc) or detect_language(pages),
+            language=book_language(declared_language(doc), pages),
             pages=pages,
         )
 

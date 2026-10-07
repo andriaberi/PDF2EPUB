@@ -19,6 +19,9 @@ MAX_DIALOGUE_SHARE = 1 / 3
 # ragged-right text.
 SHORT = 4
 
+# A sentence this many words long after verse is narration, not the verse's last line.
+MIN_NARRATION_WORDS = 3
+
 # Short lines that each end a sentence are short paragraphs of text, not verse.
 MAX_SENTENCE_SHARE = 0.5
 
@@ -46,10 +49,20 @@ def find_verse(lines: list[Line], layout: Layout) -> dict[int, bool]:
         # - ამოიოხრა ფანტინმა." / "დალიამ იუცხოვა ეს სიბრალული:".
         while run and (is_dialogue(lines[run[-1]]) or lines[run[-1]].text.endswith(":")):
             run = run[:-1]
+        # Nor with the narration after it: a sentence after the verse's own last line,
+        # "სულ რუსოს ბრალია." / "გავროში მღეროდა, ისინი ესროდნენ.". A letter's
+        # signature ends a sentence too, but in a word or two: "ფანტინი“.".
+        if (
+            len(run) > 1
+            and all(ends_sentence(lines[index].text) for index in run[-2:])
+            and len(lines[run[-1]].text.split()) >= MIN_NARRATION_WORDS
+            and is_verse(run[:-1], lines, layout)
+        ):
+            run = run[:-1]
         # Speech may break up a song; if the whole run isn't verse, its parts between
         # the speech may be.
-        for part in [run] if is_verse(run, lines) else between_dialogue(run, lines, layout):
-            if is_verse(part, lines):
+        for part in [run] if is_verse(run, lines, layout) else between_dialogue(run, lines, layout):
+            if is_verse(part, lines, layout):
                 verse.update(stanzas(part, lines, layout))
         run = []
     return verse
@@ -102,19 +115,26 @@ def between_dialogue(run: list[int], lines: list[Line], layout: Layout) -> list[
     return [without_paragraph_end(part, lines, layout) for part in parts]
 
 
-def is_verse(run: list[int], lines: list[Line]) -> bool:
+def is_verse(run: list[int], lines: list[Line], layout: Layout) -> bool:
     if not run:
         return False
     # Speech in a song ends its sentences as speech does; count the song's own lines.
     sung = [index for index in run if not is_dialogue(lines[index])]
     ends = sum(1 for index in sung if ends_sentence(lines[index].text))
     dialogue = len(run) - len(sung)
-    introduced = run[0] > 0 and lines[run[0] - 1].text.endswith(":")
+    introduced = run[0] > 0 and is_introduction(lines[run[0] - 1], layout)
     return (
         len(run) >= (MIN_INTRODUCED_LINES if introduced else MIN_LINES)
         and ends <= MAX_SENTENCE_SHARE * len(sung)
         and dialogue <= MAX_DIALOGUE_SHARE * len(run)
     )
+
+
+def is_introduction(line: Line, layout: Layout) -> bool:
+    """A line leading into verse: "…და სიმღერა დაიწყო:", or broken short after a comma,
+    "მოლიერისა არ იყოს,"."""
+    text = line.text
+    return text.endswith(":") or (text.endswith(",") and is_verse_line(line, layout))
 
 
 def is_dialogue(line: Line) -> bool:

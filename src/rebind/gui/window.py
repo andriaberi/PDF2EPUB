@@ -25,7 +25,7 @@ BACKGROUND = "#f5f5f5"
 INSTALL_BACKEND = """\
 rebind: the window needs a web view, and this Python has none.
 Install one of these, then run rebind again:
-  pip install "rebind[qt]"                       (works in any Python)
+  pip install "rebind[qt] @ git+https://github.com/andriaberi/Rebind"   (any Python)
   sudo apt install python3-gi gir1.2-webkit2-4.1   (Debian, Ubuntu: the system's Python)
 Or convert from the command line: rebind book.pdf"""
 

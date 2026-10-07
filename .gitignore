@@ -15,10 +15,6 @@ dist/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.coverage
-.coverage.*
-htmlcov/
-coverage.xml
 
 # Editors and OS
 .idea/

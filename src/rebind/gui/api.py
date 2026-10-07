@@ -37,8 +37,6 @@ class Api:
     def version(self) -> str:
         return __version__
 
-    # The book
-
     def choose_pdf(self) -> dict[str, Any] | None:
         path = self._dialogs.open_file("Choose a PDF book", ("PDF books (*.pdf)",))
         return self.open_pdf(path) if path else None
@@ -77,8 +75,6 @@ class Api:
             "Choose a cover image", ("Images (*.jpg;*.jpeg;*.png;*.webp;*.gif;*.bmp)",)
         )
         return {"path": path, "name": Path(path).name} if path else None
-
-    # Converting
 
     def convert(self, fields: dict[str, str]) -> dict[str, str] | None:
         """Start converting in the background; progress and the end come through `send`.

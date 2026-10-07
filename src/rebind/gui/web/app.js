@@ -27,8 +27,6 @@ function setReady(ready) {
   $("save-as").disabled = !ready;
 }
 
-// The book
-
 async function choosePdf() {
   const book = await api().choose_pdf();
   if (book) showBook(book);
@@ -75,8 +73,6 @@ async function chooseOutput() {
   $("save-path").textContent = chosen.label;
   $("save-path").title = chosen.path;
 }
-
-// Converting
 
 async function convert(event) {
   event.preventDefault();

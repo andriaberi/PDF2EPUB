@@ -61,7 +61,7 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
                     not paragraphs
                     or paragraphs[-1].verse
                     or titled
-                    or starts_paragraph(line, above, layout, previous, heading)
+                    or starts_paragraph(line, above, layout, previous, heading, below)
                 )
             if starts:
                 paragraphs.append(Paragraph(line.text, page.number, [line], index in verse))
@@ -87,15 +87,31 @@ def starts_paragraph(
     layout: Layout,
     previous: tuple[Line, Layout] | None,
     heading: Paragraph | None = None,
+    below: Line | None = None,
 ) -> bool:
     """`heading` is the paragraph so far when it started far below the text: maybe a heading."""
     # A word broken at the end of the last line always carries on, whatever the layout,
-    # and so does the speech after a dialogue dash printed on a line of its own.
-    if previous is not None and (breaks_word(previous[0].text) or previous[0].text in DASHES):
+    # and so does the speech after a dialogue dash printed on a line of its own, or a
+    # quote opened at the end of the line: "სიტყვა „აღსდგა“ - „" / "Redivivus".
+    if previous is not None and (
+        breaks_word(previous[0].text)
+        or previous[0].text in DASHES
+        or previous[0].text.endswith(OPENING_QUOTES)
+    ):
         return False
     # A line opening with a full stop or a comma ends the sentence of the line before:
     # "Est modus in rebus" / ". დიახ, სადილსაც...".
     if previous is not None and CLOSES.match(line.text):
+        return False
+    # Some books set a foreign word mid-sentence on a line of its own, indented as if
+    # it started a paragraph: "...უნდა ჰქონდეს" / "Est modus in rebus" / ". დიახ".
+    if (
+        previous is not None
+        and below is not None
+        and CLOSES.match(below.text)
+        and not ends_sentence(previous[0].text)
+        and is_short(line, layout)
+    ):
         return False
     # A scene break stands alone, and the text after it starts afresh.
     if is_scene_break(line.text) or (previous is not None and is_scene_break(previous[0].text)):
@@ -135,9 +151,12 @@ def starts_paragraph(
 DASHES = {"-", "–", "—"}
 
 # Punctuation that closes what came before, never opens a line: "!", ". დიახ", ", -".
-# Not "…" or "...", which may open one, nor "“", which opens quotes in English, nor
-# ",,", typed for the opening „.
-CLOSES = re.compile(r"^(?:[.!?;:)»](?!\.)|,(?!,))")
+# Not "…" or "...", which may open one, nor ",,", typed for the opening „. "“" opens
+# quotes in English, so it closes only when a space or punctuation follows it, as
+# Georgian's closing quote does: "“ უწოდა", "“; პიე".
+CLOSES = re.compile(r"^(?:[.!?;:)»](?!\.)|,(?!,)|“(?=[\s.,;:!?)]))")
+
+OPENING_QUOTES = ("„", "«")
 
 # Note marks at the end of a line: "...mon cher, taut miux.[10]".
 NOTE_MARKS = re.compile(r"\[\d+\]")
@@ -240,6 +259,6 @@ def join(text: str, line: str) -> str:
     """Add a line to a paragraph, rejoining a word broken by a hyphen."""
     if breaks_word(text) and line[:1].isalpha():
         return text[:-1] + line
-    if CLOSES.match(line):
+    if CLOSES.match(line) or text.endswith(OPENING_QUOTES):
         return text + line
     return f"{text} {line}"

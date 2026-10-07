@@ -12,8 +12,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.12", "3.13", "3.14"]
-    env:
-      PYTHON: python  # tools/cli.sh uses the runner's Python instead of .venv
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -25,7 +23,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e . --group dev
       - name: Check
-        run: tools/cli.sh check
+        run: make check PYTHON=python
 
   build:
     runs-on: ubuntu-latest

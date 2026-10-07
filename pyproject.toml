@@ -19,8 +19,6 @@ keywords = ["pdf", "epub", "ebook", "converter", "reflowable", "georgian"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
-    "Environment :: MacOS X",
-    "Environment :: Win32 (MS Windows)",
     "Environment :: X11 Applications",
     "Intended Audience :: End Users/Desktop",
     "Natural Language :: English",
@@ -53,12 +51,10 @@ rebind-gui = "rebind.gui:main"
 [dependency-groups]
 dev = [
     "pytest>=8.3",
-    "pytest-cov>=6.0",
     "ruff>=0.8",
     "mypy>=1.13",
     "pre-commit>=4.0",
     "build>=1.2",
-    "twine>=6.0",
 ]
 
 # Build
@@ -120,14 +116,3 @@ pythonpath = ["src"]
 addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
 xfail_strict = true
 filterwarnings = ["error"]
-
-# Coverage
-
-[tool.coverage.run]
-source = ["rebind"]
-branch = true
-
-[tool.coverage.report]
-show_missing = true
-skip_covered = true
-exclude_also = ["if TYPE_CHECKING:", "if __name__ == .__main__.:"]
