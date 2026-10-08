@@ -16,6 +16,9 @@ class Paragraph:
     verse: bool = False  # keeps its line breaks: a poem, a list
     # Starts far below the finished text above it, as a heading set in the text does.
     apart: bool = False
+    # A quotation set under a heading, and the line naming whose it is.
+    epigraph: bool = False
+    attribution: bool = False
 
     @property
     def scene_break(self) -> bool:

@@ -139,6 +139,28 @@ h3 + p {
   font-size: 0.45em;
 }
 
+/* An epigraph: a quotation under the heading, set in on the left, smaller, the
+   name of whose it is on its right. The text after it starts flush, as after a
+   heading. */
+div.epigraph {
+  margin: 0 0 2em 30%;
+  font-size: 0.9em;
+}
+
+div.epigraph p {
+  text-align: left;
+  text-indent: 0;
+}
+
+div.epigraph p.attribution {
+  margin: 0.3em 0 0.8em;
+  text-align: right;
+}
+
+div.epigraph + p {
+  text-indent: 0;
+}
+
 .ornament {
   margin: 1em 0 0;
   text-align: center;

@@ -428,3 +428,43 @@ def test_sentence_set_apart_is_not_a_heading() -> None:
     sentence.apart = True
     paragraphs = [flush("თავი პირველი", 100), text("ტექსტი.", 140), sentence, text("მერე.", 212)]
     assert headings(paragraphs) == [Heading(1, "თავი პირველი")]
+
+
+def set_right(text: str, x0: float, page: int = 1, height: float = 8) -> Paragraph:
+    return Paragraph(text, page, [Line(text, x0, 120, RIGHT, 120 + height)])
+
+
+def test_epigraph_under_a_title_is_not_part_of_it() -> None:
+    paragraphs = [
+        centred("თავი მეხუთე"),
+        centred("მოლაპარაკება"),
+        set_right("დაყოვნება საქმეს", 250),
+        set_right("შველის.", 250),
+        set_right("ენიუსი", 340),
+        body("ტექსტი."),
+    ]
+    [section] = build_sections(paragraphs, PAGES)
+    assert section.heading == Heading(1, "თავი მეხუთე", "მოლაპარაკება")
+    epigraph = [(p.text, p.attribution) for p in section.paragraphs if p.epigraph]
+    assert epigraph == [("დაყოვნება საქმეს შველის.", False), ("ენიუსი", True)]
+    assert [p.text for p in section.paragraphs if not p.epigraph] == ["ტექსტი."]
+
+
+def test_a_part_printed_below_its_first_chapter_comes_first() -> None:
+    label = Paragraph("ნაწილი პირველი", 1, [Line("ნაწილი პირველი", LEFT, 130, 150, 144)])
+    paragraphs = [
+        centred("თავი პირველი"),
+        centred("პატარა ქალაქი"),
+        set_right("თუნდაც გალიაში ათასი სული ჩავსვათ,", 250),
+        label,
+        body("ტექსტი."),
+    ]
+    sections = build_sections(paragraphs, PAGES)
+    assert [s.heading.text for s in sections if s.heading] == [
+        "ნაწილი პირველი",
+        "თავი პირველი: პატარა ქალაქი",
+    ]
+    assert [p.text for p in sections[1].paragraphs] == [
+        "თუნდაც გალიაში ათასი სული ჩავსვათ,",
+        "ტექსტი.",
+    ]

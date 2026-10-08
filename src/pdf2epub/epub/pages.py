@@ -71,7 +71,15 @@ def section_page(section: Section, metadata: Metadata) -> str:
     if division:
         parts.append(f'<p class="ornament">{ORNAMENT}</p>')
     linked: set[str] = set()
+    epigraph: list[str] = []
     for paragraph in section.paragraphs:
+        if paragraph.epigraph:
+            kind = ' class="attribution"' if paragraph.attribution else ""
+            epigraph.append(f"<p{kind}>{paragraph_html(paragraph.text, section.notes, linked)}</p>")
+            continue
+        if epigraph:
+            parts.append(f'<div class="epigraph">{"".join(epigraph)}</div>')
+            epigraph = []
         if paragraph.scene_break:
             parts.append(f'<p class="scene-break">{escape(paragraph.text)}</p>')
         elif paragraph.verse:
@@ -80,6 +88,8 @@ def section_page(section: Section, metadata: Metadata) -> str:
             parts.append(f'<div class="verse">{"".join(f"<p>{line}</p>" for line in lines)}</div>')
         else:
             parts.append(f"<p>{paragraph_html(paragraph.text, section.notes, linked)}</p>")
+    if epigraph:
+        parts.append(f'<div class="epigraph">{"".join(epigraph)}</div>')
     parts.append("</section>")
 
     title = heading.text if heading else metadata.title
@@ -121,9 +131,10 @@ def notes_page(notes: list[Note], sources: dict[str, str], title: str, language:
         mark = escape(note.mark)
         if note.id in sources:
             mark = f'<a href="{sources[note.id]}#ref-{note.id}" role="doc-backlink">{mark}</a>'
+        # A note no mark in the text was linked to has no number to show.
+        shown = f'<span class="mark">{mark}</span> ' if mark else ""
         parts.append(
-            f'<li id="{note.id}" epub:type="endnote">'
-            f'<p><span class="mark">{mark}</span> {escape(note.text)}</p></li>'
+            f'<li id="{note.id}" epub:type="endnote"><p>{shown}{escape(note.text)}</p></li>'
         )
     parts.append("</ol>\n</section>")
     return page(title, "\n".join(parts), language)

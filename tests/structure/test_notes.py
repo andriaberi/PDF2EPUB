@@ -58,3 +58,84 @@ def test_notes_without_a_title_are_known_by_their_numbers() -> None:
 def test_a_few_numbered_paragraphs_are_not_notes() -> None:
     chapter = section("ტექსტი.", "[1] პირველი.", "[3] მესამე.", "[4] მეოთხე.")
     assert extract_notes([chapter]) == []
+
+
+def keyed(*notes: str) -> list[str]:
+    return ["შენიშვნები", "წითელი და შავი", *notes]
+
+
+def test_starred_words_link_to_notes_keyed_by_page() -> None:
+    chapter = section(
+        "ქალაქი ფრანშკონტეში.* ჰელვეციის* მთები.",
+        *keyed("გვ. 45. ფრანშკონტე _ პროვინცია.", "გვ. 46. ჰელვეცია _ შვეიცარია."),
+    )
+    notes = extract_notes([chapter])
+    assert [(note.mark, note.text) for note in notes] == [
+        ("1", "ფრანშკონტე _ პროვინცია."),
+        ("2", "ჰელვეცია _ შვეიცარია."),
+    ]
+    assert [p.text for p in chapter.paragraphs] == ["ქალაქი ფრანშკონტეში.[1] ჰელვეციის[2] მთები."]
+    assert chapter.notes == {"1": notes[0], "2": notes[1]}
+
+
+def test_keyed_note_printed_line_by_line_is_joined() -> None:
+    chapter = section(
+        "«საიდუმლო ნოტა»* დაიწერა.",
+        *keyed("გვ. 449. «საიდუმლო ნოტა» _ აღწერილია", "მოვლენები.", "გვ. 458. პიტტი _ მტერი."),
+    )
+    notes = extract_notes([chapter])
+    assert [note.text for note in notes] == [
+        "«საიდუმლო ნოტა» _ აღწერილია მოვლენები.",
+        "პიტტი _ მტერი.",
+    ]
+
+
+def test_star_marks_the_word_before_a_numeral() -> None:
+    chapter = section(
+        "ანრი III-ისა* და დ’ობინიეს.*", *keyed("გვ. 302. ანრი III _ მეფე.", "დ’ობინიე _ მწერალი.")
+    )
+    extract_notes([chapter])
+    assert chapter.paragraphs[0].text == "ანრი III-ისა[1] და დ’ობინიეს.[2]"
+
+
+def test_the_starred_word_counts_before_the_one_ahead_of_it() -> None:
+    chapter = section(
+        "წმ. ავგუსტინეს, წმ. ბონავენტურას,* წმ. ბასილის*",
+        *keyed(
+            "გვ. 210. წმ. ავგუსტინე, წმ. ბასილი _ ეკლესიის მამები.", "ბონავენტურა _ ფილოსოფოსი."
+        ),
+    )
+    extract_notes([chapter])
+    # Marks are numbered in the notes' order.
+    assert chapter.paragraphs[0].text == "წმ. ავგუსტინეს, წმ. ბონავენტურას,[2] წმ. ბასილის[1]"
+
+
+def test_star_matching_no_term_takes_the_note_between_its_neighbours() -> None:
+    chapter = section(
+        "ფლერი,* რევოლუციონერებს დანაშაულით?* მიქელანჯელო.*",
+        *keyed(
+            "გვ. 1. ფლერი _ მოძღვარი.",
+            "გვ. 2. ესპანეთის რევოლუცია _ აჯანყება.",
+            "მიქელანჯელო _ მხატვარი.",
+        ),
+    )
+    notes = extract_notes([chapter])
+    assert chapter.notes["2"] is notes[1]
+
+
+def test_star_far_from_its_note_still_finds_it() -> None:
+    chapter = section(
+        "პრეფექტი ჩამოვიდა. ფლერი,* მიქელანჯელო,* რაფაელი,* ტიციანი,* რემბრანდტი.*",
+        "მერე პრეფექტი* წავიდა.",
+        *keyed(
+            "გვ. 1. პრეფექტი _ ადმინისტრატორი.",
+            "ფლერი _ მოძღვარი.",
+            "მიქელანჯელო _ მხატვარი.",
+            "რაფაელი _ მხატვარი.",
+            "ტიციანი _ მხატვარი.",
+            "რემბრანდტი _ მხატვარი.",
+        ),
+    )
+    notes = extract_notes([chapter])
+    assert chapter.paragraphs[1].text == "მერე პრეფექტი[1] წავიდა."
+    assert chapter.notes["1"] is notes[0]

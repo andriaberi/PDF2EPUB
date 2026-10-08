@@ -17,8 +17,9 @@ from pdf2epub.paragraphs.layout import (
     stands_apart,
     text_column,
 )
-from pdf2epub.pdf import Page
+from pdf2epub.pdf import Line, Page
 
+from .epigraphs import take_epigraph
 from .headings import (
     gap_after,
     is_centred,
@@ -41,6 +42,9 @@ TEXT_ENDS = (".", "!", "?", "…", ":", ";", ",", "-", "–", "—", "»", "“"
 
 # A heading in the text may exclaim or ask, but doesn't end like a clause.
 SUBHEADING_ENDS = (".", ",", ":", ";", "-", "–", "—")
+
+# Lines whose heights differ less than this are in the same font size.
+SAME_SIZE = 1.15
 
 # Named sections ("წინათქმა", "Epilogue") take the outermost level the book uses,
 # known only once all headings are found.
@@ -83,7 +87,9 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
         tall = is_tall(paragraph.lines[0], column)
         # A title can wrap onto more centred lines, each read as a paragraph of its own.
         title: list[Paragraph] = []
-        while index < len(paragraphs) and is_title_part(paragraphs[index], title, column, tall):
+        while index < len(paragraphs) and is_title_part(
+            paragraphs[index], paragraph, title, column, tall
+        ):
             title.append(paragraphs[index])
             index += 1
         # Short paragraphs after a label set flush left may be text, not title: a title
@@ -100,7 +106,13 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
             index += 1
         elif following and not tall and (split := split_title(following, column)):
             heading.title, paragraphs[index] = split
-        sections.append(Section(heading))
+
+        previous = sections[-1]
+        if is_printed_below(heading, previous, paragraph):
+            sections.insert(len(sections) - 1, Section(heading))
+            continue
+        epigraph, index = take_epigraph(paragraphs, index, paragraph.page, column)
+        sections.append(Section(heading, epigraph))
 
     if not sections[0].paragraphs:
         sections.pop(0)
@@ -199,7 +211,20 @@ def is_long_title(paragraph: Paragraph, following: Paragraph | None, column: Lay
     )
 
 
-def is_title_part(paragraph: Paragraph, title: list[Paragraph], column: Layout, tall: bool) -> bool:
+def is_printed_below(heading: Heading, previous: Section, label: Paragraph) -> bool:
+    """A part's heading printed under its first chapter's heading and epigraph, before
+    the chapter's text: the part comes first all the same."""
+    return (
+        previous.heading is not None
+        and SECTION_LEVEL < heading.level < previous.heading.level < SUBHEADING_LEVEL
+        and all(p.epigraph for p in previous.paragraphs)
+        and all(p.page in (label.page - 1, label.page) for p in previous.paragraphs)
+    )
+
+
+def is_title_part(
+    paragraph: Paragraph, label: Paragraph, title: list[Paragraph], column: Layout, tall: bool
+) -> bool:
     lines = sum(len(part.lines) for part in title) + len(paragraph.lines)
     # "…ხელზე და უთხრა:" leads into speech, "– მოვიდნენ!" is speech and "…იწვა." ends a
     # sentence: titles do none of these, though they may ask ("სად მიდიან?") or trail off.
@@ -217,7 +242,18 @@ def is_title_part(paragraph: Paragraph, title: list[Paragraph], column: Layout, 
         and run_in_label(paragraph, column) is None
         and numeral_value(paragraph.text) is None
         and (not title or paragraph.page == title[-1].page)
+        # Under a centred label the title is centred too, and the same size throughout:
+        # the lines set right below it, often smaller, are an epigraph.
+        and (
+            not is_centred(label.lines[0], column)
+            or all(is_centred(line, column) for line in paragraph.lines)
+        )
+        and (not title or same_size(title[0].lines[0], paragraph.lines[0]))
     )
+
+
+def same_size(line: Line, other: Line) -> bool:
+    return max(line.height, other.height) / min(line.height, other.height) < SAME_SIZE
 
 
 def place_named_sections(sections: list[Section]) -> None:

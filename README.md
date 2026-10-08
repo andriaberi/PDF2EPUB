@@ -10,11 +10,11 @@ It is made for Georgian books and handles English too.
 
 ## Features
 
-- Removes page numbers, running headers and footnotes
+- Removes page numbers, running headers, footnotes and website credits
 - Rebuilds paragraphs, including ones broken across pages
 - Finds volumes, parts and chapters, and builds the table of contents from them
-- Links notes to their marks in the text
-- Keeps the line breaks of verse
+- Links notes to their marks in the text, numbered or starred
+- Keeps the line breaks of verse, and sets epigraphs apart under their chapter
 - Uses the PDF's cover, or an image you give it
 
 ## Installation
