@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from rebind.cli.commands import Args
-from rebind.cover import Cover
-from rebind.pipeline import (
+from pdf2epub.cli.commands import Args
+from pdf2epub.cover import Cover
+from pdf2epub.pipeline import (
     ConvertError,
     choose_cover,
     convert,

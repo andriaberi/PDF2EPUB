@@ -1,9 +1,9 @@
 import pytest
 
-from rebind.labels import fix_label, is_section_name, label_level, numeral_value, split_label
-from rebind.paragraphs import Paragraph
-from rebind.pdf import Line, Page
-from rebind.structure import Heading, build_sections
+from pdf2epub.labels import fix_label, is_section_name, label_level, numeral_value, split_label
+from pdf2epub.paragraphs import Paragraph
+from pdf2epub.pdf import Line, Page
+from pdf2epub.structure import Heading, build_sections
 
 LEFT, RIGHT = 45.0, 385.0
 

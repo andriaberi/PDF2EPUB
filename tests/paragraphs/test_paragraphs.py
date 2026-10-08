@@ -1,5 +1,5 @@
-from rebind.paragraphs import Paragraph, build_paragraphs
-from rebind.pdf import Line, Page
+from pdf2epub.paragraphs import Paragraph, build_paragraphs
+from pdf2epub.pdf import Line, Page
 
 LEFT = 45.0
 RIGHT = 385.0

@@ -1,5 +1,5 @@
-from rebind.paragraphs import Paragraph
-from rebind.structure import Heading, Section, extract_notes
+from pdf2epub.paragraphs import Paragraph
+from pdf2epub.structure import Heading, Section, extract_notes
 
 
 def section(*texts: str) -> Section:

@@ -1,6 +1,6 @@
 import pytest
 
-from rebind.cli.commands import Args, parse_args
+from pdf2epub.cli.commands import Args, parse_args
 
 
 def test_pdf_only() -> None:

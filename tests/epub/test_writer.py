@@ -3,11 +3,11 @@ from pathlib import Path
 from xml.dom import minidom
 from xml.etree import ElementTree
 
-from rebind.cover import Cover
-from rebind.epub import Metadata, write_epub
-from rebind.paragraphs import Paragraph
-from rebind.pdf import Line
-from rebind.structure import Heading, Note, Section
+from pdf2epub.cover import Cover
+from pdf2epub.epub import Metadata, write_epub
+from pdf2epub.paragraphs import Paragraph
+from pdf2epub.pdf import Line
+from pdf2epub.structure import Heading, Note, Section
 
 METADATA = Metadata(title="საბრალონი", author="ვიქტორ ჰიუგო", language="ka", identifier="urn:x")
 

@@ -1,7 +1,7 @@
 import pytest
 
-from rebind.pdf.models import Line, Page
-from rebind.pdf.noise import is_junk, is_page_number, remove_noise
+from pdf2epub.pdf.models import Line, Page
+from pdf2epub.pdf.noise import is_junk, is_page_number, remove_noise
 
 
 def page(number: int, *rows: tuple[float, str], scanned: bool = True) -> Page:

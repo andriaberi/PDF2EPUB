@@ -1,4 +1,4 @@
-from rebind.pdf.spacing import Glyph, lacks_spaces, learn_advances, spaced_text
+from pdf2epub.pdf.spacing import Glyph, lacks_spaces, learn_advances, spaced_text
 
 # Two letters, each 0.6 of the font size wide; a word break adds 0.3 more.
 WIDTH, SPACE, SIZE = 6.0, 3.0, 10.0

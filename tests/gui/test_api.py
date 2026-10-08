@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from rebind.gui.api import Api, Dialogs, file_size, short_path
+from pdf2epub.gui.api import Api, Dialogs, file_size, short_path
 
 
 class FakeDialogs(Dialogs):

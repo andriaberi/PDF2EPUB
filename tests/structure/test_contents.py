@@ -1,5 +1,5 @@
-from rebind.pdf import Line, Page
-from rebind.structure import drop_printed_contents
+from pdf2epub.pdf import Line, Page
+from pdf2epub.structure import drop_printed_contents
 
 
 def page(number: int, texts: list[str]) -> Page:

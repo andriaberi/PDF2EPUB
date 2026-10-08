@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from rebind.gui.form import Form, FormError, default_output, describe_pdf, to_args
+from pdf2epub.gui.form import Form, FormError, default_output, describe_pdf, to_args
 
 
-def test_blank_fields_are_left_to_rebind(tmp_path: Path) -> None:
+def test_blank_fields_are_left_to_pdf2epub(tmp_path: Path) -> None:
     pdf = tmp_path / "book.pdf"
     pdf.write_bytes(b"%PDF")
     args = to_args(Form(pdf=f" {pdf} ", title="  ", pages=""))

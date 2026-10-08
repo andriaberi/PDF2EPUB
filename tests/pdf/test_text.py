@@ -1,6 +1,6 @@
 import pytest
 
-from rebind.pdf.text import clean_text, script_of, strip_edge_debris
+from pdf2epub.pdf.text import clean_text, script_of, strip_edge_debris
 
 
 def test_collapses_whitespace() -> None:

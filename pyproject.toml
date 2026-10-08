@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rebind"
+name = "pdf2epub"
 version = "0"
 description = "A fast, clean Python tool for converting PDF books into well-structured, reflowable EPUBs"
 readme = "README.md"
@@ -21,11 +21,11 @@ dependencies = [
 qt = ["pywebview[qt]>=5.3"]
 
 [project.scripts]
-rebind = "rebind.__main__:main"
+pdf2epub = "pdf2epub.__main__:main"
 
 # A GUI script opens no console window on Windows.
 [project.gui-scripts]
-rebind-gui = "rebind.gui:main"
+pdf2epub-gui = "pdf2epub.gui:main"
 
 [dependency-groups]
 dev = [
@@ -41,8 +41,8 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-"rebind.epub" = ["fonts/*.ttf", "fonts/OFL.txt"]
-"rebind.gui" = ["web/*"]
+"pdf2epub.epub" = ["fonts/*.ttf", "fonts/OFL.txt"]
+"pdf2epub.gui" = ["web/*"]
 
 # Ruff
 

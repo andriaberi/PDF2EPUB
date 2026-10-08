@@ -3,7 +3,7 @@ from pathlib import Path
 import pymupdf
 import pytest
 
-from rebind.cover import Cover, CoverError, find_cover, load_cover
+from pdf2epub.cover import Cover, CoverError, find_cover, load_cover
 
 
 def image_file(tmp_path: Path, name: str = "cover.png", alpha: bool = True) -> str:

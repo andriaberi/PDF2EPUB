@@ -1,8 +1,8 @@
-# Rebind
+# PDF2EPUB
 
 Converts PDF books into reflowable EPUBs.
 
-A PDF is laid out for a printed page, so it reads badly on a phone or an e-reader. Rebind
+A PDF is laid out for a printed page, so it reads badly on a phone or an e-reader. PDF2EPUB
 takes the text of a PDF book and rebuilds it as an EPUB that reflows to any screen, with
 chapters, a table of contents and linked notes.
 
@@ -19,13 +19,13 @@ It is made for Georgian books and handles English too.
 
 ## Installation
 
-Rebind needs Python 3.12 or newer. From the project folder:
+PDF2EPUB needs Python 3.12 or newer. From the project folder:
 
 ```sh
 make install
 ```
 
-This creates a virtual environment in `.venv` with Rebind installed.
+This creates a virtual environment in `.venv` with PDF2EPUB installed.
 
 On Linux the window also needs a web view: either GTK's or Qt's.
 
@@ -39,7 +39,7 @@ sudo apt install python3-gi gir1.2-webkit2-4.1  # GTK
 ### Window
 
 ```sh
-.venv/bin/rebind
+.venv/bin/pdf2epub
 ```
 
 Drop a PDF onto the window or click **Browse…**, check the title and author, and click
@@ -48,7 +48,7 @@ Drop a PDF onto the window or click **Browse…**, check the title and author, a
 ### Command line
 
 ```sh
-.venv/bin/rebind book.pdf
+.venv/bin/pdf2epub book.pdf
 ```
 
 This writes `book.epub` next to the PDF:
@@ -87,4 +87,4 @@ Wrote book.epub: 172 headings, 6317 paragraphs, 206 notes, no cover
 ## License
 
 MIT. The embedded Noto fonts are under the SIL Open Font License
-(`src/rebind/epub/fonts/OFL.txt`).
+(`src/pdf2epub/epub/fonts/OFL.txt`).

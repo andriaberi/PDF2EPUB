@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from rebind.pdf import ReadError, read_pdf
-from rebind.pdf.reader import metadata_text
+from pdf2epub.pdf import ReadError, read_pdf
+from pdf2epub.pdf.reader import metadata_text
 
 MakePdf = Callable[..., str]
 

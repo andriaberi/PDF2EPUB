@@ -1,7 +1,7 @@
 import pytest
 
-from rebind.pdf.language import book_language, detect_language
-from rebind.pdf.models import Line, Page
+from pdf2epub.pdf.language import book_language, detect_language
+from pdf2epub.pdf.models import Line, Page
 
 
 def book(*texts: str) -> list[Page]:

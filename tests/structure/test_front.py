@@ -1,6 +1,7 @@
-from rebind.paragraphs import Paragraph
-from rebind.structure import Heading, Section
-from rebind.structure.front import (
+from pdf2epub.paragraphs import Paragraph
+from pdf2epub.structure import Heading, Section
+from pdf2epub.structure.front import (
+    drop_prefaces,
     drop_repeated_title,
     drop_text_before_first_heading,
     drop_title_page_reprints,
@@ -91,3 +92,16 @@ def test_metadata_in_latin_is_spelled_as_the_title_page_does() -> None:
 def test_metadata_without_a_matching_line_is_kept() -> None:
     sections = [Section(None, [Paragraph("ალბერ კამიუ - უცხო", 1)])]
     assert title_page_spelling(sections, "Henry V", None) == ("Henry V", None)
+
+
+def test_prefaces_are_dropped_with_their_sections() -> None:
+    preface = Section(Heading(1, "წინასიტყვაობა"), [Paragraph("Text.", 1)])
+    inside = Section(Heading(2, "I"), [Paragraph("Text.", 2)])
+    part = Section(Heading(1, "ნაწილი პირველი"), [Paragraph("Text.", 3)])
+    chapter = Section(Heading(2, "თავი პირველი"), [Paragraph("Text.", 3)])
+    assert drop_prefaces([preface, inside, part, chapter]) == [part, chapter]
+
+
+def test_prologue_is_kept() -> None:
+    prologue = Section(Heading(1, "პროლოგი"), [Paragraph("Text.", 1)])
+    assert drop_prefaces([prologue]) == [prologue]
