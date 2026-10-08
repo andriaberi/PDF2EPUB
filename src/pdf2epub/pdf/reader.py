@@ -25,6 +25,11 @@ class ReadError(Exception):
 # Names programs put in as the author when nobody set one.
 ACCOUNT_NAMES = {"admin", "administrator", "user", "owner", "author", "unknown", "pc"}
 
+# Pieces level with each other but this many line heights apart and in different
+# sizes are separate lines.
+APART_IN_ROW = 10
+SAME_SIZE = 1.2
+
 # A scanned page is an image covering at least this share of the page.
 SCAN_AREA = 0.5
 
@@ -124,12 +129,10 @@ def merge_rows(pieces: list[Line]) -> list[Line]:
     """
     rows: list[list[Line]] = []
     for piece in sorted(pieces, key=middle):
-        if rows:
-            first = rows[-1][0]
-            if abs(middle(piece) - middle(first)) < min(piece.height, first.height) / 2:
-                rows[-1].append(piece)
-                continue
-        rows.append([piece])
+        if rows and same_row(rows[-1], piece):
+            rows[-1].append(piece)
+        else:
+            rows.append([piece])
 
     merged = []
     for row in rows:
@@ -144,6 +147,17 @@ def merge_rows(pieces: list[Line]) -> list[Line]:
             )
         )
     return merged
+
+
+def same_row(row: list[Line], piece: Line) -> bool:
+    """On the row's printed line, not a line of its own that happens to sit level with
+    it, like a heading on the left beside the end of an epigraph on the right."""
+    first = row[0]
+    if abs(middle(piece) - middle(first)) >= min(piece.height, first.height) / 2:
+        return False
+    gap = min(max(piece.x0 - other.x1, other.x0 - piece.x1) for other in row)
+    heights = max(piece.height, first.height) / min(piece.height, first.height)
+    return gap < APART_IN_ROW * piece.height or heights < SAME_SIZE
 
 
 def middle(line: Line) -> float:

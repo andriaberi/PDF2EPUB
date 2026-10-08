@@ -48,7 +48,8 @@ def find_label(text: str) -> tuple[int, str] | None:
     """Which word of the line is the label word, and which label it is.
 
     The label usually comes first ("ნაწილი მესამე") but may follow its number
-    ("მესამე ნაწილი"). Second place takes only an exact match: "მისი თავს" is text.
+    ("მესამე ნაწილი"). Second place takes only an exact match after a number:
+    "მისი თავს" is text.
     """
     match = LABEL.match(text)
     if not match:
@@ -57,7 +58,8 @@ def find_label(text: str) -> tuple[int, str] | None:
     for label in LABELS:
         if len(first) == len(label) and sum(a != b for a, b in zip(first, label, strict=True)) <= 1:
             return 0, label
-    if second in LABELS:
+    # "სიყვარულის წიგნი", the book of love, names a book rather than numbering one.
+    if second in LABELS and NUMBER_WORD.match(first):
         return 1, second
     return None
 

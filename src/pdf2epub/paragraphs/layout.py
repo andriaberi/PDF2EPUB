@@ -20,6 +20,11 @@ TALL = 1.3
 # the text (centred or set right), not a paragraph's indented first line.
 SET_APART = 4
 
+# A page this many lines long or more, none at the book's margin, has a margin of
+# its own if this share of its lines run to the right margin, as text does.
+MIN_OWN_MARGIN = 10
+MIN_FULL = 0.3
+
 # Text that stops above this share of the page height ends the page early.
 FULL_PAGE = 0.75
 
@@ -184,13 +189,24 @@ def wide_steps(pages: list[Page]) -> tuple[float, list[tuple[float, Line]], bool
     return usual, wide, after_sentence >= SPACED_AFTER_SENTENCE * len(wide)
 
 
-def fit(layout: Layout, column: Layout) -> Layout:
+def fit(layout: Layout, column: Layout, page: Page) -> Layout:
     """A page's own margins, unless they are far off the book's.
 
     A page of dialogue or verse has few full lines: its median line starts at the
-    indent and stops short, so the page would take its indent for the margin.
+    indent and stops short, so the page would take its indent for the margin. Its
+    other lines still start at the book's margin; a page of text set narrower on the
+    left, like notes at the back, has none there but runs to the right margin.
     """
-    if (
+    full = [line for line in page.lines if column.right - line.x1 <= SHORT * column.line_height]
+    own_margin = (
+        len(page.lines) >= MIN_OWN_MARGIN
+        and len(full) >= MIN_FULL * len(page.lines)
+        and all(line.x0 - column.left > INDENT * column.line_height for line in page.lines)
+    )
+    if own_margin:
+        # Its full lines show the margins: short notes leave most lines short.
+        layout = replace(layout, left=min(line.x0 for line in full), right=column.right)
+    elif (
         layout.left - column.left > INDENT * column.line_height
         or column.right - layout.right > SHORT * column.line_height
     ):

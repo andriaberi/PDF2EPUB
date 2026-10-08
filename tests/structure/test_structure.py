@@ -93,6 +93,7 @@ def test_sentence_starting_with_a_label_word_is_text() -> None:
         ("CHAPTER XII.", 4),
         ("Part 2", 2),
         ("მესამე ნაწილი", 2),
+        ("IV წიგნი", 3),
         ("ტომი I", 1),
         ("Volume 2", 1),
     ],
@@ -102,7 +103,15 @@ def test_label_level(text: str, level: int) -> None:
 
 
 @pytest.mark.parametrize(
-    "text", ["თავი ჩაღუნა ბრევემ.", "ბატონი მირიელი", "Chapter", "მისი თავს", "მესამე ნაწილს"]
+    "text",
+    [
+        "თავი ჩაღუნა ბრევემ.",
+        "ბატონი მირიელი",
+        "Chapter",
+        "მისი თავს",
+        "მესამე ნაწილს",
+        "სიყვარულის წიგნი",
+    ],
 )
 def test_not_labels(text: str) -> None:
     assert label_level(text) is None

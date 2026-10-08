@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from pdf2epub.pdf import ReadError, read_pdf
-from pdf2epub.pdf.reader import metadata_text
+from pdf2epub.pdf import Line, ReadError, read_pdf
+from pdf2epub.pdf.reader import merge_rows, metadata_text
 
 MakePdf = Callable[..., str]
 
@@ -62,3 +62,13 @@ def test_no_text_layer(make_pdf: MakePdf, tmp_path: Path) -> None:
 )
 def test_metadata_text(value: str | None, kept: str | None) -> None:
     assert metadata_text(value) == kept
+
+
+def test_pieces_of_one_printed_line_are_joined() -> None:
+    pieces = [Line("ორი", 120, 100, 150, 112), Line("ერთი", 50, 100, 110, 112)]
+    assert [line.text for line in merge_rows(pieces)] == ["ერთი ორი"]
+
+
+def test_a_heading_level_with_an_epigraph_is_a_line_of_its_own() -> None:
+    pieces = [Line("ნაწილი პირველი", 55, 415, 167, 437), Line("ჰობსი", 484, 411, 517, 424)]
+    assert [line.text for line in merge_rows(pieces)] == ["ჰობსი", "ნაწილი პირველი"]
