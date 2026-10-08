@@ -1,4 +1,4 @@
-from pdf2epub.pdf.spacing import Glyph, lacks_spaces, learn_advances, spaced_text
+from pdf2epub.pdf.spacing import Glyph, lacks_spaces, learn_advances, letter_spacing, spaced_text
 
 # Two letters, each 0.6 of the font size wide; a word break adds 0.3 more.
 WIDTH, SPACE, SIZE = 6.0, 3.0, 10.0
@@ -38,6 +38,33 @@ def test_keeps_spaces_the_pdf_has() -> None:
     assert spaced_text(set_line("ab ", "ba"), advances) == "ab ba"
 
 
-def test_letter_after_a_comma_starts_a_word() -> None:
+def test_letter_after_a_comma_starts_a_word_in_a_book_without_spaces() -> None:
     glyphs = [Glyph(c, 6.0 * i, SIZE, "Serif") for i, c in enumerate("ab,ba")]
-    assert spaced_text(glyphs, learn_advances(LINES)) == "ab, ba"
+    assert spaced_text(glyphs, learn_advances(LINES), unspaced=True) == "ab, ba"
+    assert spaced_text(glyphs, learn_advances(LINES)) == "ab,ba"
+
+
+def test_drops_spaces_the_page_does_not_show() -> None:
+    glyphs = [Glyph(c, 6.0 * i, SIZE, "Serif") for i, c in enumerate("ab")]
+    glyphs.insert(1, Glyph(" ", 6.0, SIZE, "Serif"))
+    assert spaced_text(glyphs, learn_advances(LINES)) == "ab"
+
+
+def test_letter_spaced_words_stay_whole() -> None:
+    advances = learn_advances(LINES)
+    glyphs = [Glyph(c, 8.0 * i, SIZE, "Serif") for i, c in enumerate("abba")]
+    glyphs += [Glyph(c, 8.0 * i + 40.0, SIZE, "Serif") for i, c in enumerate("ab")]
+    tracking = letter_spacing(glyphs, advances)
+    assert tracking is not None
+    assert spaced_text(glyphs, advances, tracking) == "abba ab"
+
+
+def test_a_few_letters_tell_no_letter_spacing() -> None:
+    glyphs = [Glyph(c, 8.0 * i, SIZE, "Serif") for i, c in enumerate("ab")]
+    assert letter_spacing(glyphs, learn_advances(LINES)) is None
+
+
+def test_a_rare_font_is_spaced_by_the_gap_between_letters() -> None:
+    glyphs = [Glyph(c, 6.0 * i, SIZE, "Bold", 6.0 * i + 5.5) for i, c in enumerate("ab")]
+    glyphs += [Glyph(c, 6.0 * i + 15.0, SIZE, "Bold", 6.0 * i + 20.5) for i, c in enumerate("ba")]
+    assert spaced_text(glyphs, learn_advances(LINES)) == "ab ba"

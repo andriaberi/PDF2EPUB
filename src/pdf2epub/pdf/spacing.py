@@ -1,15 +1,17 @@
-"""Spaces for PDFs that set words apart by position alone, with no space characters.
+"""Spaces where the page shows them, whatever space characters the PDF has.
 
 Some PDFs place each word where it belongs but leave out the spaces between them,
-and their fonts' widths are wrong, so the letters' boxes overlap and show no gap
-either. Where each letter starts is still right, though: inside a word a letter
-always moves the next one along by the same amount, and a word break moves it by
-a space more.
+some leave out only a few, and some put a space of no width wherever a word may be
+split across lines. Their fonts' widths may be wrong too, so the letters' boxes
+overlap and show no gap. Where each letter starts is still right, though: inside a
+word a letter always moves the next one along by the same amount, and a word break
+moves it by a space more.
 """
 
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 from itertools import pairwise
+from statistics import median
 from typing import NamedTuple
 
 # Text has about one space in seven characters; a book with fewer than this share
@@ -24,6 +26,10 @@ WORD_GAP = 0.15
 # A letter's usual advance is learned only from this many pairs at least.
 MIN_SAMPLES = 20
 
+# A line's letter-spacing is measured over this many pairs of letters at least: a
+# word break in a fragment like "-C’" would pass for spacing.
+MIN_TRACKED = 4
+
 # Punctuation that ends a word: a letter right after it starts the next one.
 WORD_END = ",.;:!?)]»”…"
 
@@ -33,6 +39,7 @@ class Glyph(NamedTuple):
     x: float  # where the letter starts
     size: float
     font: str
+    right: float | None = None  # where its box ends
 
 
 # A letter's usual advance in a font, in font sizes: (font, char) -> advance.
@@ -65,23 +72,63 @@ def learn_advances(lines: Iterable[list[Glyph]]) -> Advances:
     }
 
 
-def spaced_text(glyphs: list[Glyph], advances: Advances) -> str:
-    """The line's text with a space at every word break."""
-    text = []
-    for index, glyph in enumerate(glyphs):
-        if index and is_word_break(glyphs[index - 1], glyph, advances):
+def spaced_text(
+    glyphs: list[Glyph], advances: Advances, tracking: float = 0.0, unspaced: bool = False
+) -> str:
+    """The line's text with a space at every word break and nowhere else.
+
+    `tracking` is the line's letter-spacing. `unspaced` is for a book without space
+    characters, where punctuation always ends a word: its learned advance takes the
+    missing space in.
+    """
+    text: list[str] = []
+    previous = None
+    spaced = False  # a space character since the previous letter
+    for glyph in glyphs:
+        if glyph.char.isspace():
+            spaced = True
+            continue
+        if previous and is_word_break(previous, glyph, advances, tracking, spaced, unspaced):
             text.append(" ")
         text.append(glyph.char)
+        previous, spaced = glyph, False
     return "".join(text)
 
 
-def is_word_break(glyph: Glyph, following: Glyph, advances: Advances) -> bool:
-    if " " in (glyph.char, following.char):
-        return False
-    if glyph.char in WORD_END and following.char.isalpha():
+def letter_spacing(glyphs: list[Glyph], advances: Advances) -> float | None:
+    """How much further than usual the text moves each letter: a s p a c e d  o u t
+    name, set without spaces, moves every letter along by more than a word break would.
+
+    None when there are too few letters to tell.
+    """
+    extras = [
+        advance(glyph, following) - usual
+        for glyph, following in pairwise(glyphs)
+        if not glyph.char.isspace()
+        and not following.char.isspace()
+        and (usual := advances.get((glyph.font, glyph.char))) is not None
+    ]
+    return max(median(extras), 0.0) if len(extras) >= MIN_TRACKED else None
+
+
+def is_word_break(
+    glyph: Glyph,
+    following: Glyph,
+    advances: Advances,
+    tracking: float,
+    spaced: bool,
+    unspaced: bool,
+) -> bool:
+    if glyph.char in WORD_END and (spaced or (unspaced and following.char.isalpha())):
         return True
     usual = advances.get((glyph.font, glyph.char))
-    return usual is not None and advance(glyph, following) - usual > WORD_GAP
+    if usual is None:
+        # A font too rare to learn from: its spaces, or a gap between the letters'
+        # boxes where it has none (boxes may overlap where widths are wrong).
+        if spaced or glyph.right is None:
+            return spaced
+        return (following.x - glyph.right) / glyph.size - tracking > WORD_GAP
+    return advance(glyph, following) - usual - tracking > WORD_GAP
 
 
 def advance(glyph: Glyph, following: Glyph) -> float:

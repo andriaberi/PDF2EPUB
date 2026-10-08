@@ -1,7 +1,7 @@
 import pytest
 
 from pdf2epub.pdf.models import Line, Page
-from pdf2epub.pdf.noise import is_junk, is_page_number, remove_noise
+from pdf2epub.pdf.noise import drop_web_credits, is_junk, is_page_number, remove_noise
 
 
 def page(number: int, *rows: tuple[float, str], scanned: bool = True) -> Page:
@@ -153,3 +153,13 @@ def test_keeps_a_section_that_runs_on_to_the_next_page() -> None:
 def test_keeps_dialogue_after_a_gap() -> None:
     [result] = remove_noise([body(1, 30, (500, "— ვინ არის ეს პატარა კაცი?"))])
     assert texts(result.lines)[-1] == "— ვინ არის ეს პატარა კაცი?"
+
+
+def test_website_credits_are_dropped_with_the_lines_above_them() -> None:
+    lines = [
+        Line("დასასრული.", 485, 365, 556, 380),
+        Line("წიგნის ელექტრონული ვერსია", 363, 412, 559, 430),
+        Line("მოამზადა: აკაკი ციცქიშვილმა", 366, 440, 559, 458),
+        Line("www.ChiaturaINFO.GE", 419, 469, 559, 483),
+    ]
+    assert [line.text for line in drop_web_credits(lines)] == ["დასასრული."]

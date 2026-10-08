@@ -7,7 +7,14 @@ from .language import book_language
 from .models import Book, Line, Page
 from .noise import remove_noise
 from .pages import parse_pages
-from .spacing import Advances, Glyph, lacks_spaces, learn_advances, spaced_text
+from .spacing import (
+    Advances,
+    Glyph,
+    lacks_spaces,
+    learn_advances,
+    letter_spacing,
+    spaced_text,
+)
 from .text import clean_text
 
 
@@ -36,9 +43,7 @@ def read_pdf(path: str, spec: str | None = None) -> Book:
             raise ReadError(f"the PDF is password-protected: {path}")
 
         selected = [doc[index] for index in parse_pages(spec, doc.page_count)]
-        pages = [read_page(page, text_lines(page)) for page in selected]
-        if lacks_spaces(line.text for page in pages for line in page.lines):
-            pages = read_unspaced(selected)
+        pages = read_pages(selected)
         if not any(page.lines for page in pages):
             raise ReadError(f"no text found in {path}; is it a scan without OCR? Try ocrmypdf.")
 
@@ -52,16 +57,29 @@ def read_pdf(path: str, spec: str | None = None) -> Book:
         )
 
 
+def read_pages(pages: list[pymupdf.Page]) -> list[Page]:
+    """Read the pages' lines, with a space wherever the page shows one."""
+    lines = [text_lines(page) for page in pages]
+    every_line = [glyphs(line) for page in lines for line in page]
+    advances = learn_advances(every_line)
+    unspaced = lacks_spaces("".join(g.char for g in line) for line in every_line)
+    return [
+        read_page(page, page_lines, advances, unspaced)
+        for page, page_lines in zip(pages, lines, strict=True)
+    ]
+
+
 def read_page(
-    page: pymupdf.Page, lines: list[dict[str, Any]], advances: Advances | None = None
+    page: pymupdf.Page, lines: list[dict[str, Any]], advances: Advances, unspaced: bool
 ) -> Page:
-    """The page's lines; with `advances`, spaces are put back between the words."""
     pieces: list[Line] = []
     for line in lines:
-        if advances is None:
-            text = "".join(span["text"] for span in line["spans"])
-        else:
-            text = spaced_text(glyphs(line), advances)
+        line_glyphs = glyphs(line)
+        # A line too short to tell its letter-spacing has its block's.
+        tracking = letter_spacing(line_glyphs, advances)
+        if tracking is None:
+            tracking = letter_spacing(line["block"], advances) or 0.0
+        text = spaced_text(line_glyphs, advances, tracking, unspaced)
         if text.strip():
             pieces.append(Line(text, *line["bbox"]))
 
@@ -78,27 +96,22 @@ def is_scan(page: pymupdf.Page) -> bool:
     )
 
 
-def read_unspaced(pages: list[pymupdf.Page]) -> list[Page]:
-    """Read pages whose words are set apart by position alone, without spaces."""
-    lines = [text_lines(page, raw=True) for page in pages]
-    advances = learn_advances(glyphs(line) for page in lines for line in page)
-    return [
-        read_page(page, page_lines, advances) for page, page_lines in zip(pages, lines, strict=True)
-    ]
-
-
-def text_lines(page: pymupdf.Page, raw: bool = False) -> list[dict[str, Any]]:
-    """PyMuPDF's lines of horizontal text; `raw` gives each letter with its position."""
-    blocks = page.get_text("rawdict" if raw else "dict", flags=pymupdf.TEXT_MEDIABOX_CLIP)["blocks"]
-    # Skip vertical or rotated text such as margin notes and spine labels.
-    return [
-        line for block in blocks for line in block.get("lines", []) if abs(line["dir"][0]) >= 0.9
-    ]
+def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
+    """PyMuPDF's lines of horizontal text, each letter with its position."""
+    blocks = page.get_text("rawdict", flags=pymupdf.TEXT_MEDIABOX_CLIP)["blocks"]
+    lines = []
+    for block in blocks:
+        block_glyphs = [glyph for line in block.get("lines", []) for glyph in glyphs(line)]
+        # Skip vertical or rotated text such as margin notes and spine labels.
+        for line in block.get("lines", []):
+            if abs(line["dir"][0]) >= 0.9:
+                lines.append({**line, "block": block_glyphs})
+    return lines
 
 
 def glyphs(line: dict[str, Any]) -> list[Glyph]:
     return [
-        Glyph(char["c"], char["origin"][0], span["size"], span["font"])
+        Glyph(char["c"], char["origin"][0], span["size"], span["font"], char["bbox"][2])
         for span in line["spans"]
         for char in span["chars"]
     ]

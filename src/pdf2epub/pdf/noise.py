@@ -25,6 +25,12 @@ CHAPTER_NUMBER = re.compile(r"^[IVXLCDM]+\.?$")
 NUMBER = re.compile(r"^[\d.,:;/()\[\]–—-]+$")
 SEPARATOR = re.compile(r"^[*⁂•·~=_—–\- ]+$")
 
+# A web address or copyright sign: a website's credits, not the book's text. They
+# are short, and stack at most a few lines high.
+WEB = re.compile(r"www\.|https?://|\b\w+\.(?:ge|com|org|net|ru)\b|©", re.IGNORECASE)
+MAX_CREDIT_WORDS = 6
+MAX_CREDIT_LINES = 4
+
 # A note's mark glued to a word, "ფასტი.[2]": the word is still a word.
 NOTE_MARK = re.compile(r"\[\d+\]")
 
@@ -51,6 +57,9 @@ def remove_noise(pages: list[Page]) -> list[Page]:
         if not any(has_long_word(line.text) for line in page.lines):
             page.lines = []
 
+    for page in pages:
+        page.lines = drop_web_credits(page.lines)
+
     repeated = repeated_edge_lines(pages)
     running = running_labels(pages)
     removed = {page.number: strip_edges(page, repeated, running) for page in pages}
@@ -69,6 +78,26 @@ def remove_noise(pages: list[Page]) -> list[Page]:
             page.lines = [line for line in page.lines if line.text]
 
     return pages
+
+
+def drop_web_credits(lines: list[Line]) -> list[Line]:
+    """Remove a website's credits: "4Love.Ge © 2008-2015", and "www.ChiaturaINFO.GE"
+    with the lines stacked right above it ("მოამზადა: ...")."""
+    dropped: set[int] = set()
+    for index, line in enumerate(lines):
+        if not WEB.search(line.text) or len(line.text.split()) > MAX_CREDIT_WORDS:
+            continue
+        dropped.add(index)
+        above = index - 1
+        while (
+            above >= 0
+            and index - above <= MAX_CREDIT_LINES
+            and lines[above + 1].y0 - lines[above].y1 < lines[above].height
+            and abs(lines[above].x1 - line.x1) < line.height
+        ):
+            dropped.add(above)
+            above -= 1
+    return [line for index, line in enumerate(lines) if index not in dropped]
 
 
 def drop_junk(lines: list[Line]) -> list[Line]:
