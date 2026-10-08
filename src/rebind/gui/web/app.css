@@ -49,7 +49,6 @@ header {
   border-bottom: 1px solid var(--border);
 }
 h1 { margin: 0; font-size: 17px; font-weight: 600; }
-#version { font-size: 12px; }
 
 main { flex: 1; overflow: auto; padding: 20px; }
 

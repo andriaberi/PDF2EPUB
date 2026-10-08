@@ -1,6 +1,6 @@
 PYTHON ?= .venv/bin/python
 
-.PHONY: install format check test build clean bump
+.PHONY: install format check test clean
 
 install:
 	python3 -m venv .venv
@@ -21,13 +21,6 @@ check:
 test:
 	$(PYTHON) -m pytest -q
 
-build: clean
-	$(PYTHON) -m build
-
 clean:
-	rm -rf build dist src/*.egg-info .pytest_cache .mypy_cache .ruff_cache
+	rm -rf build src/*.egg-info .pytest_cache .mypy_cache .ruff_cache
 	find . -name __pycache__ -not -path "./.venv/*" -exec rm -rf {} +
-
-# make bump VERSION=1.2.3
-bump:
-	sed -i 's/^__version__ = .*/__version__ = "$(VERSION)"/' src/rebind/__init__.py

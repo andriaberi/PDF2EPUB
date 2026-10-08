@@ -10,8 +10,6 @@ import webview
 from webview.dom import DOMEventHandler
 from webview.guilib import GUIType
 
-from rebind import __version__
-
 from .api import Api, Dialogs
 
 PAGE = Path(__file__).parent / "web" / "index.html"
@@ -101,7 +99,7 @@ def main() -> int:
 
     api = Api(send, dialogs)
     window = webview.create_window(
-        f"Rebind {__version__}",
+        "Rebind",
         url=str(PAGE),
         js_api=api,
         width=SIZE[0],

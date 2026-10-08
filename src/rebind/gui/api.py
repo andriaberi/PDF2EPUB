@@ -6,7 +6,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from rebind import __version__
 from rebind.cli.commands import Args
 from rebind.pipeline import ConvertError, Result, convert
 
@@ -33,9 +32,6 @@ class Api:
         self._save_as = ""
         self._converting = False
         self._work_thread: threading.Thread | None = None
-
-    def version(self) -> str:
-        return __version__
 
     def choose_pdf(self) -> dict[str, Any] | None:
         path = self._dialogs.open_file("Choose a PDF book", ("PDF books (*.pdf)",))

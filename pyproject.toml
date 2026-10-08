@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rebind"
-dynamic = ["version"]
+version = "0"
 description = "A fast, clean Python tool for converting PDF books into well-structured, reflowable EPUBs"
 readme = "README.md"
 license = "MIT"
@@ -15,31 +15,10 @@ dependencies = [
     "pymupdf>=1.24",
     "pywebview>=5.3",  # the window: a web page in the platform's own web view
 ]
-keywords = ["pdf", "epub", "ebook", "converter", "reflowable", "georgian"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Environment :: Console",
-    "Environment :: X11 Applications",
-    "Intended Audience :: End Users/Desktop",
-    "Natural Language :: English",
-    "Natural Language :: Georgian",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Topic :: Text Processing :: Markup",
-    "Topic :: Utilities",
-]
 
 [project.optional-dependencies]
 # Linux without GTK's Python bindings: Qt's web view instead (large, but installs anywhere).
 qt = ["pywebview[qt]>=5.3"]
-
-[project.urls]
-Homepage = "https://github.com/andriaberi/Rebind"
-Repository = "https://github.com/andriaberi/Rebind"
-Issues = "https://github.com/andriaberi/Rebind/issues"
 
 [project.scripts]
 rebind = "rebind.__main__:main"
@@ -54,7 +33,6 @@ dev = [
     "ruff>=0.8",
     "mypy>=1.13",
     "pre-commit>=4.0",
-    "build>=1.2",
 ]
 
 # Build
@@ -65,9 +43,6 @@ where = ["src"]
 [tool.setuptools.package-data]
 "rebind.epub" = ["fonts/*.ttf", "fonts/OFL.txt"]
 "rebind.gui" = ["web/*"]
-
-[tool.setuptools.dynamic]
-version = { attr = "rebind.__version__" }
 
 # Ruff
 

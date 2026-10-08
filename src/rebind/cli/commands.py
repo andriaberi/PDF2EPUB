@@ -2,8 +2,6 @@ import argparse
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from rebind import __version__
-
 
 @dataclass
 class Args:
@@ -44,6 +42,5 @@ def parse_args(argv: Sequence[str] | None = None) -> Args:
         metavar="IMAGE",
         help="a cover image, used only when the PDF has no cover of its own",
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     return Args(**vars(parser.parse_args(argv)))

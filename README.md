@@ -2,83 +2,87 @@
 
 Converts PDF books into reflowable EPUBs.
 
-Rebind reads the text of a PDF book, drops what only made sense on a printed page (page
-numbers, running headers, footnotes), and rebuilds the book as an EPUB 3 with reflowing
-paragraphs, one page per chapter, a table of contents and linked notes.
+A PDF is laid out for a printed page, so it reads badly on a phone or an e-reader. Rebind
+takes the text of a PDF book and rebuilds it as an EPUB that reflows to any screen, with
+chapters, a table of contents and linked notes.
 
-It is written for Georgian books and handles English too.
+It is made for Georgian books and handles English too.
 
-## Install
+## Features
 
-Rebind needs Python 3.12 or newer.
+- Removes page numbers, running headers and footnotes
+- Rebuilds paragraphs, including ones broken across pages
+- Finds volumes, parts and chapters, and builds the table of contents from them
+- Links notes to their marks in the text
+- Keeps the line breaks of verse
+- Uses the PDF's cover, or an image you give it
 
-```sh
-pip install git+https://github.com/andriaberi/Rebind
-```
+## Installation
 
-## Use
-
-### The window
-
-Run `rebind` alone to open a window. Drop a PDF onto it or click **Browse…**, check the
-title and author, and click **Convert**.
-
-The window uses the system's web view. On Linux, Rebind uses GTK's if Python can reach
-it, else Qt's:
+Rebind needs Python 3.12 or newer. From the project folder:
 
 ```sh
-pip install "rebind[qt] @ git+https://github.com/andriaberi/Rebind"  # Qt, any Python
-sudo apt install python3-gi gir1.2-webkit2-4.1                       # or GTK, system Python
+make install
 ```
 
-### The command line
+This creates a virtual environment in `.venv` with Rebind installed.
+
+On Linux the window also needs a web view: either GTK's or Qt's.
 
 ```sh
-rebind book.pdf
+sudo apt install python3-gi gir1.2-webkit2-4.1  # GTK
+.venv/bin/pip install -e ".[qt]"                # or Qt
 ```
 
-This writes `book.epub` next to the PDF and prints what it found:
+## Usage
+
+### Window
+
+```sh
+.venv/bin/rebind
+```
+
+Drop a PDF onto the window or click **Browse…**, check the title and author, and click
+**Convert**.
+
+### Command line
+
+```sh
+.venv/bin/rebind book.pdf
+```
+
+This writes `book.epub` next to the PDF:
 
 ```
 Wrote book.epub: 172 headings, 6317 paragraphs, 206 notes, no cover
 ```
 
-| Option | What it does |
+| Option | Description |
 |---|---|
 | `-o`, `--output PATH` | Where to write the EPUB. Default: next to the PDF. |
-| `--pages SPEC` | Convert only some pages, 1-based: `1-3,7,10-12`. |
-| `--title TEXT` | The book's title. Default: the PDF's metadata, else the file name. |
-| `--author TEXT` | The book's author. Default: the PDF's metadata. |
-| `--language CODE` | The book's language, such as `ka` or `en`. Default: detected from the text and the PDF's language tag. |
-| `--cover IMAGE` | A cover image, used only when the PDF has no cover of its own. |
-| `--version` | Print Rebind's version. |
+| `--pages SPEC` | Convert only some pages, such as `1-3,7,10-12`. |
+| `--title TEXT` | The book's title. Default: from the PDF, else the file name. |
+| `--author TEXT` | The book's author. Default: from the PDF. |
+| `--language CODE` | The book's language, such as `ka` or `en`. Default: detected. |
+| `--cover IMAGE` | A cover image, used when the PDF has no cover of its own. |
 
-## What it does
+## Limitations
 
-- Removes page numbers, running headers, footnotes and OCR specks, and rejoins words
-  broken at line ends.
-- Rebuilds paragraphs from indents, gaps and short last lines, across page breaks.
-- Finds volumes, parts, books and chapters with their titles ("ნაწილი პირველი",
-  "Chapter 3", "XII"), plus named sections like a foreword or an epilogue.
-- Builds the table of contents from those headings.
-- Drops the printed title page and front matter, since the EPUB has its own title page.
-- Links notes from a notes section ("შენიშვნები", "Notes", or a list numbered `[1] ...`)
-  to their marks in the text.
-- Keeps the line breaks of verse.
-- Uses the PDF's cover when its first page is a picture.
-
-[How it works](docs/how-it-works.md) describes each step.
-
-## Limits
-
-- Scanned PDFs need a text layer. Run `ocrmypdf` first.
-- A heading needs a label word (თავი, ნაწილი, Chapter, Part, ...) and a number, a
-  chapter number alone ("XII", "7."), or a section name (წინათქმა, Epilogue, ...).
-- Footnotes at the foot of a page are removed, not linked.
-- Verse needs at least four lines, or two after a line leading into it (ending with a
-  colon, or broken short after a comma).
+- Scanned PDFs need a text layer first. `ocrmypdf` can add one.
+- Chapters are found by their headings ("თავი I", "Chapter 3", "XII"). A book with
+  unusual headings may come out as one long chapter.
+- Footnotes at the bottom of a page are removed, not linked.
 - Bold, italics and pictures inside the book are not kept.
-- Only Georgian and English are detected. Other languages need `--language`.
+- Only Georgian and English are detected. For other languages use `--language`.
+
+## Development
+
+| Command | Description |
+|---|---|
+| `make check` | Lint, type-check and test |
+| `make format` | Format the code |
+| `make test` | Run the tests |
+| `make clean` | Remove caches |
 
 ## License
 

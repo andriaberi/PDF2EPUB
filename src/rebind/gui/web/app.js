@@ -151,7 +151,6 @@ async function init() {
   $("show").addEventListener("click", () => api().show_in_folder(state.result.output));
   $("again").addEventListener("click", startOver);
   setReady(false);
-  $("version").textContent = `v${await api().version()}`;
 }
 
 window.rebind = { onPicked, onProgress, onDone, onError };
