@@ -19,27 +19,32 @@ It is made for Georgian books and handles English too.
 
 ## Installation
 
-PDF2EPUB needs Python 3.12 or newer. From the project folder:
+PDF2EPUB installs straight from GitHub with [uv](https://docs.astral.sh/uv/), which also
+fetches Python 3.12 or newer if needed. No copy of the project is kept:
 
 ```sh
-make install
+uv tool install "pdf2epub[qt] @ git+https://github.com/andriaberi/PDF2EPUB.git"
 ```
 
-This creates a virtual environment in `.venv` with PDF2EPUB installed.
+This puts the `pdf2epub` and `pdf2epub-gui` commands on your PATH. The `[qt]` part brings
+the web view the window needs on Linux; leave it out on Windows and macOS.
 
-On Linux the window also needs a web view: either GTK's or Qt's.
+### Updating
+
+To get the latest version from GitHub:
 
 ```sh
-sudo apt install python3-gi gir1.2-webkit2-4.1  # GTK
-.venv/bin/pip install -e ".[qt]"                # or Qt
+uv tool install --reinstall "pdf2epub[qt] @ git+https://github.com/andriaberi/PDF2EPUB.git"
 ```
+
+To remove it: `uv tool uninstall pdf2epub`.
 
 ## Usage
 
 ### Window
 
 ```sh
-.venv/bin/pdf2epub
+pdf2epub
 ```
 
 Drop a PDF onto the window or click **Browse…**, check the title and author, and click
@@ -48,13 +53,13 @@ Drop a PDF onto the window or click **Browse…**, check the title and author, a
 ### Command line
 
 ```sh
-.venv/bin/pdf2epub book.pdf
+pdf2epub book.pdf
 ```
 
 This writes `book.epub` next to the PDF:
 
 ```
-Wrote book.epub: 172 headings, 6317 paragraphs, 206 notes, no cover
+Wrote book.epub: 172 headings, 5938 paragraphs, 206 notes, no cover
 ```
 
 | Option | Description |
@@ -76,6 +81,16 @@ Wrote book.epub: 172 headings, 6317 paragraphs, 206 notes, no cover
 - Only Georgian and English are detected. For other languages use `--language`.
 
 ## Development
+
+From a clone of the repository:
+
+```sh
+make install
+```
+
+This creates a virtual environment in `.venv` with PDF2EPUB installed from the folder,
+so changes take effect at once. Add `.venv/bin/pip install -e ".[qt]"` for the window
+on Linux.
 
 | Command | Description |
 |---|---|
