@@ -23,7 +23,7 @@ BACKGROUND = "#f5f5f5"
 INSTALL_BACKEND = """\
 pdf2epub: the window needs a web view, and this Python has none.
 Install one of these, then run pdf2epub again:
-  pip install "pdf2epub[qt] @ git+https://github.com/andriaberi/PDF2EPUB"   (any Python)
+  uv tool install --reinstall "pdf2epub[qt] @ git+https://github.com/andriaberi/PDF2EPUB"
   sudo apt install python3-gi gir1.2-webkit2-4.1   (Debian, Ubuntu: the system's Python)
 Or convert from the command line: pdf2epub book.pdf"""
 
