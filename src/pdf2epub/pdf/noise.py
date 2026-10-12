@@ -37,9 +37,8 @@ FOOTNOTE_AREA = 0.6
 FOOTNOTE_GAP = 3
 MAX_FOOTNOTE_LINES = 6
 
-# The footnote's reference mark. OCR reads a small raised "¹" as all sorts of
-# things ("'!", "%", "31"), so accept short runs of digits and symbols. Dashes
-# are left out: they start dialogue lines.
+# A footnote's mark: OCR reads a raised "¹" as "'!", "%", "31", so any short run of
+# digits and symbols, but no dash, which opens speech.
 FOOTNOTE_MARK = re.compile(r"^[\d*†‡§'’\"“”!%^°¹²³⁰⁴-⁹]{1,3}[.)]?$")
 
 
@@ -98,11 +97,8 @@ def drop_web_credits(lines: list[Line]) -> list[Line]:
 
 
 def drop_junk(lines: list[Line]) -> list[Line]:
-    """Remove lines that are OCR misreads of pictures, stains or decorations.
-
-    When most of a page is junk (a cover or a plate), the stray letters and short
-    words left between the junk go too; only lines with a real word stay.
-    """
+    """Remove OCR misreads of pictures and stains. On a page mostly junk, like a plate,
+    only lines with a real word stay."""
     kept = [line for line in lines if not is_junk(line.text)]
     junk = len(lines) - len(kept)
     if junk >= 2 and junk >= len(kept):
@@ -233,12 +229,8 @@ def strip_glued_page_number(page: Page, printed: int) -> None:
 
 
 def drop_footnotes(page: Page) -> None:
-    """Remove the footnote block at the bottom of the page.
-
-    Runs after page numbers are gone, so the footnotes are the last lines. The block
-    starts at the highest wide gap in the bottom of the page whose next line opens
-    with a reference mark.
-    """
+    """Remove the footnotes at the page's foot, once page numbers are gone: from the
+    highest wide gap whose next line opens with a mark."""
     lines = page.lines
     if len(lines) < 3:
         return
@@ -264,11 +256,8 @@ def drop_footnotes(page: Page) -> None:
 
 
 def runs_on(last: Line, lines: list[Line]) -> bool:
-    """A full-width last line broken mid-word continues on the next page.
-
-    Then the block is body text after a section break, such as a numbered section
-    starting with "1.", not footnotes.
-    """
+    """A full last line broken mid-word goes on overleaf: the block above it is text,
+    like a section numbered "1.", not footnotes."""
     full_width = statistics.median(line.x1 - line.x0 for line in lines)
     return last.text.endswith("-") and last.x1 - last.x0 > 0.8 * full_width
 

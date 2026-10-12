@@ -124,11 +124,8 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
 
 
 def numbered_chapters(paragraphs: list[Paragraph]) -> set[int]:
-    """The lone numbers that number the book's chapters ("I", "II", ... or "1.", "2.").
-
-    They count up through the book and may start again at 1 in each part; a number
-    out of step, like a stray "7" in the text, isn't a chapter. Gives paragraph ids.
-    """
+    """The ids of lone numbers numbering the chapters, "I", "II" or "1.", "2.": counting
+    up, maybe from 1 again in each part. A stray "7" out of step isn't one."""
     found: set[int] = set()
     last: int | None = None
     for paragraph in paragraphs:
@@ -147,11 +144,8 @@ def is_set_off(title: list[Paragraph], following: list[Paragraph], column: Layou
 
 
 def split_title(paragraph: Paragraph, column: Layout) -> tuple[str, Paragraph] | None:
-    """A title run into the text after it, as across a page break.
-
-    In justified text only a paragraph's last line is short, so a short first line
-    followed by more lines is a title.
-    """
+    """A title run into the text after it, as across a page break: a short first line
+    followed by more lines."""
     first, *rest = paragraph.lines
     if not rest or not is_short(first, column) or first.text.endswith((".", ",", ";", ":")):
         return None
@@ -159,11 +153,8 @@ def split_title(paragraph: Paragraph, column: Layout) -> tuple[str, Paragraph] |
 
 
 def is_subheading(paragraph: Paragraph, following: Paragraph | None, column: Layout) -> bool:
-    """A heading set in the text, named but not numbered: "რესტორანში", "#34".
-
-    It stands far below the finished text above and runs straight into the text
-    below, a line or a few that end short and read as a name, not a sentence.
-    """
+    """A heading set in the text, named but not numbered: "რესტორანში", "#34". It stands
+    far below the text above and runs straight into the text below."""
     text = paragraph.text
     return (
         paragraph.apart
@@ -186,11 +177,8 @@ def is_subheading(paragraph: Paragraph, following: Paragraph | None, column: Lay
 
 
 def is_long_title(paragraph: Paragraph, following: Paragraph | None, column: Layout) -> bool:
-    """A title as long as a line or more, set like a paragraph but standing apart.
-
-    "წინასწარ უნდა ყოფილიყო ჯაჭვი განზრახ დაზიანებული, რომ ასე ადვილად / გამწყდარიყო":
-    no sentence ends in it, and more space than between paragraphs sets it off.
-    """
+    """A title a line long or more, set like a paragraph but ending no sentence, with
+    more space than between paragraphs below it."""
     text = paragraph.text
     if following is None or following.page != paragraph.page:
         return False
@@ -272,11 +260,8 @@ def renumber_levels(sections: list[Section]) -> None:
 
 
 def match_label_order(sections: list[Section]) -> None:
-    """Put the label word where most of the book puts it.
-
-    A book that mostly says "ნაწილი მეორე" may still print "მესამე ნაწილი"; the
-    contents should read the same way throughout. Ties go to the label first.
-    """
+    """Put the label word where most of the book does: "ნაწილი მესამე" for a stray
+    "მესამე ნაწილი". Ties go to the label first."""
     headings = [s.heading for s in sections if s.heading and len(s.heading.label.split()) == 2]
     places = [found[0] for h in headings if (found := find_label(h.label))]
     second = places.count(1) > places.count(0)

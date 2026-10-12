@@ -1,11 +1,7 @@
 """Spaces where the page shows them, whatever space characters the PDF has.
 
-Some PDFs place each word where it belongs but leave out the spaces between them,
-some leave out only a few, and some put a space of no width wherever a word may be
-split across lines. Their fonts' widths may be wrong too, so the letters' boxes
-overlap and show no gap. Where each letter starts is still right, though: inside a
-word a letter always moves the next one along by the same amount, and a word break
-moves it by a space more.
+Some PDFs leave spaces out or have wrong font widths, but where each letter starts is
+right: inside a word a letter moves the next by its usual amount, a word break by more.
 """
 
 from collections import Counter, defaultdict
@@ -18,9 +14,8 @@ from typing import NamedTuple
 # has lost its spaces.
 MIN_SPACE_SHARE = 0.05
 
-# A letter moving the next one this much further than usual, in font sizes, starts
-# a new word. A space is about a quarter of the font size; letters inside a word
-# move the next by exactly their usual amount.
+# A letter moving the next this much further than usual, in font sizes, starts a
+# word; a space is about a quarter of the font size.
 WORD_GAP = 0.15
 
 # A letter's usual advance is learned only from this many pairs at least.
@@ -55,11 +50,8 @@ def lacks_spaces(texts: Iterable[str]) -> bool:
 
 
 def learn_advances(lines: Iterable[list[Glyph]]) -> Advances:
-    """How far each letter usually moves the next one: the most common distance.
-
-    Most letters are followed by another letter of the same word, so the most common
-    distance is the letter's own width.
-    """
+    """How far each letter usually moves the next: the most common distance, since most
+    letters are followed by one of the same word."""
     distances: defaultdict[tuple[str, str], Counter[float]] = defaultdict(Counter)
     for glyphs in lines:
         for glyph, following in pairwise(glyphs):
@@ -75,12 +67,8 @@ def learn_advances(lines: Iterable[list[Glyph]]) -> Advances:
 def spaced_text(
     glyphs: list[Glyph], advances: Advances, tracking: float = 0.0, unspaced: bool = False
 ) -> str:
-    """The line's text with a space at every word break and nowhere else.
-
-    `tracking` is the line's letter-spacing. `unspaced` is for a book without space
-    characters, where punctuation always ends a word: its learned advance takes the
-    missing space in.
-    """
+    """The line's text with a space at every word break and nowhere else. `tracking` is
+    its letter-spacing; `unspaced`, a book without spaces, where punctuation ends words."""
     text: list[str] = []
     previous = None
     spaced = False  # a space character since the previous letter
@@ -96,11 +84,8 @@ def spaced_text(
 
 
 def letter_spacing(glyphs: list[Glyph], advances: Advances) -> float | None:
-    """How much further than usual the text moves each letter: a s p a c e d  o u t
-    name, set without spaces, moves every letter along by more than a word break would.
-
-    None when there are too few letters to tell.
-    """
+    """How much further than usual the line moves each letter, as a s p a c e d name
+    does; None when there are too few letters to tell."""
     extras = [
         advance(glyph, following) - usual
         for glyph, following in pairwise(glyphs)

@@ -10,16 +10,8 @@ from .headings import is_label, is_named_section, is_set_right
 def take_epigraph(
     paragraphs: list[Paragraph], index: int, page: int, column: Layout
 ) -> tuple[list[Paragraph], int]:
-    """The epigraph under a heading on `page`, and the index after it.
-
-    Lines set far right of the margin before the chapter's first line are one or a few
-    quotations, each with whose it is set further right still:
-
-        თუნდაც გალიაში ათასი სული ჩავსვათ,
-        იგი მაინც გასართობ ადგილად ვერ
-        გადაიქცევა.
-                                    ჰობსი
-    """
+    """The epigraph under a heading on `page`, and the index after it: lines set far
+    right before the chapter's text, each quotation's author further right still."""
     start = index
     while index < len(paragraphs) and is_epigraph_part(paragraphs[index], page, column):
         index += 1
