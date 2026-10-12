@@ -2,7 +2,7 @@ import re
 
 from pdf2epub.labels import is_section_name, label_level, numeral_value, split_label
 from pdf2epub.pdf import Line, Page
-from pdf2epub.pdf.text import script_of
+from pdf2epub.pdf.text import NOTE_MARK, script_of
 
 from .layout import (
     OPENINGS,
@@ -166,9 +166,6 @@ OPENING_QUOTES = ("„", "«")
 # A numbered section's opening: "29. როდესაც კროჲსოსმა ...".
 SECTION_NUMBER = re.compile(r"^(\d{1,3})\. ")
 
-# Note marks at the end of a line: "...mon cher, taut miux.[10]".
-NOTE_MARKS = re.compile(r"\[\d+\]")
-
 # Punctuation inside a line of text, not a heading: "მან ჟურნალ", "ოსტატი, იტალიური".
 CLAUSE_BREAK = re.compile(r"[.,;:]\s")
 
@@ -242,7 +239,7 @@ def is_set_title(
     "ჰიპე", "დიდი გამოთაყვანება": a few words with no closing punctuation, after a
     finished sentence and before a full line of text.
     """
-    text = NOTE_MARKS.sub("", line.text).strip()
+    text = NOTE_MARK.sub("", line.text).strip()
     return (
         not layout.indents
         and previous is not None

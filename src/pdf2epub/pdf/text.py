@@ -29,6 +29,9 @@ GLUED_DEBRIS = re.compile("^[\"'|](?=[\u10d0-\u10ff])")
 
 SPACES = re.compile(r"\s+")
 
+# A note's mark in the text, glued to the word it explains: "ფრეილინა[1]".
+NOTE_MARK = re.compile(r"\[(\d+)\]")
+
 # A heading set letter-spaced, alone on its line with a number or a dash at most:
 # "IV წ ი გ ნ ი", "თ ა ლ ე ჲ ა", "C h a p t e r 3". Letter-spaced emphasis inside the text
 # stays as printed: it may wrap onto the next line, where a half-joined word reads worse.

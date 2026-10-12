@@ -3,14 +3,12 @@ from os.path import commonprefix
 
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.paragraphs.builder import join
+from pdf2epub.pdf.text import NOTE_MARK
 
 from .models import Note, Section
 
 # Words the notes at the end of a book (or of a volume) are headed with.
 TITLES = {"შენიშვნები", "notes", "endnotes"}
-
-# A note's mark in the text, glued to the word it explains: "ფრეილინა[1]".
-MARK = re.compile(r"\[(\d+)\]")
 
 # A note starts with its mark and a space, at the start of a paragraph or after
 # the last note: notes printed one under another often read as a single paragraph.
@@ -126,7 +124,7 @@ def split_notes(paragraphs: list[Paragraph]) -> list[tuple[str, str]]:
 def link_marks(section: Section, notes: dict[str, Note]) -> None:
     """Record which notes the section's marks refer to, the first block's for each mark."""
     for paragraph in section.paragraphs:
-        for mark in MARK.findall(paragraph.text):
+        for mark in NOTE_MARK.findall(paragraph.text):
             if mark in notes:
                 section.notes.setdefault(mark, notes[mark])
 
