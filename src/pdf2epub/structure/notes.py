@@ -10,14 +10,12 @@ from .models import Note, Section
 # Words the notes at the end of a book (or of a volume) are headed with.
 TITLES = {"შენიშვნები", "notes", "endnotes"}
 
-# A note starts with its mark and a space, at the start of a paragraph or after
-# the last note: notes printed one under another often read as a single paragraph.
-# Some PDFs keep a stray superscript after the mark: "[24]1 საამო ღამეს".
+# A note starts with its mark, at a paragraph's start or after the last note, maybe
+# with a stray superscript: "[24]1 საამო ღამეს".
 NOTE_START = re.compile(r"(?:^|(?<=\s))\[(\d+)\]\d*\s+")
 
-# Notes may instead be keyed by the page of the printed book they explain, a word on
-# it marked with a star: "გვ. 45. ფრანშკონტე _ ..." for "ფრანშკონტეში.*". Between
-# the title and the first note there may be a line or two, like the book's title.
+# Notes may instead be keyed by page, their word starred in the text: "გვ. 45.
+# ფრანშკონტე _ ..." for "ფრანშკონტეში.*". A line or two may come before the first.
 PAGE_KEY = re.compile(r"^(?:გვ|p|pp|page)\.?\s*\d+\.\s*", re.IGNORECASE)
 MAX_SUBTITLE_LINES = 2
 STAR = re.compile(r"\*")
@@ -47,11 +45,8 @@ MIN_UNTITLED_NOTES = 3
 
 
 def extract_notes(sections: list[Section]) -> list[Note]:
-    """Take the notes out of the text and link the marks in the text to them.
-
-    A book may print notes at the end of each volume; the marks before a block of
-    notes refer to that block, so numbering may start again after it.
-    """
+    """Take the notes out of the text and link the marks to them. Marks refer to the
+    next block of notes, so numbering may start again after each volume's."""
     notes: list[Note] = []
     waiting: list[Section] = []  # sections whose marks the next block of notes explains
     for index, section in enumerate(sections):
@@ -80,12 +75,8 @@ def extract_notes(sections: list[Section]) -> list[Note]:
 
 
 def find_block(paragraphs: list[Paragraph]) -> tuple[int, int, int] | None:
-    """Where a block of notes is, with its title if it has one: [start, end), the
-    notes themselves from `first` on.
-
-    A long note may go on in a paragraph of its own, so the notes reach the last
-    paragraph that starts one.
-    """
+    """Where a block of notes is, [start, end) with its title, the notes from `first`
+    on, up to the last paragraph that starts one."""
     for index, paragraph in enumerate(paragraphs):
         titled = (
             paragraph.text.strip().casefold() in TITLES
@@ -145,13 +136,8 @@ def find_keyed_block(paragraphs: list[Paragraph]) -> tuple[int, int] | None:
 
 
 def link_stars(sections: list[Section], entries: list[Paragraph], numbered: int) -> list[Note]:
-    """Notes from the paragraphs of a block keyed by page, the starred words in the text
-    linked to them.
-
-    A star says only that a note exists; which one is told by the word it marks, which
-    is the note's term, and by the order: marks and notes run through the book alike.
-    Linked marks become numbered marks, "ფრანშკონტეში.[1]"; the others stay stars.
-    """
+    """Notes from a block keyed by page, the stars in the text linked to them by the
+    word they mark and by order. Linked stars become marks: "ფრანშკონტეში.[1]"."""
     texts = [PAGE_KEY.sub("", text) for text in join_broken(entries)]
     terms = [TERM_END.split(text, maxsplit=1)[0] for text in texts]
     stars = [
@@ -236,9 +222,8 @@ def match_terms(words: list[list[str]], terms: list[str]) -> dict[int, int]:
             pairs[mark] = note
             taken.add(note)
 
-    # A mark that matches no term, alone between two paired marks whose notes have one
-    # note between them, is that note's: it marks a word further back, "პიემონტის და
-    # ესპანეთის რევოლუციონერებს ... დანაშაულით?*".
+    # A mark matching no term, between paired marks whose notes have one note between
+    # them, is that note's: it marks a word further back.
     for mark in range(len(words)):
         if mark in pairs or mark - 1 not in pairs or mark + 1 not in pairs:
             continue

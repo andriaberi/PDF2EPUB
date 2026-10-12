@@ -58,14 +58,12 @@ MAX_BETWEEN = 0.05
 # A line this share of the column wide is text running on, not a heading.
 LONG_LINE = 0.6
 
-# Some books leave out the indent and mark paragraphs with a little extra space
-# above them instead. A step from line to line this many times the usual one is
-# such a space...
+# Some books mark paragraphs by extra space instead of an indent: a line step this
+# many times the usual one...
 WIDE_STEP = (1.2, 2.5)
 
-# ...and a book marks paragraphs that way when at least this share of its lines
-# have one, and nearly all of those follow the end of a sentence (or a note mark).
-# Word exports with a hard break in every few lines have the space mid-sentence too.
+# ...on at least this share of lines, nearly all after a sentence's end. Word exports
+# with hard breaks have the space mid-sentence too.
 MIN_SPACED = 0.02
 SPACED_AFTER_SENTENCE = 0.9
 
@@ -129,11 +127,8 @@ def measured(pages: list[Page]) -> list[Page]:
 
 
 def is_justified(pages: list[Page]) -> bool:
-    """Whether the book's lines run to the right margin, so any shorter line ends.
-
-    In justified text lines stop within a hair of the margin or well short of it;
-    ragged text stops anywhere between.
-    """
+    """Whether the book's lines run to the right margin: they stop within a hair of it
+    or well short, never in between as ragged text does."""
     flush = between = lines = 0
     for page in measured(pages):
         layout = measure(page)
@@ -158,12 +153,8 @@ def indents(pages: list[Page]) -> bool:
 
 
 def spacing(pages: list[Page]) -> tuple[float | None, bool]:
-    """The line step that starts a paragraph, if the book marks paragraphs by space,
-    and whether the book has space between lines that isn't a paragraph's.
-
-    A Word export with a hard break every few lines puts the paragraph space after
-    each of them, mid-sentence too: "...მთელი ორი-სამი" / "დღით მოსვენებას...".
-    """
+    """The line step that starts a paragraph, if the book marks paragraphs by space, and
+    whether it has such space mid-sentence too, as Word exports with hard breaks do."""
     found = wide_steps(pages)
     if found is None:
         return None, False
@@ -194,13 +185,8 @@ def wide_steps(pages: list[Page]) -> tuple[float, list[tuple[float, Line]], bool
 
 
 def fit(layout: Layout, column: Layout, page: Page) -> Layout:
-    """A page's own margins, unless they are far off the book's.
-
-    A page of dialogue or verse has few full lines: its median line starts at the
-    indent and stops short, so the page would take its indent for the margin. Its
-    other lines still start at the book's margin; a page of text set narrower on the
-    left, like notes at the back, has none there but runs to the right margin.
-    """
+    """A page's own margins, unless they are far off the book's, as on a page of
+    dialogue. A page set narrower on the left, like notes at the back, keeps its own."""
     full = [line for line in page.lines if column.right - line.x1 <= SHORT * column.line_height]
     own_margin = (
         len(page.lines) >= MIN_OWN_MARGIN
@@ -234,11 +220,8 @@ def is_indented(line: Line, layout: Layout) -> bool:
 
 
 def has_gap_before(line: Line, previous: Line, layout: Layout) -> bool:
-    """Set below the line above by more than the usual gap.
-
-    Where the book spaces lines loosely, a long line running on mid-sentence carries
-    on its paragraph across the space, unless the next line opens speech.
-    """
+    """Set below the line above by more than the usual gap. In a loosely spaced book a
+    long line running on mid-sentence carries on across it, unless speech opens."""
     if line.y0 - previous.y1 <= layout.gap + GAP * layout.line_height:
         return False
     runs_on = (
@@ -251,11 +234,8 @@ def has_gap_before(line: Line, previous: Line, layout: Layout) -> bool:
 
 
 def is_spaced_apart(line: Line, above: Line, layout: Layout) -> bool:
-    """Set below the line above by a paragraph's space, in a book that marks them so.
-
-    A sentence running on across the space carries on the paragraph, unless the
-    line opens speech or a quote: the book left out a full stop.
-    """
+    """Set below the line above by a paragraph's space, in a book that marks them so,
+    after a sentence's end or before speech."""
     step = layout.paragraph_step
     if step is None or line.y0 - above.y0 < step:
         return False

@@ -33,8 +33,7 @@ SPACES = re.compile(r"\s+")
 NOTE_MARK = re.compile(r"\[(\d+)\]")
 
 # A heading set letter-spaced, alone on its line with a number or a dash at most:
-# "IV წ ი გ ნ ი", "თ ა ლ ე ჲ ა", "C h a p t e r 3". Letter-spaced emphasis inside the text
-# stays as printed: it may wrap onto the next line, where a half-joined word reads worse.
+# "IV წ ი გ ნ ი", "C h a p t e r 3". Spaced-out words inside the text stay as printed.
 LETTER_SPACED = re.compile(
     r"^((?:[^\w\s]+ |(?:\d+|[IVXLCDM]+)\.? )??[^\w\s]*)"  # "IV ", "- ", "„"
     r"([^\W\d_](?: [^\W\d_]){2,})"  # "წ ი გ ნ ი"

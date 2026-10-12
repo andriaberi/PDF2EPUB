@@ -80,11 +80,8 @@ def reprint_key(text: str) -> str:
 
 
 def drop_repeated_title(sections: list[Section], title: str, author: str | None) -> list[Section]:
-    """The title page already shows the title and author; don't print them again.
-
-    The PDF often doesn't say what its title is, so the book's own title page goes
-    too, however it spells the title ("ალბერ კამიუ - უცხო").
-    """
+    """Drop the title and author, which the title page already shows, and the book's
+    own title page however it spells them: "ალბერ კამიუ - უცხო"."""
     if not sections or sections[0].heading:
         return sections
     repeated = {title.casefold(), (author or "").casefold()}
@@ -95,10 +92,7 @@ def drop_repeated_title(sections: list[Section], title: str, author: str | None)
 
 def drop_text_before_first_heading(sections: list[Section]) -> list[Section]:
     """Leave out what comes before the first heading: the printed title page, credits,
-    an epigraph, a translator's note.
-
-    A book without headings keeps all its text.
-    """
+    a translator's note. A book without headings keeps all its text."""
     if len(sections) < 2 or sections[0].heading:
         return sections
     front = len(sections[0].paragraphs)
@@ -119,12 +113,8 @@ def is_title_page(section: Section) -> bool:
 def title_page_spelling(
     sections: list[Section], title: str | None, author: str | None
 ) -> tuple[str | None, str | None]:
-    """The title and author as the book's own title page spells them.
-
-    A Georgian book's metadata is often in Latin letters ("Leo Tolstoy"); the title
-    page line that reads the same in Latin ("ლევ ტოლსტოი") is used instead. Metadata
-    without such a line is kept as it is.
-    """
+    """The title and author as the book's title page spells them: "ლევ ტოლსტოი" for
+    metadata in Latin letters, "Leo Tolstoy"."""
     if not sections or sections[0].heading:
         return title, author
     lines = [

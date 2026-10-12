@@ -19,11 +19,8 @@ Send = Callable[[str, dict[str, Any]], None]
 
 
 class Api:
-    """What the page can ask of Python. Every method returns plain JSON-able data.
-
-    The page sees only the public methods; pywebview hides names starting with "_".
-    File dialogs come from `dialogs`, so the Api works without a window in tests.
-    """
+    """What the page can ask of Python: its public methods, each returning JSON-able
+    data. File dialogs come from `dialogs`, so tests need no window."""
 
     def __init__(self, send: Send, dialogs: "Dialogs") -> None:
         self._send = send

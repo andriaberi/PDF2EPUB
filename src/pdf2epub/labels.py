@@ -15,10 +15,8 @@ LABELS = {
     "chapter": 4,
 }
 
-# "Chapter 12", "CHAPTER XII.", "თავი მეორე", "მესამე ნაწილი". The number is one
-# word because OCR garbles Georgian ordinals too much to spell-check them
-# ("მეეჭპვგჭსე"). Only a numeral may take a full stop, so a sentence like
-# "თავი დახარა." isn't a label.
+# "Chapter 12", "თავი მეორე", "მესამე ნაწილი": any one word as the number, since OCR
+# garbles ordinals. Only a numeral takes a full stop: "თავი დახარა." is text.
 LABEL = re.compile(r"^(\w+)\s+(\w+|\d+\.|[IVXLCDM]+\.)$", re.IGNORECASE)
 
 
@@ -45,12 +43,8 @@ def fix_label(text: str) -> str:
 
 
 def find_label(text: str) -> tuple[int, str] | None:
-    """Which word of the line is the label word, and which label it is.
-
-    The label usually comes first ("ნაწილი მესამე") but may follow its number
-    ("მესამე ნაწილი"). Second place takes only an exact match after a number:
-    "მისი თავს" is text.
-    """
+    """Which word is the label word, and which label: first ("ნაწილი მესამე"), or second
+    if spelled exactly after a number ("მესამე ნაწილი", but "მისი თავს" is text)."""
     match = LABEL.match(text)
     if not match:
         return None
@@ -96,9 +90,8 @@ def is_preface(text: str) -> bool:
     return text.strip().casefold() in PREFACE_NAMES
 
 
-# The number of a label printed with its title on one line: "თავი მეშვიდე ...".
-# Stricter than a label alone, since the line goes on: a numeral, a Georgian
-# ordinal or an English number word.
+# The number of a label run into its title, "თავი მეშვიდე ...": stricter than a
+# label alone, a numeral, a Georgian ordinal or an English number word.
 NUMBER_WORD = re.compile(
     r"^(\d+\.?|[IVXLCDM]+\.?|პირველი|მე\w+ე|one|two|three|four|five|six|seven|eight|nine"
     r"|ten|eleven|twelve)$",
@@ -107,12 +100,8 @@ NUMBER_WORD = re.compile(
 
 
 def split_label(text: str) -> tuple[str, str] | None:
-    """A label and its title printed on one line: "თავი მეშვიდე გასეირნება სანაპიროზე",
-    "თავი მეექვსე - FONTIS". The title is empty when only a dash follows the label.
-
-    The label word must be spelled right and come first, and the line must not end
-    a sentence, so a sentence like "თავი მეორედ დახარა." stays text.
-    """
+    """A label and its title on one line, "თავი მეექვსე - FONTIS": the label first and
+    spelled right, ending no sentence ("თავი მეორედ დახარა." is text)."""
     words = text.split()
     if len(words) < 3 or words[0].lower() not in LABELS or not NUMBER_WORD.match(words[1]):
         return None

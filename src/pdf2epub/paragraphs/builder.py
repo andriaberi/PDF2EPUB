@@ -96,9 +96,8 @@ def starts_paragraph(
     below: Line | None = None,
 ) -> bool:
     """`heading` is the paragraph so far when it started far below the text: maybe a heading."""
-    # A word broken at the end of the last line always carries on, whatever the layout,
-    # and so does the speech after a dialogue dash printed on a line of its own, or a
-    # quote opened at the end of the line: "სიტყვა „აღსდგა“ - „" / "Redivivus".
+    # A broken word, a lone dialogue dash or a quote opened at the line's end carries
+    # on, whatever the layout: "სიტყვა „აღსდგა“ - „" / "Redivivus".
     if previous is not None and (
         breaks_word(previous[0].text)
         or previous[0].text in DASHES
@@ -148,16 +147,12 @@ def starts_paragraph(
         return True
     if heading is not None and continues_heading(heading, line, above, layout):
         return False
-    # A short line ending a sentence closes its paragraph even when the next line's
-    # indent is lost. It also decides whether a page's first line carries on the last
-    # page's paragraph.
+    # A short line ending a sentence closes its paragraph, across a page break too.
     return previous is not None and ends_paragraph(*previous)
 
 
-# Punctuation that closes what came before, never opens a line: "!", ". დიახ", ", -".
-# Not "…" or "...", which may open one, nor ",,", typed for the opening „. "“" opens
-# quotes in English, so it closes only when a space or punctuation follows it, as
-# Georgian's closing quote does: "“ უწოდა", "“; პიე".
+# Punctuation that closes what came before: "!", ". დიახ", ", -". Not "…" or ",,"
+# (typed for „), and "“" only before a space or punctuation: it opens English quotes.
 CLOSES = re.compile(r"^(?:[.!?;:)»](?!\.)|,(?!,)|“(?=[\s.,;:!?)]))")
 
 OPENING_QUOTES = ("„", "«")
@@ -183,11 +178,8 @@ TITLE_ENDS = (".", ",", ":", ";", "!", "?", "…", "-", "–", "—", "“", "»
 def starts_next_section(
     line: Line, previous: tuple[Line, Layout] | None, section: int | None
 ) -> bool:
-    """The next numbered section, "29. როდესაც ...", after section 28's last sentence.
-
-    Some books number their sections and set them apart only by space, which a page
-    break hides, or not at all.
-    """
+    """The next numbered section, "29. როდესაც ...", after section 28's last sentence,
+    in books that set sections apart only by space, or not at all."""
     number = SECTION_NUMBER.match(line.text)
     return (
         number is not None
@@ -198,13 +190,8 @@ def starts_next_section(
 
 
 def ends_heading(paragraph: Paragraph, line: Line, layout: Layout) -> bool:
-    """A heading set apart above but run straight into the text below it.
-
-    It is a line or a few, the last one well short of the margin, and the text below
-    starts with a full line: "ტინაპელებთან ცხოვრებისა და ... / ამბავი" then the
-    chapter's text, on the same page or the next. A paragraph's first line stopping
-    a few words short is not one: "3. შემდეგ, როდესაც ჰისტიაჲოსს ... თუ რატომ".
-    """
+    """A heading set apart above but run straight into the text below: a line or a few,
+    the last well short of the margin, then a full line of text."""
     last = paragraph.lines[-1]
     return (
         len(paragraph.lines) <= TITLE_LINES
@@ -215,11 +202,8 @@ def ends_heading(paragraph: Paragraph, line: Line, layout: Layout) -> bool:
 
 
 def is_glued(word: str) -> bool:
-    """Two words of two scripts glued together, "სხვაHybris", as at a quote's edge.
-
-    Capitals amid Georgian are a title typed in the wrong keyboard layout, as the
-    book prints it: "OPERATIონეშ".
-    """
+    """Two words of two scripts glued together, "სხვაHybris". Capitals amid Georgian
+    are a title typed in the wrong keyboard layout instead: "OPERATIონეშ"."""
     scripts = {script_of(c) for c in word if c.isalpha()}
     return len(scripts) > 1 and any(c.islower() and script_of(c) == "LATIN" for c in word)
 
@@ -233,11 +217,8 @@ def in_latin_capitals(text: str) -> bool:
 def is_set_title(
     line: Line, previous: tuple[Line, Layout] | None, below: Line | None, layout: Layout
 ) -> bool:
-    """A short heading set flush left between two paragraphs, with no space around it.
-
-    "ჰიპე", "დიდი გამოთაყვანება": a few words with no closing punctuation, after a
-    finished sentence and before a full line of text.
-    """
+    """A short heading set flush left between two paragraphs, with no space around it:
+    "ჰიპე", a few words after a finished sentence and before a full line of text."""
     text = NOTE_MARK.sub("", line.text).strip()
     return (
         not layout.indents

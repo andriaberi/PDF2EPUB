@@ -21,12 +21,8 @@ def detect_language(pages: list[Page]) -> str | None:
 
 
 def book_language(declared: str | None, pages: list[Page]) -> str | None:
-    """The PDF's own language tag, unless its text says otherwise.
-
-    PDFs made on an English system tag Georgian books "en-US". Detection tells only
-    Georgian from Latin script, so it overrides a tag only when they disagree on
-    that: a book tagged "fr" in Latin letters stays French.
-    """
+    """The PDF's own language tag, unless the text disagrees on whether it is Georgian,
+    as Georgian books tagged "en-US" do. A Latin book tagged "fr" stays French."""
     detected = detect_language(pages)
     if declared is None:
         return detected

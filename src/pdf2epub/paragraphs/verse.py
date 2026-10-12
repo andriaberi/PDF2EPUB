@@ -47,9 +47,8 @@ def find_verse(lines: list[Line], layout: Layout) -> dict[int, bool]:
         # - ამოიოხრა ფანტინმა." / "დალიამ იუცხოვა ეს სიბრალული:".
         while run and (is_dialogue(lines[run[-1]]) or lines[run[-1]].text.endswith(":")):
             run = run[:-1]
-        # Nor with the narration after it: a sentence after the verse's own last line,
-        # "სულ რუსოს ბრალია." / "გავროში მღეროდა, ისინი ესროდნენ.". A letter's
-        # signature ends a sentence too, but in a word or two: "ფანტინი“.".
+        # Nor with the narration after it, a sentence of a few words after its last
+        # line; a letter's signature is only a word or two: "ფანტინი“.".
         if (
             len(run) > 1
             and all(ends_sentence(lines[index].text) for index in run[-2:])
