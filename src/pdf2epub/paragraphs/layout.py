@@ -28,6 +28,9 @@ MIN_FULL = 0.3
 # Text that stops above this share of the page height ends the page early.
 FULL_PAGE = 0.75
 
+# Pages with fewer lines, like chapter openings, are too sparse to learn the book's layout from.
+MIN_MEASURED_LINES = 10
+
 SENTENCE_END = (".", "!", "?", "…", ":", "»", "“", '"')
 
 # A title is a line or a few, never a paragraph of text.
@@ -100,8 +103,8 @@ def measure(page: Page) -> Layout:
 
 
 def text_column(pages: list[Page]) -> Layout:
-    """The book's usual text column. Chapter openings are too sparse to measure alone."""
-    layouts = [measure(page) for page in pages if len(page.lines) >= 10] or [
+    """The book's usual text column."""
+    layouts = [measure(page) for page in measured(pages)] or [
         measure(page) for page in pages if page.lines
     ]
     step, loose = spacing(pages)
@@ -118,6 +121,10 @@ def text_column(pages: list[Page]) -> Layout:
     )
 
 
+def measured(pages: list[Page]) -> list[Page]:
+    return [page for page in pages if len(page.lines) >= MIN_MEASURED_LINES]
+
+
 def is_justified(pages: list[Page]) -> bool:
     """Whether the book's lines run to the right margin, so any shorter line ends.
 
@@ -125,9 +132,7 @@ def is_justified(pages: list[Page]) -> bool:
     ragged text stops anywhere between.
     """
     flush = between = lines = 0
-    for page in pages:
-        if len(page.lines) < 10:
-            continue
+    for page in measured(pages):
         layout = measure(page)
         for line in page.lines:
             slack = abs(layout.right - line.x1) / layout.line_height
@@ -140,9 +145,7 @@ def is_justified(pages: list[Page]) -> bool:
 def indents(pages: list[Page]) -> bool:
     """Whether the book indents its paragraphs: enough lines start at an indent."""
     lines = indented = 0
-    for page in pages:
-        if len(page.lines) < 10:
-            continue
+    for page in measured(pages):
         layout = measure(page)
         lines += len(page.lines)
         indented += sum(
@@ -171,9 +174,7 @@ def wide_steps(pages: list[Page]) -> tuple[float, list[tuple[float, Line]], bool
     """The usual line step, the wider ones, and whether those mark paragraphs; None
     when wide steps are too rare to tell."""
     steps: list[tuple[float, Line]] = []
-    for page in pages:
-        if len(page.lines) < 10:
-            continue
+    for page in measured(pages):
         for above, below in pairwise(page.lines):
             if abs(below.height - above.height) < 0.2 * above.height:
                 steps.append((below.y0 - above.y0, above))
