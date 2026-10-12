@@ -2,6 +2,7 @@ import re
 from difflib import SequenceMatcher
 
 from pdf2epub.labels import LABELS, is_preface
+from pdf2epub.pdf.text import script_of
 
 from .models import Section
 
@@ -159,4 +160,4 @@ def without_volume(text: str) -> str:
 
 
 def is_georgian(char: str) -> bool:
-    return "\u10a0" <= char <= "\u10ff"
+    return script_of(char) == "GEORGIAN"
