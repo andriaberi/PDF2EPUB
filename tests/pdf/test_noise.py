@@ -25,6 +25,10 @@ def test_ocr_junk(text: str) -> None:
         "* * *",
         "IV",
         "1963",
+        # A note's mark glued to a word leaves it a word.
+        "ეს ფასტი.[2]",
+        "à კიტის.[40]",
+        "Lady“.[54]",
     ],
 )
 def test_real_text(text: str) -> None:
@@ -49,11 +53,6 @@ def test_removes_page_numbers_at_the_bottom() -> None:
 def test_keeps_numbers_in_the_body() -> None:
     [result] = remove_noise([page(1, (100, "Some text here."), (300, "1815"), (400, "More."))])
     assert [line.text for line in result.lines] == ["Some text here.", "1815", "More."]
-
-
-@pytest.mark.parametrize("text", ["ეს ფასტი.[2]", "à კიტის.[40]", "Lady“.[54]"])
-def test_a_note_mark_doesnt_make_a_line_junk(text: str) -> None:
-    assert not is_junk(text)
 
 
 def test_removes_running_headers() -> None:
