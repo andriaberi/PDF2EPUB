@@ -6,7 +6,7 @@ from itertools import pairwise
 from pdf2epub.labels import label_level
 
 from .models import Line, Page
-from .text import script_of, strip_edge_debris
+from .text import NOTE_MARK, script_of, strip_edge_debris
 
 # How far into the top or bottom of the page headers, footers and page numbers sit.
 MARGIN = 0.12
@@ -30,9 +30,6 @@ SEPARATOR = re.compile(r"^[*⁂•·~=_—–\- ]+$")
 WEB = re.compile(r"www\.|https?://|\b\w+\.(?:ge|com|org|net|ru)\b|©", re.IGNORECASE)
 MAX_CREDIT_WORDS = 6
 MAX_CREDIT_LINES = 4
-
-# A note's mark glued to a word, "ფასტი.[2]": the word is still a word.
-NOTE_MARK = re.compile(r"\[\d+\]")
 
 # Footnotes sit in the bottom part of the page, below a gap wider than this many
 # ordinary line gaps (or half a line), and take up at most this many lines.

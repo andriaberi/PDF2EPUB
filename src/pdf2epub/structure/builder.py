@@ -7,8 +7,9 @@ from pdf2epub.labels import (
     numeral_value,
 )
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.paragraphs.builder import join
+from pdf2epub.paragraphs.builder import join_lines
 from pdf2epub.paragraphs.layout import (
+    DASHES,
     TITLE_LINES,
     TITLE_SPACE,
     Layout,
@@ -154,10 +155,7 @@ def split_title(paragraph: Paragraph, column: Layout) -> tuple[str, Paragraph] |
     first, *rest = paragraph.lines
     if not rest or not is_short(first, column) or first.text.endswith((".", ",", ";", ":")):
         return None
-    text = rest[0].text
-    for line in rest[1:]:
-        text = join(text, line.text)
-    return first.text, Paragraph(text, paragraph.page, rest)
+    return first.text, Paragraph(join_lines(rest), paragraph.page, rest)
 
 
 def is_subheading(paragraph: Paragraph, following: Paragraph | None, column: Layout) -> bool:
@@ -175,7 +173,7 @@ def is_subheading(paragraph: Paragraph, following: Paragraph | None, column: Lay
         and not paragraph.verse
         and not paragraph.scene_break
         and not text.endswith(SUBHEADING_ENDS)
-        and not text.startswith(("-", "–", "—", "(", "["))
+        and not text.startswith((*DASHES, "(", "["))
         and following is not None
         and (
             following.page == paragraph.page + 1
@@ -201,7 +199,7 @@ def is_long_title(paragraph: Paragraph, following: Paragraph | None, column: Lay
     return (
         len(paragraph.lines) <= TITLE_LINES
         and not text.endswith(TEXT_ENDS)
-        and not text.startswith(("-", "–", "—", "„", "«", '"'))
+        and not text.startswith((*DASHES, "„", "«", '"'))
         and not paragraph.verse
         and not is_label(paragraph, column)
         and not is_named_section(paragraph, column)
@@ -234,7 +232,7 @@ def is_title_part(
         and not paragraph.scene_break
         and not text.endswith(":")
         and not (text.endswith(".") and not text.endswith(".."))
-        and not text.startswith(("-", "–", "—"))
+        and not text.startswith(DASHES)
         and (not tall or all(is_tall(line, column) for line in paragraph.lines))
         and is_title(paragraph, column)
         and not is_label(paragraph, column)

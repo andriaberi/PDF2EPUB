@@ -2,9 +2,10 @@ import re
 
 from pdf2epub.labels import is_section_name, label_level, numeral_value, split_label
 from pdf2epub.pdf import Line, Page
-from pdf2epub.pdf.text import script_of
+from pdf2epub.pdf.text import NOTE_MARK, script_of
 
 from .layout import (
+    DASHES,
     OPENINGS,
     TITLE_LINES,
     Layout,
@@ -153,8 +154,6 @@ def starts_paragraph(
     return previous is not None and ends_paragraph(*previous)
 
 
-DASHES = {"-", "–", "—"}
-
 # Punctuation that closes what came before, never opens a line: "!", ". დიახ", ", -".
 # Not "…" or "...", which may open one, nor ",,", typed for the opening „. "“" opens
 # quotes in English, so it closes only when a space or punctuation follows it, as
@@ -165,9 +164,6 @@ OPENING_QUOTES = ("„", "«")
 
 # A numbered section's opening: "29. როდესაც კროჲსოსმა ...".
 SECTION_NUMBER = re.compile(r"^(\d{1,3})\. ")
-
-# Note marks at the end of a line: "...mon cher, taut miux.[10]".
-NOTE_MARKS = re.compile(r"\[\d+\]")
 
 # Punctuation inside a line of text, not a heading: "მან ჟურნალ", "ოსტატი, იტალიური".
 CLAUSE_BREAK = re.compile(r"[.,;:]\s")
@@ -242,7 +238,7 @@ def is_set_title(
     "ჰიპე", "დიდი გამოთაყვანება": a few words with no closing punctuation, after a
     finished sentence and before a full line of text.
     """
-    text = NOTE_MARKS.sub("", line.text).strip()
+    text = NOTE_MARK.sub("", line.text).strip()
     return (
         not layout.indents
         and previous is not None
@@ -297,3 +293,11 @@ def join(text: str, line: str) -> str:
     if CLOSES.match(line) or text.endswith(OPENING_QUOTES):
         return text + line
     return f"{text} {line}"
+
+
+def join_lines(lines: list[Line]) -> str:
+    """The lines' text run together as one paragraph's."""
+    text = lines[0].text
+    for line in lines[1:]:
+        text = join(text, line.text)
+    return text
