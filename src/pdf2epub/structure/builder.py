@@ -7,7 +7,7 @@ from pdf2epub.labels import (
     numeral_value,
 )
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.paragraphs.builder import join
+from pdf2epub.paragraphs.builder import join_lines
 from pdf2epub.paragraphs.layout import (
     TITLE_LINES,
     TITLE_SPACE,
@@ -154,10 +154,7 @@ def split_title(paragraph: Paragraph, column: Layout) -> tuple[str, Paragraph] |
     first, *rest = paragraph.lines
     if not rest or not is_short(first, column) or first.text.endswith((".", ",", ";", ":")):
         return None
-    text = rest[0].text
-    for line in rest[1:]:
-        text = join(text, line.text)
-    return first.text, Paragraph(text, paragraph.page, rest)
+    return first.text, Paragraph(join_lines(rest), paragraph.page, rest)
 
 
 def is_subheading(paragraph: Paragraph, following: Paragraph | None, column: Layout) -> bool:

@@ -1,6 +1,6 @@
 from pdf2epub.labels import numeral_value
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.paragraphs.builder import join
+from pdf2epub.paragraphs.builder import join_lines
 from pdf2epub.paragraphs.layout import SET_APART, Layout
 from pdf2epub.pdf import Line
 
@@ -57,7 +57,4 @@ def quotations(lines: list[Line], page: int, column: Layout) -> list[Paragraph]:
 
 
 def quotation(lines: list[Line], page: int) -> Paragraph:
-    text = lines[0].text
-    for line in lines[1:]:
-        text = join(text, line.text)
-    return Paragraph(text, page, lines, epigraph=True)
+    return Paragraph(join_lines(lines), page, lines, epigraph=True)

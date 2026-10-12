@@ -294,3 +294,11 @@ def join(text: str, line: str) -> str:
     if CLOSES.match(line) or text.endswith(OPENING_QUOTES):
         return text + line
     return f"{text} {line}"
+
+
+def join_lines(lines: list[Line]) -> str:
+    """The lines' text run together as one paragraph's."""
+    text = lines[0].text
+    for line in lines[1:]:
+        text = join(text, line.text)
+    return text
