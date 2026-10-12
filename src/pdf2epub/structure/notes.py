@@ -1,5 +1,4 @@
 import re
-from os.path import commonprefix
 
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.paragraphs.builder import join
@@ -242,8 +241,18 @@ def term_score(marked: list[str], term: str) -> int:
     for weight, word in zip((2, 1), marked, strict=False):
         best = 0
         for term_word in letter_words(term):
-            shared = len(commonprefix([word.casefold(), term_word.casefold()]))
+            shared = shared_start(word.casefold(), term_word.casefold())
             if shared >= MIN_SHARED and shared >= min(len(word), len(term_word)) - MAX_ENDING:
                 best = max(best, shared)
         score += weight * best
     return score
+
+
+def shared_start(word: str, other: str) -> int:
+    """How many first letters the two words share."""
+    count = 0
+    for a, b in zip(word, other, strict=False):
+        if a != b:
+            break
+        count += 1
+    return count
