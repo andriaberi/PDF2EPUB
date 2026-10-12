@@ -4,7 +4,7 @@ from itertools import pairwise
 from pdf2epub.labels import label_level, numeral_value
 from pdf2epub.pdf import Line
 
-from .layout import GAP, Layout, has_gap_before, is_indented, is_tall
+from .layout import DASHES, GAP, Layout, has_gap_before, is_indented, is_tall
 
 # Verse, a list, a column of names: this many short lines in a row at least...
 MIN_LINES = 4
@@ -24,8 +24,6 @@ MIN_NARRATION_WORDS = 3
 
 # Short lines that each end a sentence are short paragraphs of text, not verse.
 MAX_SENTENCE_SHARE = 0.5
-
-DIALOGUE = ("-", "–", "—")
 
 # A line opening with these ends the text above it: "!(არ გააჭირე საქმე...)".
 CLOSING = (".", ",", "!", "?", ";", ")", "»")
@@ -138,7 +136,7 @@ def is_introduction(line: Line, layout: Layout) -> bool:
 
 
 def is_dialogue(line: Line) -> bool:
-    return line.text.startswith(DIALOGUE)
+    return line.text.startswith(DASHES)
 
 
 def ends_sentence(text: str) -> bool:

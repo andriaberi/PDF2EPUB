@@ -5,6 +5,7 @@ from pdf2epub.pdf import Line, Page
 from pdf2epub.pdf.text import NOTE_MARK, script_of
 
 from .layout import (
+    DASHES,
     OPENINGS,
     TITLE_LINES,
     Layout,
@@ -152,8 +153,6 @@ def starts_paragraph(
     # page's paragraph.
     return previous is not None and ends_paragraph(*previous)
 
-
-DASHES = {"-", "–", "—"}
 
 # Punctuation that closes what came before, never opens a line: "!", ". დიახ", ", -".
 # Not "…" or "...", which may open one, nor ",,", typed for the opening „. "“" opens
