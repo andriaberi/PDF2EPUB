@@ -3,6 +3,8 @@ from pathlib import Path
 from xml.dom import minidom
 from xml.etree import ElementTree
 
+import pytest
+
 from pdf2epub.cover import Cover
 from pdf2epub.epub import Metadata, write_epub
 from pdf2epub.paragraphs import Paragraph
@@ -181,3 +183,37 @@ def test_epigraph_is_set_apart_with_its_source(tmp_path: Path) -> None:
         '<div class="epigraph"><p>დაყოვნება საქმეს შველის.</p>'
         '<p class="attribution">ენიუსი</p></div>\n<p>ტექსტი.</p>'
     ) in text
+
+
+def test_book_without_headings_is_listed_by_its_title(tmp_path: Path) -> None:
+    path = tmp_path / "book.epub"
+    write_epub(path, [Section(None, [paragraph("ერთი."), paragraph("ორი.")])], METADATA)
+    epub = zipfile.ZipFile(path)
+    nav = epub.read("EPUB/nav.xhtml").decode()
+    assert '<a href="text/section-0001.xhtml">' in nav
+    assert "საბრალონი" in nav
+    assert "<navPoint" in epub.read("EPUB/toc.ncx").decode()
+
+
+def test_long_section_goes_on_over_several_pages(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("pdf2epub.epub.writer.MAX_PAGE_TEXT", 15)
+    first, second = Note("note-1", "1", "პირველი."), Note("note-2", "2", "მეორე.")
+    chapter = Section(
+        Heading(1, "თავი პირველი"),
+        [paragraph("first text[1]"), paragraph("second text"), paragraph("third[2]")],
+        {"1": first, "2": second},
+    )
+    path = tmp_path / "book.epub"
+    write_epub(path, [chapter], METADATA, notes=[first, second])
+    epub = zipfile.ZipFile(path)
+    pages = sorted(n for n in epub.namelist() if n.startswith("EPUB/text/"))
+    assert pages == [f"EPUB/text/section-000{n}.xhtml" for n in (1, 2, 3)]
+    assert "<h1" in epub.read(pages[0]).decode()
+    assert "<h1" not in epub.read(pages[2]).decode()
+    nav = epub.read("EPUB/nav.xhtml").decode()
+    assert nav.count('href="text/') == 1
+    notes = epub.read("EPUB/notes.xhtml").decode()
+    assert 'href="text/section-0001.xhtml#ref-note-1"' in notes
+    assert 'href="text/section-0003.xhtml#ref-note-2"' in notes
