@@ -10,7 +10,7 @@ from pdf2epub.paragraphs import Paragraph
 from pdf2epub.structure import Heading, Note, Section
 
 from .models import Metadata
-from .navigation import entries, nav_document, ncx_document, notes_title
+from .navigation import NOTES, entries, in_language, nav_document, ncx_document
 from .pages import cover_page, notes_page, section_page, title_page
 from .style import STYLESHEET
 
@@ -56,7 +56,7 @@ def write_epub(
     files = [f"text/section-{number:04}.xhtml" for number in range(1, len(sections) + 1)]
     # A book with no headings at all is listed by its title, as one entry.
     toc = entries(sections, files) or [(1, Heading(1, metadata.title), files[0])]
-    notes_heading = notes_title(metadata.language)
+    notes_heading = in_language(NOTES, metadata.language)
     if notes:
         toc.append((1, Heading(1, notes_heading), NOTES_FILE))
 
