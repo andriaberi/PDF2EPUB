@@ -6,7 +6,7 @@ import pytest
 
 from pdf2epub.book import TextBlock
 from pdf2epub.cover import Cover
-from pdf2epub.errors import ConvertError
+from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pipeline import (
     STEPS,
@@ -151,6 +151,23 @@ def test_printed_contents_are_left_out_until_asked_for(
     write_book(book, tmp_path / "out.epub")
     text = zipfile.ZipFile(tmp_path / "out.epub").read("EPUB/text/section-0001.xhtml").decode()
     assert '<div class="verse"><p>Contents</p><p>Chapter 1 ........ 10</p>' in text
+
+
+def test_book_with_problems_is_not_written(make_pdf: Callable[..., str], tmp_path: Path) -> None:
+    book = read_book(Options(pdf=make_pdf([["Hello world."]])))
+    book.metadata.title = ""
+    for block in book.blocks:
+        block.role = "unknown"
+    with pytest.raises(BookError, match=r"^the book needs a title; block 'b1': unknown role"):
+        write_book(book, tmp_path / "out.epub")
+    assert not (tmp_path / "out.epub").exists()
+
+
+def test_error_names_the_first_problems_only(make_pdf: Callable[..., str], tmp_path: Path) -> None:
+    book = read_book(Options(pdf=make_pdf([["Hello world."]])))
+    book.blocks *= 8
+    with pytest.raises(BookError, match=r"; and 2 more$"):
+        write_book(book, tmp_path / "out.epub")
 
 
 def test_unwritable_output_is_reported(make_pdf: Callable[..., str], tmp_path: Path) -> None:

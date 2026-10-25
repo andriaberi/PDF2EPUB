@@ -239,3 +239,47 @@ def test_block_kinds_are_exported() -> None:
 
 def test_bad_book_data_is_a_conversion_error_too() -> None:
     assert issubclass(BookError, ConvertError)
+
+
+def test_book_as_read_has_no_problems() -> None:
+    assert sample_book().problems() == []
+
+
+@pytest.mark.parametrize(
+    ("change", "problem"),
+    [
+        (lambda d: d["metadata"].update(title=" "), "the book needs a title"),
+        (lambda d: d["metadata"].update(language=""), "the book needs a language"),
+        (lambda d: d["metadata"].update(author=3), "the author must be text"),
+        (lambda d: d["blocks"][1].update(id="b1"), "block 'b1': each block needs an id"),
+        (lambda d: d["blocks"][1].update(page=-1), "block 'b2': its page must be a whole"),
+        (lambda d: d["blocks"][1].update(page="2"), "block 'b2': its page must be a whole"),
+        (lambda d: d["blocks"][1].update(role="appendix"), "block 'b2': unknown role 'appendix'"),
+        (lambda d: d["blocks"][1].update(include="yes"), "block 'b2': include must be"),
+        (lambda d: d["blocks"][1].update(level=7), "block 'b2': a heading's level must be 1 to 6"),
+        (lambda d: d["blocks"][1].update(level=0), "block 'b2': a heading's level must be 1 to 6"),
+        (lambda d: d["blocks"][1].update(label=""), "block 'b2': a heading needs a label"),
+        (lambda d: d["blocks"][1].update(title=["x"]), "block 'b2': a heading's title must be"),
+        (lambda d: d["blocks"][0].update(text=" "), "block 'b1' has no text"),
+        (
+            lambda d: d["blocks"][0].update(epigraph=1),
+            "block 'b1': verse, epigraph and attribution",
+        ),
+        (lambda d: d["blocks"][6].update(lines=[]), "block 'b7': verse needs its lines"),
+        (lambda d: d["blocks"][6].update(lines="a line"), "block 'b7': lines must be a list"),
+        (lambda d: d["blocks"][6].update(notes={"1": 1}), "block 'b7': notes must map each mark"),
+        (lambda d: [b.update(include=False) for b in d["blocks"]], "no block is included"),
+        (lambda d: d["notes"][1].update(id="note-1"), "note 'note-1': each note needs an id"),
+        (lambda d: d["notes"][0].update(mark="*"), "note 'note-1': its mark must be a number"),
+        (lambda d: d["notes"][0].update(text=""), "note 'note-1' has no text"),
+        (lambda d: d.update(include_notes="no"), "include_notes must be true or false"),
+        (lambda d: d["cover"].update(data="UE5H"), "the cover must be a JPEG image"),
+        (lambda d: d["cover"].update(width=0), "the cover must be a JPEG image"),
+    ],
+)
+def test_problems_in_edited_data(change: Callable[[dict[str, Any]], object], problem: str) -> None:
+    data = sample_book().to_dict()
+    change(data)
+    problems = Book.from_dict(data).problems()
+    assert len(problems) == 1
+    assert problems[0].startswith(problem)

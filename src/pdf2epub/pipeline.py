@@ -7,7 +7,7 @@ from pathlib import Path
 from pdf2epub.book import Book
 from pdf2epub.cover import Cover, CoverError, find_cover, load_cover
 from pdf2epub.epub import Metadata, write_epub
-from pdf2epub.errors import ConvertError
+from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.paragraphs import Paragraph, build_paragraphs
 from pdf2epub.pdf import ReadError, read_pdf
 from pdf2epub.structure import (
@@ -22,6 +22,10 @@ from pdf2epub.structure import (
 
 # The steps convert() tells its progress callback, in order; read_book() tells the first three.
 STEPS = ("Reading the PDF", "Finding paragraphs", "Finding chapters", "Writing the EPUB")
+
+
+# How many of a book's problems an error names.
+MAX_PROBLEMS = 5
 
 
 @dataclass
@@ -89,7 +93,10 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
 
 
 def write_book(book: Book, output: str | Path) -> Result:
-    """Write the book as an EPUB at `output`."""
+    """Write the book as an EPUB at `output`, unless it has problems() to fix first."""
+    if problems := book.problems():
+        more = f"; and {len(problems) - MAX_PROBLEMS} more" if len(problems) > MAX_PROBLEMS else ""
+        raise BookError("; ".join(problems[:MAX_PROBLEMS]) + more)
     output = Path(output)
     sections = book.sections()
     try:
