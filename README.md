@@ -59,6 +59,18 @@ Every block has an `id`, the `page` of the PDF it is printed on, and `include`: 
 `False` to leave the block out of the EPUB. A left-out heading's text joins the section
 before it. Writing leaves the book unchanged, so it can be written again.
 
+A block's `role` says where it belongs. Only the body is included at first; the rest
+is found and kept, to be included if wanted:
+
+| Role | What it is |
+|---|---|
+| `body` | The book itself |
+| `contents` | The printed table of contents, a block per page, line by line |
+| `preface` | A foreword or preface, with its heading |
+| `front` | Other text before the first heading: credits, a translator's note |
+| `title-page` | The book's own title page, or its title and author repeated |
+| `reprint` | The title page printed again before a later volume |
+
 Set `book.include_notes = False` to write the book without its notes; removing a note
 from `book.notes` leaves out that note alone. Either way the marks that pointed to it
 are taken out of the text.

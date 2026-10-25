@@ -15,6 +15,7 @@ from pdf2epub.structure import (
     drop_front_matter,
     drop_printed_contents,
     extract_notes,
+    printed_contents,
     title_page_spelling,
 )
 
@@ -82,6 +83,8 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
     sections = drop_front_matter(sections, metadata.title, metadata.author)
     notes = extract_notes(sections)
     sections = with_left_out(everything, sections)
+    for paragraph in printed_contents(pdf_book.pages):
+        place_by_page(sections, paragraph)
 
     # The book's own cover comes first; the given one is for books without one.
     cover, source = choose_cover(find_cover(options.pdf), fallback_cover)
@@ -117,6 +120,25 @@ def with_left_out(
         )
         for section, paragraphs in everything
     ]
+
+
+def place_by_page(sections: list[Section], paragraph: Paragraph) -> None:
+    """Put the paragraph before the first heading or paragraph printed after it."""
+    for index, section in enumerate(sections):
+        if section.heading and section.heading.page > paragraph.page:
+            if index == 0:
+                sections.insert(0, Section(None, [paragraph]))
+            else:
+                sections[index - 1].paragraphs.append(paragraph)
+            return
+        for at, other in enumerate(section.paragraphs):
+            if other.page > paragraph.page:
+                section.paragraphs.insert(at, paragraph)
+                return
+    if sections:
+        sections[-1].paragraphs.append(paragraph)
+    else:
+        sections.append(Section(None, [paragraph]))
 
 
 def choose_cover(own: Cover | None, fallback: Cover | None) -> tuple[Cover | None, str]:

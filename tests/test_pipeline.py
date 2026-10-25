@@ -13,6 +13,7 @@ from pdf2epub.pipeline import (
     Options,
     choose_cover,
     convert,
+    place_by_page,
     read_book,
     with_left_out,
     write_book,
@@ -100,6 +101,56 @@ def test_left_out_text_comes_back_but_not_text_made_into_notes() -> None:
         (Heading(1, "Chapter 1"), [text]),
     ]
     assert sections[1].notes == chapter.notes
+
+
+def placed(page: int) -> list[list[str]]:
+    sections = [
+        Section(None, [Paragraph("Front", 2)]),
+        Section(Heading(1, "Chapter 1", page=3), [Paragraph("A", 3), Paragraph("B", 5)]),
+        Section(Heading(1, "Chapter 2", page=7), [Paragraph("C", 7)]),
+    ]
+    place_by_page(sections, Paragraph("Contents", page, role="contents"))
+    return [[p.text for p in section.paragraphs] for section in sections]
+
+
+@pytest.mark.parametrize(
+    ("page", "where"),
+    [
+        (1, [["Contents", "Front"], ["A", "B"], ["C"]]),
+        (2, [["Front", "Contents"], ["A", "B"], ["C"]]),
+        (4, [["Front"], ["A", "Contents", "B"], ["C"]]),
+        (6, [["Front"], ["A", "B", "Contents"], ["C"]]),
+        (8, [["Front"], ["A", "B"], ["C", "Contents"]]),
+    ],
+)
+def test_contents_placed_by_their_page(page: int, where: list[list[str]]) -> None:
+    assert placed(page) == where
+
+
+def test_contents_before_the_first_heading_start_the_book() -> None:
+    sections = [Section(Heading(1, "Chapter 1", page=3), [Paragraph("A", 3)])]
+    place_by_page(sections, Paragraph("Contents", 2, role="contents"))
+    assert [(s.heading, [p.text for p in s.paragraphs]) for s in sections] == [
+        (None, ["Contents"]),
+        (Heading(1, "Chapter 1"), ["A"]),
+    ]
+
+
+def test_printed_contents_are_left_out_until_asked_for(
+    make_pdf: Callable[..., str], tmp_path: Path
+) -> None:
+    entries = [f"Chapter {n} ........ {n * 10}" for n in range(1, 7)]
+    pdf = make_pdf([["Hello world."] * 3, ["Contents", *entries]])
+    book = read_book(Options(pdf=pdf))
+    [contents] = [block for block in book.blocks if block.role == "contents"]
+    assert (contents.page, contents.include) == (2, False)
+    write_book(book, tmp_path / "out.epub")
+    text = zipfile.ZipFile(tmp_path / "out.epub").read("EPUB/text/section-0001.xhtml").decode()
+    assert "Chapter 1" not in text
+    contents.include = True
+    write_book(book, tmp_path / "out.epub")
+    text = zipfile.ZipFile(tmp_path / "out.epub").read("EPUB/text/section-0001.xhtml").decode()
+    assert '<div class="verse"><p>Contents</p><p>Chapter 1 ........ 10</p>' in text
 
 
 def test_unwritable_output_is_reported(make_pdf: Callable[..., str], tmp_path: Path) -> None:

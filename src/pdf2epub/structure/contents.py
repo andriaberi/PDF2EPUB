@@ -1,6 +1,7 @@
 import re
 
 from pdf2epub.labels import label_level
+from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pdf import Page
 
 # Words a printed table of contents is headed with.
@@ -21,6 +22,21 @@ TITLED_ENTRY_SHARE = 0.3
 def drop_printed_contents(pages: list[Page]) -> list[Page]:
     """Leave out the book's printed table of contents; the EPUB has a working one."""
     return [page for page in pages if not is_contents_page(page)]
+
+
+def printed_contents(pages: list[Page]) -> list[Paragraph]:
+    """The book's printed table of contents, a paragraph per page that keeps its lines."""
+    return [
+        Paragraph(
+            " ".join(line.text for line in page.lines),
+            page.number,
+            page.lines,
+            verse=True,
+            role="contents",
+        )
+        for page in pages
+        if page.lines and is_contents_page(page)
+    ]
 
 
 def is_contents_page(page: Page) -> bool:
