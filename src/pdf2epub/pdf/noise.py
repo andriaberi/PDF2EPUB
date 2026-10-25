@@ -25,9 +25,10 @@ CHAPTER_NUMBER = re.compile(r"^[IVXLCDM]+\.?$")
 NUMBER = re.compile(r"^[\d.,:;/()\[\]–—-]+$")
 SEPARATOR = re.compile(r"^[*⁂•·~=_—–\- ]+$")
 
-# A web address or copyright sign: a website's credits, not the book's text. They
-# are short, and stack at most a few lines high.
-WEB = re.compile(r"www\.|https?://|\b\w+\.(?:ge|com|org|net|ru)\b|©", re.IGNORECASE)
+# A web address, copyright sign or the word for a website ("საიტმა", "საიტი"): a
+# website's credits, not the book's text. They are short, and stack at most a few
+# lines high.
+WEB = re.compile(r"www\.|https?://|\b\w+\.(?:ge|com|org|net|ru)\b|©|საიტ", re.IGNORECASE)
 MAX_CREDIT_WORDS = 6
 MAX_CREDIT_LINES = 4
 
@@ -89,11 +90,23 @@ def drop_web_credits(lines: list[Line]) -> list[Line]:
             above >= 0
             and index - above <= MAX_CREDIT_LINES
             and lines[above + 1].y0 - lines[above].y1 < lines[above].height
-            and abs(lines[above].x1 - line.x1) < line.height
+            and aligned(lines[above], line)
         ):
             dropped.add(above)
             above -= 1
     return [line for index, line in enumerate(lines) if index not in dropped]
+
+
+def aligned(upper: Line, lower: Line) -> bool:
+    """Set flush on the same side, or centred on each other."""
+    return any(
+        abs(a - b) < lower.height
+        for a, b in [
+            (upper.x0, lower.x0),
+            (upper.x1, lower.x1),
+            (upper.x0 + upper.x1, lower.x0 + lower.x1),
+        ]
+    )
 
 
 def drop_junk(lines: list[Line]) -> list[Line]:

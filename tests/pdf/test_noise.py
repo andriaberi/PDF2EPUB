@@ -154,6 +154,21 @@ def test_keeps_dialogue_after_a_gap() -> None:
     assert texts(result.lines)[-1] == "— ვინ არის ეს პატარა კაცი?"
 
 
+def test_credits_stacked_flush_left_are_dropped_too() -> None:
+    lines = [
+        Line("სიგარეტიდან თამბაქო ძირს დაცვივდა.", 5, 338, 400, 352),
+        Line("წიგნის ელექტრონული ვერსია", 309, 513, 520, 530),
+        Line("მოამზადა საიტმა: www.ChiaturaINFO.GE", 309, 541, 600, 558),
+    ]
+    assert [line.text for line in drop_web_credits(lines)] == [lines[0].text]
+
+
+def test_a_line_naming_the_website_is_a_credit() -> None:
+    lines = [Line("[11] პროპაგანდისტი (მთარ.).", 5, 530, 300, 547)]
+    lines.append(Line(".:სასიყვარულო საიტი:.", 150, 711, 330, 728))
+    assert [line.text for line in drop_web_credits(lines)] == [lines[0].text]
+
+
 def test_website_credits_are_dropped_with_the_lines_above_them() -> None:
     lines = [
         Line("დასასრული.", 485, 365, 556, 380),
