@@ -12,10 +12,12 @@ It is made for Georgian books and handles English too.
 
 - Removes page numbers, running headers, footnotes and website credits
 - Rebuilds paragraphs, including ones broken across pages
-- Finds volumes, parts and chapters, and builds the table of contents from them
+- Finds volumes, parts and chapters, and builds the table of contents from them; a
+  book with no headings gets numbered chapters wherever it leaves a blank line
 - Links notes to their marks in the text, numbered or starred
 - Keeps the line breaks of verse, and sets epigraphs apart under their chapter
 - Uses the PDF's cover, or an image you give it
+- Reads the Georgian letters of Word PDFs set in Sylfaen that lost them
 
 ## Installation
 
@@ -111,8 +113,10 @@ used.
 ## Limitations
 
 - Scanned PDFs need a text layer first. `ocrmypdf` can add one.
-- Chapters are found by their headings ("თავი I", "Chapter 3", "XII"). A book with
-  unusual headings may come out as one long chapter.
+- Chapters are found by their headings ("თავი I", "Chapter 3", "XII"), or by blank
+  lines in a book with none. A blank line at the top or bottom of a page can't be
+  seen, so such a chapter break is missed. A book with neither comes out as one text,
+  listed by its title.
 - Footnotes at the bottom of a page are removed, not linked.
 - Bold, italics and pictures inside the book are not kept.
 - Only Georgian and English are detected. For other languages pass `language`.
