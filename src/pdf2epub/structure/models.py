@@ -9,6 +9,7 @@ class Heading:
     label: str  # "თავი მეორე", "Chapter 2"
     title: str | None = None  # "კეთილგონიერება სიბრძნეს აფრთხილებს"
     page: int = field(default=0, compare=False)  # where it is printed, 0 if not known
+    role: str = "body"  # see Paragraph.role
 
     @property
     def text(self) -> str:

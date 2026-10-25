@@ -23,8 +23,8 @@ class BookError(Exception):
 class Block:
     id: str  # the same however the blocks around it change
     page: int  # the PDF page it is printed on, from 1; 0 if not known
-    role: str = "body"
-    include: bool = True  # whether the EPUB shows it
+    role: str = "body"  # see Paragraph.role
+    include: bool = True  # whether the EPUB shows it; at first, only the body is shown
 
 
 @dataclass(kw_only=True)
@@ -73,6 +73,8 @@ class Book:
                     HeadingBlock(
                         id=f"b{len(blocks) + 1}",
                         page=heading.page,
+                        role=heading.role,
+                        include=heading.role == "body",
                         level=heading.level,
                         label=heading.label,
                         title=heading.title,
@@ -85,6 +87,8 @@ class Book:
                     TextBlock(
                         id=f"b{len(blocks) + 1}",
                         page=paragraph.page,
+                        role=paragraph.role,
+                        include=paragraph.role == "body",
                         text=paragraph.text,
                         lines=lines,
                         verse=paragraph.verse,
@@ -104,7 +108,9 @@ class Book:
             if not block.include:
                 continue
             if isinstance(block, HeadingBlock):
-                heading = Heading(block.level, block.label, block.title, page=block.page)
+                heading = Heading(
+                    block.level, block.label, block.title, page=block.page, role=block.role
+                )
                 sections.append(Section(heading))
                 continue
             if not sections:
@@ -121,6 +127,7 @@ class Book:
                     verse=block.verse,
                     epigraph=block.epigraph,
                     attribution=block.attribution,
+                    role=block.role,
                 )
             )
             for mark, note in links.items():

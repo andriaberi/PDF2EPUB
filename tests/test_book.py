@@ -40,11 +40,13 @@ def sample_sections() -> list[Section]:
     ]
 
 
+METADATA = Metadata("Title", "Author", "en", "urn:uuid:1")
+
+
 def sample_book() -> Book:
-    metadata = Metadata("Title", "Author", "en", "urn:uuid:1")
     cover = Cover(b"\xff\xd8 image", 600, 800)
     return Book.from_sections(
-        metadata, sample_sections(), [ONE, OTHER_ONE], cover, "cover from the PDF"
+        METADATA, sample_sections(), [ONE, OTHER_ONE], cover, "cover from the PDF"
     )
 
 
@@ -110,6 +112,23 @@ def test_left_out_text_is_not_written() -> None:
     book = sample_book()
     book.blocks[0].include = False
     assert book.sections()[0].heading == Heading(1, "Volume I")
+
+
+def test_only_the_body_is_shown_at_first() -> None:
+    sections = sample_sections()
+    preface = Section(Heading(1, "Preface", page=1, role="preface"))
+    preface.paragraphs.append(Paragraph("Why I wrote it.", 1, role="preface"))
+    book = Book.from_sections(METADATA, [preface, *sections], [ONE, OTHER_ONE], None, "")
+    assert [(b.role, b.include) for b in book.blocks[:3]] == [
+        ("preface", False),
+        ("preface", False),
+        ("body", True),
+    ]
+    assert shape(book.sections()) == shape(sections)
+    book.blocks[0].include = book.blocks[1].include = True
+    first = book.sections()[0]
+    assert first.heading == preface.heading
+    assert first.paragraphs[0] == preface.paragraphs[0]
 
 
 def texts(sections: list[Section]) -> list[str]:
