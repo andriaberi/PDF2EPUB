@@ -5,8 +5,8 @@ from pdf2epub.pdf import Line, Page
 from pdf2epub.pdf.text import NOTE_MARK, script_of
 
 from .layout import (
-    DASHES,
     OPENINGS,
+    SPEECH_DASHES,
     TITLE_LINES,
     Layout,
     ends_page_early,
@@ -131,7 +131,7 @@ def starts_paragraph(
     # on, whatever the layout: "სიტყვა „აღსდგა“ - „" / "Redivivus".
     if previous is not None and (
         breaks_word(previous[0].text)
-        or previous[0].text in DASHES
+        or previous[0].text in SPEECH_DASHES
         or previous[0].text.endswith(OPENING_QUOTES)
     ):
         return False

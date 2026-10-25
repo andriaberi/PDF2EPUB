@@ -45,10 +45,10 @@ TITLE_LINES = 3
 TITLE_SPACE = 1.8
 
 # The dashes that open speech: "– მოვიდნენ!".
-DASHES = ("-", "–", "—")
+SPEECH_DASHES = ("-", "–", "—")
 
 # How speech and quotes open a line: "– მოვიდნენ!", "„მაგრამ…".
-OPENINGS = (*DASHES, "„", "«", '"', "[")
+OPENINGS = (*SPEECH_DASHES, "„", "«", '"', "[")
 
 # A book indents its paragraphs when at least this share of its lines start indented.
 MIN_INDENTED = 0.03
