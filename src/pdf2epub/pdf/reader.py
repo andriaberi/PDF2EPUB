@@ -37,19 +37,23 @@ SAME_SIZE = 1.2
 SCAN_AREA = 0.5
 
 
-def read_pdf(path: str, spec: str | None = None) -> Book:
-    """Read the text lines of the selected pages, with page furniture and OCR noise removed."""
+def open_pdf(path: str) -> pymupdf.Document:
+    """The PDF, ready to read, or a ReadError saying why it isn't."""
     if not Path(path).is_file():
         raise ReadError(f"no such file: {path}")
     try:
         doc = pymupdf.open(path)
     except (pymupdf.FileDataError, RuntimeError) as e:
         raise ReadError(f"not a readable PDF: {path} ({e})") from None
+    if doc.needs_pass:
+        doc.close()
+        raise ReadError(f"the PDF is password-protected: {path}")
+    return doc
 
-    with doc:
-        if doc.needs_pass:
-            raise ReadError(f"the PDF is password-protected: {path}")
 
+def read_pdf(path: str, spec: str | None = None) -> Book:
+    """Read the text lines of the selected pages, with page furniture and OCR noise removed."""
+    with open_pdf(path) as doc:
         selected = [doc[index] for index in parse_pages(spec, doc.page_count)]
         pages = read_pages(selected)
         if not any(page.lines for page in pages):
