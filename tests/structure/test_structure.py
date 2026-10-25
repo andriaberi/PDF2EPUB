@@ -473,3 +473,38 @@ def test_a_part_printed_below_its_first_chapter_comes_first() -> None:
         "თუნდაც გალიაში ათასი სული ჩავსვათ,",
         "ტექსტი.",
     ]
+
+
+def broken_up(texts: list[str], breaks: set[int]) -> list[Paragraph]:
+    paragraphs = [body(text, page=n // 10 + 1) for n, text in enumerate(texts)]
+    for index in breaks:
+        paragraphs[index].apart = True
+    return paragraphs
+
+
+def test_book_without_headings_has_chapters_at_its_blank_lines() -> None:
+    texts = ["Author Name", "The Title", *(f"Sentence {n} of the story." for n in range(30))]
+    sections = build_sections(broken_up(texts, {12, 22}), PAGES)
+    assert [(s.heading, [p.text for p in s.paragraphs][:1]) for s in sections] == [
+        (None, ["Author Name"]),
+        (Heading(1, "1"), ["Sentence 0 of the story."]),
+        (Heading(1, "2"), ["Sentence 10 of the story."]),
+        (Heading(1, "3"), ["Sentence 20 of the story."]),
+    ]
+    assert [s.heading.page for s in sections if s.heading] == [1, 2, 3]
+
+
+def test_first_chapter_without_a_title_page_is_numbered_too() -> None:
+    texts = [f"Sentence {n} of the story." for n in range(30)]
+    sections = build_sections(broken_up(texts, {10, 20}), PAGES)
+    assert [s.heading.label if s.heading else None for s in sections] == ["1", "2", "3"]
+
+
+def test_a_single_blank_line_makes_no_chapters() -> None:
+    texts = [f"Sentence {n} of the story." for n in range(30)]
+    assert headings(broken_up(texts, {10})) == [None]
+
+
+def test_blank_lines_in_a_book_with_headings_make_no_chapters() -> None:
+    paragraphs = [centred("Chapter 4"), *broken_up([f"Text {n}." for n in range(30)], {10, 20})]
+    assert headings(paragraphs) == [Heading(1, "Chapter 4")]

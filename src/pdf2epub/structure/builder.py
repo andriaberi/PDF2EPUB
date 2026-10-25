@@ -13,6 +13,7 @@ from pdf2epub.paragraphs.layout import (
     TITLE_LINES,
     TITLE_SPACE,
     Layout,
+    ends_sentence,
     is_short,
     is_tall,
     stands_apart,
@@ -46,6 +47,15 @@ SUBHEADING_ENDS = (".", ",", ":", ";", "-", "–", "—")
 
 # Lines whose heights differ less than this are in the same font size.
 SAME_SIZE = 1.15
+
+# A book with no headings is split into chapters at blank lines only when it has at
+# least this many, so a stray space in the text can't make one.
+MIN_BREAKS = 2
+
+# Lines at the start of such a book that are this short and end no sentence are its
+# title page, not its first chapter.
+TITLE_PAGE_LINES = 3
+TITLE_PAGE_WORDS = 8
 
 # Named sections ("წინათქმა", "Epilogue") take the outermost level the book uses,
 # known only once all headings are found.
@@ -121,10 +131,38 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
 
     if not sections[0].paragraphs:
         sections.pop(0)
+    sections = chapters_at_breaks(sections)
     place_named_sections(sections)
     renumber_levels(sections)
     match_label_order(sections)
     return sections
+
+
+def chapters_at_breaks(sections: list[Section]) -> list[Section]:
+    """A book with no headings, its chapters marked only by a blank line, as chapters
+    numbered 1, 2, 3; a title page at the start stays before the first."""
+    if len(sections) != 1 or sections[0].heading:
+        return sections
+    paragraphs = sections[0].paragraphs
+    breaks = [index for index, paragraph in enumerate(paragraphs) if index and paragraph.apart]
+    if len(breaks) < MIN_BREAKS:
+        return sections
+
+    title_page = 0
+    while title_page < min(TITLE_PAGE_LINES, len(paragraphs) - 1) and is_title_line(
+        paragraphs[title_page].text
+    ):
+        title_page += 1
+    starts = [title_page, *(index for index in breaks if index > title_page)]
+    chapters = [Section(None, paragraphs[:title_page])] if title_page else []
+    for number, (start, end) in enumerate(zip(starts, [*starts[1:], None], strict=True), start=1):
+        heading = Heading(1, str(number), page=paragraphs[start].page)
+        chapters.append(Section(heading, paragraphs[start:end]))
+    return chapters
+
+
+def is_title_line(text: str) -> bool:
+    return len(text.split()) <= TITLE_PAGE_WORDS and not ends_sentence(text)
 
 
 def numbered_chapters(paragraphs: list[Paragraph]) -> set[int]:
