@@ -28,6 +28,10 @@ MIN_FULL = 0.3
 # Text that stops above this share of the page height ends the page early.
 FULL_PAGE = 0.75
 
+# Text that stops this many lines above the book's usual bottom leaves a blank line
+# there; one line short is only a paragraph kept from breaking across the page.
+BLANK_LINE = 1.5
+
 # Pages with fewer lines, like chapter openings, are too sparse to learn the book's layout from.
 MIN_MEASURED_LINES = 10
 
@@ -261,6 +265,18 @@ def is_set_apart(line: Line, following: Line, layout: Layout) -> bool:
 def ends_page_early(line: Line, layout: Layout) -> bool:
     """The page's text stops well above the bottom: a title page or a chapter's end."""
     return line.y1 < FULL_PAGE * layout.height
+
+
+def text_bottom(pages: list[Page]) -> float:
+    """Where the book's pages usually stop: the bottom of a full page's last line."""
+    return statistics.median(page.lines[-1].y1 for page in pages if page.lines)
+
+
+def ends_with_blank_line(line: Line, layout: Layout, bottom: float) -> bool:
+    """The page's last line ends a sentence a blank line or more above the bottom,
+    as a chapter marked only by a blank line ends when it falls at a page's foot."""
+    step = layout.line_height + layout.gap
+    return bottom - line.y1 > BLANK_LINE * step and ends_sentence(line.text)
 
 
 def is_short(line: Line, layout: Layout) -> bool:

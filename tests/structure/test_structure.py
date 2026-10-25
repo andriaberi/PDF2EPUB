@@ -508,3 +508,13 @@ def test_a_single_blank_line_makes_no_chapters() -> None:
 def test_blank_lines_in_a_book_with_headings_make_no_chapters() -> None:
     paragraphs = [centred("Chapter 4"), *broken_up([f"Text {n}." for n in range(30)], {10, 20})]
     assert headings(paragraphs) == [Heading(1, "Chapter 4")]
+
+
+def test_blank_line_at_a_page_foot_starts_a_chapter_too() -> None:
+    paragraphs = broken_up([f"Sentence {n} of the story." for n in range(30)], {10})
+    paragraphs[20].after_page_gap = True
+    assert [s.heading.label if s.heading else None for s in build_sections(paragraphs, PAGES)] == [
+        "1",
+        "2",
+        "3",
+    ]

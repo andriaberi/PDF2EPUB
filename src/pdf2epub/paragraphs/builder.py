@@ -12,6 +12,7 @@ from .layout import (
     ends_page_early,
     ends_paragraph,
     ends_sentence,
+    ends_with_blank_line,
     fit,
     has_gap_before,
     is_indented,
@@ -21,6 +22,7 @@ from .layout import (
     is_tall,
     measure,
     stands_apart,
+    text_bottom,
     text_column,
 )
 from .models import Paragraph, is_scene_break
@@ -34,6 +36,7 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
     if not any(page.lines for page in pages):
         return paragraphs
     column = text_column(pages)
+    bottom = text_bottom(pages)
     # The paragraph started far below the text above it: it may be a heading.
     apart = False
     # The number of the last numbered section started: "28. ...".
@@ -76,6 +79,11 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
                     and ends_sentence(above.text)
                 )
                 paragraphs[-1].apart = apart
+                paragraphs[-1].after_page_gap = (
+                    above is None
+                    and previous is not None
+                    and ends_with_blank_line(*previous, bottom)
+                )
                 if opening := SECTION_NUMBER.match(line.text):
                     section = int(opening.group(1))
             else:

@@ -144,7 +144,11 @@ def chapters_at_breaks(sections: list[Section]) -> list[Section]:
     if len(sections) != 1 or sections[0].heading:
         return sections
     paragraphs = sections[0].paragraphs
-    breaks = [index for index, paragraph in enumerate(paragraphs) if index and paragraph.apart]
+    breaks = [
+        index
+        for index, paragraph in enumerate(paragraphs)
+        if index and (paragraph.apart or paragraph.after_page_gap)
+    ]
     if len(breaks) < MIN_BREAKS:
         return sections
 
