@@ -28,6 +28,20 @@ PDF2EPUB is a Python library. Add it to a project straight from GitHub:
 uv add "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git"
 ```
 
+### Versions
+
+Every change to `main` that passes the checks is released on its own, numbered by the
+day: `2026.1025.1` is the first release of 25 October 2026, `2026.1025.2` the second,
+and 5 January 2027 starts at `2027.105.1`. Each is a tag and a
+[GitHub release](https://github.com/andriaberi/PDF2EPUB/releases) with its changes
+listed. To stay on one release, name its tag:
+
+```sh
+uv add "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git@v2026.1025.1"
+```
+
+The installed version is `pdf2epub.__version__`.
+
 ## Usage
 
 ### Converting
