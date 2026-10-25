@@ -45,6 +45,11 @@ def test_label_without_title() -> None:
     assert headings([centred("Chapter 4"), body("Text.")]) == [Heading(1, "Chapter 4")]
 
 
+def test_heading_knows_its_page() -> None:
+    sections = build_sections([body("Text.", 1), centred("Chapter 4", 2), body("Text.", 2)], PAGES)
+    assert [s.heading.page for s in sections if s.heading] == [2]
+
+
 def test_title_wrapped_over_two_lines() -> None:
     paragraphs = [
         centred("თავი მეხუთე"),

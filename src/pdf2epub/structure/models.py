@@ -8,6 +8,7 @@ class Heading:
     level: int  # 1 is the outermost division the book uses
     label: str  # "თავი მეორე", "Chapter 2"
     title: str | None = None  # "კეთილგონიერება სიბრძნეს აფრთხილებს"
+    page: int = field(default=0, compare=False)  # where it is printed, 0 if not known
 
     @property
     def text(self) -> str:

@@ -63,21 +63,25 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
         paragraph = paragraphs[index]
         index += 1
         if is_label(paragraph, column):
-            heading = Heading(label_level(paragraph.text) or 0, fix_label(paragraph.text))
+            heading = Heading(
+                label_level(paragraph.text) or 0, fix_label(paragraph.text), page=paragraph.page
+            )
         elif id(paragraph) in numbered:
-            heading = Heading(NUMBER_LEVEL, paragraph.text.rstrip("."))
+            heading = Heading(NUMBER_LEVEL, paragraph.text.rstrip("."), page=paragraph.page)
         elif is_named_section(paragraph, column):
-            heading = Heading(SECTION_LEVEL, paragraph.text)
+            heading = Heading(SECTION_LEVEL, paragraph.text, page=paragraph.page)
         elif run_in := run_in_label(paragraph, column):
             label, run_in_title = run_in
-            heading = Heading(label_level(label) or 0, label, run_in_title or None)
+            heading = Heading(
+                label_level(label) or 0, label, run_in_title or None, page=paragraph.page
+            )
             if run_in_title:
                 sections.append(Section(heading))
                 continue
         elif is_subheading(
             paragraph, paragraphs[index] if index < len(paragraphs) else None, column
         ):
-            sections.append(Section(Heading(SUBHEADING_LEVEL, paragraph.text)))
+            sections.append(Section(Heading(SUBHEADING_LEVEL, paragraph.text, page=paragraph.page)))
             continue
         else:
             sections[-1].paragraphs.append(paragraph)
