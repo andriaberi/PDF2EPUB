@@ -10,12 +10,12 @@ It is made for Georgian books and handles English too.
 
 ## Features
 
-- Removes page numbers, running headers, footnotes and website credits
+- Removes page numbers, running headers and website credits
 - Rebuilds paragraphs, including ones broken across pages
 - Finds volumes, parts and chapters, and builds the table of contents from them. It
   follows the PDF's own outline when that matches the text; a book with no headings
   gets numbered chapters wherever it leaves a blank line
-- Links notes to their marks in the text, numbered or starred
+- Links notes to their marks in the text, numbered or starred, and footnotes too
 - Keeps the line breaks of verse, and sets epigraphs apart under their chapter
 - Uses the PDF's cover, or an image you give it
 - Reads the Georgian letters of Word PDFs set in Sylfaen that lost them
@@ -133,7 +133,8 @@ used.
   lines in a book with none. A blank line at the top or bottom of a page can't be
   seen, so such a chapter break is missed. A book with neither comes out as one text,
   listed by its title.
-- Footnotes at the bottom of a page are removed, not linked.
+- Footnotes at the bottom of a page are linked only when their marks are set raised in
+  the text, as Word sets them; others are removed.
 - Bold, italics and pictures inside the book are not kept.
 - Only Georgian and English are detected. For other languages pass `language`.
 
