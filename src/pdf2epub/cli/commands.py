@@ -18,8 +18,7 @@ def parse_args(argv: Sequence[str] | None = None) -> Args:
     """The command line's options; `argv` defaults to the program's own arguments."""
     parser = argparse.ArgumentParser(
         prog="pdf2epub",
-        description="Convert a PDF book into a reflowable EPUB. Run without arguments "
-        "to open the window.",
+        description="Convert a PDF book into a reflowable EPUB.",
     )
     parser.add_argument("pdf", help="the PDF book to convert")
     parser.add_argument(
