@@ -1,6 +1,6 @@
 """Convert PDF books into well-structured, reflowable EPUBs."""
 
-from pdf2epub.book import Book, HeadingBlock, TextBlock
+from pdf2epub.book import Book, BookError, HeadingBlock, TextBlock
 from pdf2epub.pipeline import (
     STEPS,
     ConvertError,
@@ -14,6 +14,7 @@ from pdf2epub.pipeline import (
 __all__ = [
     "STEPS",
     "Book",
+    "BookError",
     "ConvertError",
     "HeadingBlock",
     "Options",

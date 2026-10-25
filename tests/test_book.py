@@ -1,4 +1,10 @@
-from pdf2epub.book import Book, HeadingBlock, TextBlock
+import json
+from collections.abc import Callable
+from typing import Any
+
+import pytest
+
+from pdf2epub.book import Book, BookError, HeadingBlock, TextBlock
 from pdf2epub.cover import Cover
 from pdf2epub.epub import Metadata
 from pdf2epub.paragraphs import Paragraph
@@ -104,6 +110,53 @@ def test_left_out_text_is_not_written() -> None:
     book = sample_book()
     book.blocks[0].include = False
     assert book.sections()[0].heading == Heading(1, "Volume I")
+
+
+def test_data_is_json_and_reads_back_the_same() -> None:
+    book = sample_book()
+    data = json.loads(json.dumps(book.to_dict()))
+    assert data["version"] == 1
+    assert data["blocks"][1] == {
+        "type": "heading",
+        "id": "b2",
+        "page": 2,
+        "role": "body",
+        "include": True,
+        "level": 1,
+        "label": "Volume I",
+        "title": None,
+    }
+    assert Book.from_dict(data) == book
+
+
+def test_book_without_a_cover_reads_back() -> None:
+    book = sample_book()
+    book.cover, book.cover_source = None, "no cover"
+    assert Book.from_dict(book.to_dict()) == book
+
+
+def test_other_version_is_refused() -> None:
+    data = sample_book().to_dict()
+    data["version"] = 2
+    with pytest.raises(BookError, match="version 2"):
+        Book.from_dict(data)
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda d: d["blocks"][0].update(type="image"), "unknown block type"),
+        (lambda d: d["blocks"][0].pop("text"), "bad book data"),
+        (lambda d: d["blocks"][0].update(colour="red"), "bad book data"),
+        (lambda d: d.pop("metadata"), "bad book data"),
+        (lambda d: d["cover"].update(data="not base64!"), "bad book data"),
+    ],
+)
+def test_broken_data_is_refused(change: Callable[[dict[str, Any]], object], message: str) -> None:
+    data = sample_book().to_dict()
+    change(data)
+    with pytest.raises(BookError, match=message):
+        Book.from_dict(data)
 
 
 def test_block_kinds_are_exported() -> None:

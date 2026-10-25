@@ -59,6 +59,10 @@ Every block has an `id`, the `page` of the PDF it is printed on, and `include`: 
 `False` to leave the block out of the EPUB. A left-out heading's text joins the section
 before it. Writing leaves the book unchanged, so it can be written again.
 
+`book.to_dict()` gives the book as JSON-able data, to keep between requests or edit
+elsewhere, and `Book.from_dict(data)` reads it back. Data of another version, or with a
+part missing or mistyped, raises `BookError`.
+
 | Option | Description |
 |---|---|
 | `pdf` | The PDF book. |
