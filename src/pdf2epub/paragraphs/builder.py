@@ -28,6 +28,29 @@ from .layout import (
 from .models import Paragraph, is_scene_break
 from .verse import find_verse
 
+# Punctuation that closes what came before: "!", ". დიახ", ", -". Not "…" or ",,"
+# (typed for „), and "“" only before a space or punctuation: it opens English quotes.
+CLOSES = re.compile(r"^(?:[.!?;:)»](?!\.)|,(?!,)|“(?=[\s.,;:!?)]))")
+
+OPENING_QUOTES = ("„", "«")
+
+# A numbered section's opening: "29. როდესაც კროჲსოსმა ...".
+SECTION_NUMBER = re.compile(r"^(\d{1,3})\. ")
+
+# Punctuation inside a line of text, not a heading: "მან ჟურნალ", "ოსტატი, იტალიური".
+CLAUSE_BREAK = re.compile(r"[.,;:]\s")
+
+# A heading set in the text is a few words, well short of the line.
+SET_TITLE_WORDS = 6
+SET_TITLE_WIDTH = 0.6
+
+# A heading run into the text ends well short of the margin, at most this share of
+# the column; a paragraph's first line stops only a word or two short.
+MAX_HEADING_WIDTH = 0.8
+
+# A line ending in these is a clause or a sentence, not a heading set in the text.
+TITLE_ENDS = (".", ",", ":", ";", "!", "?", "…", "-", "–", "—", "“", "»", '"', ")")
+
 
 def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
     """Join the lines of all pages into paragraphs, across page breaks too."""
@@ -157,30 +180,6 @@ def starts_paragraph(
         return False
     # A short line ending a sentence closes its paragraph, across a page break too.
     return previous is not None and ends_paragraph(*previous)
-
-
-# Punctuation that closes what came before: "!", ". დიახ", ", -". Not "…" or ",,"
-# (typed for „), and "“" only before a space or punctuation: it opens English quotes.
-CLOSES = re.compile(r"^(?:[.!?;:)»](?!\.)|,(?!,)|“(?=[\s.,;:!?)]))")
-
-OPENING_QUOTES = ("„", "«")
-
-# A numbered section's opening: "29. როდესაც კროჲსოსმა ...".
-SECTION_NUMBER = re.compile(r"^(\d{1,3})\. ")
-
-# Punctuation inside a line of text, not a heading: "მან ჟურნალ", "ოსტატი, იტალიური".
-CLAUSE_BREAK = re.compile(r"[.,;:]\s")
-
-# A heading set in the text is a few words, well short of the line.
-SET_TITLE_WORDS = 6
-SET_TITLE_WIDTH = 0.6
-
-# A heading run into the text ends well short of the margin, at most this share of
-# the column; a paragraph's first line stops only a word or two short.
-MAX_HEADING_WIDTH = 0.8
-
-# A line ending in these is a clause or a sentence, not a heading set in the text.
-TITLE_ENDS = (".", ",", ":", ";", "!", "?", "…", "-", "–", "—", "“", "»", '"', ")")
 
 
 def starts_next_section(

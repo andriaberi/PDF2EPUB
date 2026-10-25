@@ -19,6 +19,44 @@ LABELS = {
 # garbles ordinals. Only a numeral takes a full stop: "თავი დახარა." is text.
 LABEL = re.compile(r"^(\w+)\s+(\w+|\d+\.|[IVXLCDM]+\.)$", re.IGNORECASE)
 
+# The number of a label run into its title, "თავი მეშვიდე ...": stricter than a
+# label alone, a numeral, a Georgian ordinal or an English number word.
+NUMBER_WORD = re.compile(
+    r"^(\d+\.?|[IVXLCDM]+\.?|პირველი|მე\w+ე|one|two|three|four|five|six|seven|eight|nine"
+    r"|ten|eleven|twelve)$",
+    re.IGNORECASE,
+)
+
+# Named sections the EPUB leaves out unless asked: forewords and prefaces.
+PREFACE_NAMES = {"წინათქმა", "წინასიტყვაობა", "წინასიტყვა", "foreword", "preface"}
+
+# Sections a book names instead of numbering. They sit at the book's outermost level.
+SECTION_NAMES = PREFACE_NAMES | {
+    "შესავალი",  # introduction
+    "პროლოგი",
+    "ეპილოგი",
+    "ბოლოთქმა",  # afterword
+    "introduction",
+    "prologue",
+    "epilogue",
+    "afterword",
+}
+
+# Chapters numbered without a label word sit below every labelled division.
+NUMBER_LEVEL = 5
+
+# Headings named but not numbered, set in a chapter's text, sit below them all.
+SUBHEADING_LEVEL = 6
+
+# A chapter number alone on its line: "XII", "XII.", "7", "7.". Roman numerals are
+# upper case only, so a stray "i" or "v" is never one.
+NUMERAL = re.compile(r"^([IVXLCDM]{1,7}|\d{1,3})\.?$")
+
+ROMAN = [
+    (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"),
+    (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+]  # fmt: skip
+
 
 def label_level(text: str) -> int | None:
     """The division level of a label like "თავი მეორე", allowing one OCR misread letter."""
@@ -58,28 +96,6 @@ def find_label(text: str) -> tuple[int, str] | None:
     return None
 
 
-# Sections a book names instead of numbering. They sit at the book's outermost level.
-SECTION_NAMES = {
-    "წინათქმა",  # foreword
-    "წინასიტყვაობა",  # preface
-    "წინასიტყვა",  # preface
-    "შესავალი",  # introduction
-    "პროლოგი",
-    "ეპილოგი",
-    "ბოლოთქმა",  # afterword
-    "foreword",
-    "preface",
-    "introduction",
-    "prologue",
-    "epilogue",
-    "afterword",
-}
-
-
-# Named sections the EPUB leaves out unless asked.
-PREFACE_NAMES = {"წინათქმა", "წინასიტყვაობა", "წინასიტყვა", "foreword", "preface"}
-
-
 def is_section_name(text: str) -> bool:
     """A named section's heading: "წინათქმა", "Prologue", "EPILOGUE"."""
     return text.strip().casefold() in SECTION_NAMES
@@ -88,15 +104,6 @@ def is_section_name(text: str) -> bool:
 def is_preface(text: str) -> bool:
     """A foreword's or preface's heading: "წინასიტყვაობა", "Preface"."""
     return text.strip().casefold() in PREFACE_NAMES
-
-
-# The number of a label run into its title, "თავი მეშვიდე ...": stricter than a
-# label alone, a numeral, a Georgian ordinal or an English number word.
-NUMBER_WORD = re.compile(
-    r"^(\d+\.?|[IVXLCDM]+\.?|პირველი|მე\w+ე|one|two|three|four|five|six|seven|eight|nine"
-    r"|ten|eleven|twelve)$",
-    re.IGNORECASE,
-)
 
 
 def split_label(text: str) -> tuple[str, str] | None:
@@ -109,33 +116,6 @@ def split_label(text: str) -> tuple[str, str] | None:
         return None
     title = " ".join(words[2:]).lstrip("-–— ")
     return f"{words[0]} {words[1]}", title
-
-
-# Chapters numbered without a label word sit below every labelled division.
-NUMBER_LEVEL = 5
-
-# Headings named but not numbered, set in a chapter's text, sit below them all.
-SUBHEADING_LEVEL = 6
-
-# A chapter number alone on its line: "XII", "XII.", "7", "7.". Roman numerals are
-# upper case only, so a stray "i" or "v" is never one.
-NUMERAL = re.compile(r"^([IVXLCDM]{1,7}|\d{1,3})\.?$")
-
-ROMAN = [
-    (1000, "M"),
-    (900, "CM"),
-    (500, "D"),
-    (400, "CD"),
-    (100, "C"),
-    (90, "XC"),
-    (50, "L"),
-    (40, "XL"),
-    (10, "X"),
-    (9, "IX"),
-    (5, "V"),
-    (4, "IV"),
-    (1, "I"),
-]
 
 
 def numeral_value(text: str) -> int | None:
