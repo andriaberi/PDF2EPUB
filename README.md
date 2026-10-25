@@ -163,5 +163,12 @@ This writes `book.epub` next to the PDF and says what it found.
 
 ## License
 
-MIT. The embedded Noto fonts are under the SIL Open Font License
-(`src/pdf2epub/epub/fonts/OFL.txt`).
+[GNU AGPL-3.0](LICENSE) or later, with one added term (see [NOTICE](NOTICE)): anything
+that uses PDF2EPUB, including a website built on it, must show its users this credit:
+
+> Uses PDF2EPUB by Andria Beridze (https://github.com/andriaberi/PDF2EPUB)
+
+Under the AGPL, anyone who shares a program built on PDF2EPUB, or runs one as a service
+for others, must also offer its source under the same license. PyMuPDF, which PDF2EPUB
+reads PDFs with, is AGPL too. The embedded Noto fonts are under the SIL Open Font
+License (`src/pdf2epub/epub/fonts/OFL.txt`).
