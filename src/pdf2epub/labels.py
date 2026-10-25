@@ -135,9 +135,8 @@ def numeral_value(text: str) -> int | None:
 def roman_value(numeral: str) -> int:
     """A letter worth less than the next is taken off: "IX" is 9."""
     values = [ROMAN_VALUES[letter] for letter in numeral]
-    return sum(
-        -v if v < following else v for v, following in zip(values, [*values[1:], 0], strict=True)
-    )
+    following = [*values[1:], 0]
+    return sum(-v if v < n else v for v, n in zip(values, following, strict=True))
 
 
 def to_roman(value: int) -> str:
