@@ -4,9 +4,10 @@ from typing import Any
 
 import pytest
 
-from pdf2epub.book import Book, BookError, HeadingBlock, TextBlock, without_marks
+from pdf2epub.book import Book, HeadingBlock, TextBlock, without_marks
 from pdf2epub.cover import Cover
 from pdf2epub.epub import Metadata
+from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pdf import Line
 from pdf2epub.structure import Heading, Note, Section
@@ -234,3 +235,7 @@ def test_block_kinds_are_exported() -> None:
     import pdf2epub
 
     assert (pdf2epub.HeadingBlock, pdf2epub.TextBlock) == (HeadingBlock, TextBlock)
+
+
+def test_bad_book_data_is_a_conversion_error_too() -> None:
+    assert issubclass(BookError, ConvertError)

@@ -1,9 +1,9 @@
 """Convert PDF books into well-structured, reflowable EPUBs."""
 
-from pdf2epub.book import Book, BookError, HeadingBlock, TextBlock
+from pdf2epub.book import Book, HeadingBlock, TextBlock
+from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.pipeline import (
     STEPS,
-    ConvertError,
     Options,
     Result,
     convert,

@@ -6,6 +6,7 @@ from typing import Any
 
 from pdf2epub.cover import Cover
 from pdf2epub.epub import Metadata
+from pdf2epub.errors import BookError
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pdf import Line
 from pdf2epub.pdf.text import NOTE_MARK
@@ -13,10 +14,6 @@ from pdf2epub.structure import Heading, Note, Section
 
 # Goes up whenever the shape of to_dict()'s data changes, so older data is refused.
 VERSION = 1
-
-
-class BookError(Exception):
-    """The book's data can't be read: another version, or a part missing or mistyped."""
 
 
 @dataclass(kw_only=True)

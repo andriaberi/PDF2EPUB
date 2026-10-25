@@ -6,10 +6,10 @@ import pytest
 
 from pdf2epub.book import TextBlock
 from pdf2epub.cover import Cover
+from pdf2epub.errors import ConvertError
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pipeline import (
     STEPS,
-    ConvertError,
     Options,
     choose_cover,
     convert,

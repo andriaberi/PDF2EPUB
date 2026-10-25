@@ -7,6 +7,7 @@ from pathlib import Path
 from pdf2epub.book import Book
 from pdf2epub.cover import Cover, CoverError, find_cover, load_cover
 from pdf2epub.epub import Metadata, write_epub
+from pdf2epub.errors import ConvertError
 from pdf2epub.paragraphs import Paragraph, build_paragraphs
 from pdf2epub.pdf import ReadError, read_pdf
 from pdf2epub.structure import (
@@ -31,10 +32,6 @@ class Options:
     author: str | None = None
     language: str | None = None
     cover: str | None = None
-
-
-class ConvertError(Exception):
-    """The book can't be converted: a bad PDF, page range or cover, or nowhere to write."""
 
 
 @dataclass
