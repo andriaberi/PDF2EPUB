@@ -1,5 +1,4 @@
 import hashlib
-import sys
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -21,11 +20,11 @@ from pdf2epub.structure import (
 @dataclass
 class Options:
     pdf: str
+    output: str
     pages: str | None = None
     title: str | None = None
     author: str | None = None
     language: str | None = None
-    output: str | None = None
     cover: str | None = None
 
 
@@ -40,21 +39,6 @@ class Result:
     paragraphs: int
     notes: int
     cover: str  # where the cover came from: "cover from the PDF", ...
-
-    def summary(self) -> str:
-        found = f"{self.headings} headings, {self.paragraphs} paragraphs, {self.notes} notes"
-        return f"Wrote {self.output}: {found}, {self.cover}"
-
-
-def run(args: Options) -> int:
-    """Convert from the command line: the result on stdout, a failure on stderr."""
-    try:
-        result = convert(args)
-    except ConvertError as e:
-        print(f"pdf2epub: {e}", file=sys.stderr)
-        return 1
-    print(result.summary())
-    return 0
 
 
 def convert(options: Options, progress: Callable[[str], None] = lambda step: None) -> Result:
@@ -87,7 +71,7 @@ def convert(options: Options, progress: Callable[[str], None] = lambda step: Non
     # The book's own cover comes first; --cover is for books without one.
     cover, source = choose_cover(find_cover(options.pdf), fallback_cover)
 
-    output = Path(options.output) if options.output else pdf.with_suffix(".epub")
+    output = Path(options.output)
     progress("Writing the EPUB")
     try:
         write_epub(output, sections, metadata, cover, notes)

@@ -15,9 +15,6 @@ dependencies = [
     "pymupdf>=1.24",
 ]
 
-[project.scripts]
-pdf2epub = "pdf2epub.__main__:main"
-
 [dependency-groups]
 dev = [
     "pytest>=8.3",
@@ -64,7 +61,7 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src", "tests"]
+files = ["src", "tests", "scripts"]
 mypy_path = "src"
 strict = true
 warn_unreachable = true
