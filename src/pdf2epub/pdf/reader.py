@@ -5,6 +5,7 @@ import pymupdf
 
 from pdf2epub.errors import ConvertError
 
+from .fonts import has_unknown, restore_letters
 from .language import book_language
 from .models import Book, Line, Page
 from .noise import remove_noise
@@ -106,6 +107,9 @@ def is_scan(page: pymupdf.Page) -> bool:
 def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
     """PyMuPDF's lines of horizontal text, each letter with its position."""
     blocks = page.get_text("rawdict", flags=pymupdf.TEXT_MEDIABOX_CLIP)["blocks"]
+    if has_unknown(blocks):
+        flags = pymupdf.TEXT_MEDIABOX_CLIP | pymupdf.TEXT_CID_FOR_UNKNOWN_UNICODE
+        restore_letters(blocks, page.get_text("rawdict", flags=flags)["blocks"])
     lines = []
     for block in blocks:
         block_glyphs = [glyph for line in block.get("lines", []) for glyph in glyphs(line)]
