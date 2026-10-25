@@ -71,7 +71,7 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
     pages = drop_printed_contents(pdf_book.pages)
     paragraphs = build_paragraphs(pages)
     progress("Finding chapters")
-    sections = build_sections(paragraphs, pages)
+    sections = build_sections(paragraphs, pages, pdf_book.outline)
 
     pdf = Path(options.pdf)
     title, author = title_page_spelling(sections, pdf_book.title, pdf_book.author)

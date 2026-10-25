@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -25,8 +25,18 @@ class Page:
 
 
 @dataclass
+class OutlineEntry:
+    """A bookmark in the PDF's outline: a heading as the PDF's maker listed it."""
+
+    level: int  # 1 is the outermost
+    title: str
+    page: int  # 1-based
+
+
+@dataclass
 class Book:
     title: str | None
     author: str | None
     language: str | None
     pages: list[Page]
+    outline: list[OutlineEntry] = field(default_factory=list)

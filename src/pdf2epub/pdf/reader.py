@@ -7,7 +7,7 @@ from pdf2epub.errors import ConvertError
 
 from .fonts import has_unknown, restore_letters
 from .language import book_language
-from .models import Book, Line, Page
+from .models import Book, Line, OutlineEntry, Page
 from .noise import remove_noise
 from .pages import parse_pages
 from .spacing import (
@@ -62,6 +62,11 @@ def read_pdf(path: str, spec: str | None = None) -> Book:
             author=metadata_text(metadata.get("author")),
             language=book_language(declared_language(doc), pages),
             pages=pages,
+            outline=[
+                OutlineEntry(level, clean_text(title), page)
+                for level, title, page in doc.get_toc()
+                if page > 0 and clean_text(title)
+            ],
         )
 
 

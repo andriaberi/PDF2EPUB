@@ -2,7 +2,7 @@ import pytest
 
 from pdf2epub.labels import fix_label, is_section_name, label_level, numeral_value, split_label
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.pdf import Line, Page
+from pdf2epub.pdf import Line, OutlineEntry, Page
 from pdf2epub.structure import Heading, build_sections
 
 LEFT, RIGHT = 45.0, 385.0
@@ -518,3 +518,25 @@ def test_blank_line_at_a_page_foot_starts_a_chapter_too() -> None:
         "2",
         "3",
     ]
+
+
+def test_outline_gives_the_headings_with_labelled_ones_under_it() -> None:
+    paragraphs = [
+        centred("ერთი"),
+        centred("I"),
+        body("Text."),
+        centred("II", page=2),
+        body("A credit line set apart", page=2),
+        centred("თავი I - უმეცრება ძალაა", page=2, width=200),
+        body("Quoted text.", page=2),
+    ]
+    paragraphs[4].apart = True
+    outline = [OutlineEntry(1, "ერთი", 1), OutlineEntry(2, "I", 1), OutlineEntry(2, "II", 2)]
+    sections = build_sections(paragraphs, PAGES, outline)
+    assert [(s.heading.level, s.heading.text) for s in sections if s.heading] == [
+        (1, "ერთი"),
+        (2, "I"),
+        (2, "II"),
+        (3, "თავი I: უმეცრება ძალაა"),
+    ]
+    assert [p.text for p in sections[2].paragraphs] == ["A credit line set apart"]

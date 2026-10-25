@@ -12,8 +12,9 @@ It is made for Georgian books and handles English too.
 
 - Removes page numbers, running headers, footnotes and website credits
 - Rebuilds paragraphs, including ones broken across pages
-- Finds volumes, parts and chapters, and builds the table of contents from them; a
-  book with no headings gets numbered chapters wherever it leaves a blank line
+- Finds volumes, parts and chapters, and builds the table of contents from them. It
+  follows the PDF's own outline when that matches the text; a book with no headings
+  gets numbered chapters wherever it leaves a blank line
 - Links notes to their marks in the text, numbered or starred
 - Keeps the line breaks of verse, and sets epigraphs apart under their chapter
 - Uses the PDF's cover, or an image you give it
