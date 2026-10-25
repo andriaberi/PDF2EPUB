@@ -4,8 +4,7 @@ import unicodedata
 # Ligatures such as "ﬁ" and "ﬂ", which NFC keeps.
 LIGATURES = re.compile(r"[\ufb00-\ufb06]")
 
-# Invisible characters that only get in the way.
-# Also a symbol font's private letters, an ornament or bullet with no meaning as text.
+# Invisible characters, and a symbol font's private ornaments, that only get in the way.
 INVISIBLE = re.compile(r"[\u200b-\u200d\u2060\ufeff\u00ad\x00-\x08\x0b-\x1f\x7f\ue000-\uf8ff]")
 
 DASHES = "\\-\u2010\u2011\u2012\u2013\u2014\u2015\u2212"

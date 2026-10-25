@@ -76,7 +76,7 @@ SECTION_NAMES = {
 }
 
 
-# Named sections left out of the EPUB: no one reads them.
+# Named sections the EPUB leaves out unless asked.
 PREFACE_NAMES = {"წინათქმა", "წინასიტყვაობა", "წინასიტყვა", "foreword", "preface"}
 
 

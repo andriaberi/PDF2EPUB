@@ -20,7 +20,7 @@ class Heading:
 
 @dataclass
 class Note:
-    id: str  # "note-12", the same nowhere else in the book
+    id: str  # "note-12", "footnote-3": the same nowhere else in the book
     mark: str  # "12", as printed in the text: "ფრეილინა[12]"
     text: str
 

@@ -46,7 +46,7 @@ class TextBlock(Block):
     verse: bool = False
     epigraph: bool = False  # a quotation set under a heading
     attribution: bool = False  # the line naming whose the epigraph is
-    notes: dict[str, str] = field(default_factory=dict)  # each mark's note id: "12" -> "note-12"
+    notes: dict[str, str] = field(default_factory=dict)  # each mark's note id: {"12": "note-12"}
 
 
 @dataclass

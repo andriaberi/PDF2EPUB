@@ -22,7 +22,7 @@ class Footnote:
 
 @dataclass
 class Page:
-    number: int  # 1-based, as printed by --pages
+    number: int  # 1-based
     width: float
     height: float
     lines: list[Line]
