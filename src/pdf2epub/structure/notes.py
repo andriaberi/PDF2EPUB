@@ -7,7 +7,7 @@ from pdf2epub.pdf.text import NOTE_MARK
 from .models import Note, Section
 
 # Words the notes at the end of a book (or of a volume) are headed with.
-TITLES = {"შენიშვნები", "notes", "endnotes"}
+TITLES = {"შენიშვნები", "სქოლიო", "notes", "endnotes", "footnotes"}
 
 # A note starts with its mark, at a paragraph's start or after the last note, maybe
 # with a stray superscript: "[24]1 საამო ღამეს".
