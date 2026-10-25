@@ -1,8 +1,8 @@
 from .builder import build_sections
-from .contents import drop_printed_contents
+from .contents import drop_printed_contents, printed_contents
 from .front import drop_front_matter, title_page_spelling
 from .models import Heading, Note, Section
-from .notes import extract_notes
+from .notes import extract_notes, link_footnotes
 
 __all__ = [
     "Heading",
@@ -12,5 +12,7 @@ __all__ = [
     "drop_front_matter",
     "drop_printed_contents",
     "extract_notes",
+    "link_footnotes",
+    "printed_contents",
     "title_page_spelling",
 ]

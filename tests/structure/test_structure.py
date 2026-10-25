@@ -2,7 +2,7 @@ import pytest
 
 from pdf2epub.labels import fix_label, is_section_name, label_level, numeral_value, split_label
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.pdf import Line, Page
+from pdf2epub.pdf import Line, OutlineEntry, Page
 from pdf2epub.structure import Heading, build_sections
 
 LEFT, RIGHT = 45.0, 385.0
@@ -43,6 +43,11 @@ def test_label_and_title() -> None:
 
 def test_label_without_title() -> None:
     assert headings([centred("Chapter 4"), body("Text.")]) == [Heading(1, "Chapter 4")]
+
+
+def test_heading_knows_its_page() -> None:
+    sections = build_sections([body("Text.", 1), centred("Chapter 4", 2), body("Text.", 2)], PAGES)
+    assert [s.heading.page for s in sections if s.heading] == [2]
 
 
 def test_title_wrapped_over_two_lines() -> None:
@@ -468,3 +473,80 @@ def test_a_part_printed_below_its_first_chapter_comes_first() -> None:
         "თუნდაც გალიაში ათასი სული ჩავსვათ,",
         "ტექსტი.",
     ]
+
+
+def broken_up(texts: list[str], breaks: set[int]) -> list[Paragraph]:
+    paragraphs = [body(text, page=n // 10 + 1) for n, text in enumerate(texts)]
+    for index in breaks:
+        paragraphs[index].apart = True
+    return paragraphs
+
+
+def test_book_without_headings_has_chapters_at_its_blank_lines() -> None:
+    texts = ["Author Name", "The Title", *(f"Sentence {n} of the story." for n in range(30))]
+    sections = build_sections(broken_up(texts, {12, 22}), PAGES)
+    assert [(s.heading, [p.text for p in s.paragraphs][:1]) for s in sections] == [
+        (None, ["Author Name"]),
+        (Heading(1, "1"), ["Sentence 0 of the story."]),
+        (Heading(1, "2"), ["Sentence 10 of the story."]),
+        (Heading(1, "3"), ["Sentence 20 of the story."]),
+    ]
+    assert [s.heading.page for s in sections if s.heading] == [1, 2, 3]
+
+
+def test_first_chapter_without_a_title_page_is_numbered_too() -> None:
+    texts = [f"Sentence {n} of the story." for n in range(30)]
+    sections = build_sections(broken_up(texts, {10, 20}), PAGES)
+    assert [s.heading.label if s.heading else None for s in sections] == ["1", "2", "3"]
+
+
+def test_a_single_blank_line_makes_no_chapters() -> None:
+    texts = [f"Sentence {n} of the story." for n in range(30)]
+    assert headings(broken_up(texts, {10})) == [None]
+
+
+def test_blank_lines_in_a_book_with_headings_make_no_chapters() -> None:
+    paragraphs = [centred("Chapter 4"), *broken_up([f"Text {n}." for n in range(30)], {10, 20})]
+    assert headings(paragraphs) == [Heading(1, "Chapter 4")]
+
+
+def test_blank_line_at_a_page_foot_starts_a_chapter_too() -> None:
+    paragraphs = broken_up([f"Sentence {n} of the story." for n in range(30)], {10})
+    paragraphs[20].after_page_gap = True
+    assert [s.heading.label if s.heading else None for s in build_sections(paragraphs, PAGES)] == [
+        "1",
+        "2",
+        "3",
+    ]
+
+
+def test_outline_gives_the_headings_with_labelled_ones_under_it() -> None:
+    paragraphs = [
+        centred("ერთი"),
+        centred("I"),
+        body("Text."),
+        centred("II", page=2),
+        body("A credit line set apart", page=2),
+        centred("თავი I - უმეცრება ძალაა", page=2, width=200),
+        body("Quoted text.", page=2),
+    ]
+    paragraphs[4].apart = True
+    outline = [OutlineEntry(1, "ერთი", 1), OutlineEntry(2, "I", 1), OutlineEntry(2, "II", 2)]
+    sections = build_sections(paragraphs, PAGES, outline)
+    assert [(s.heading.level, s.heading.text) for s in sections if s.heading] == [
+        (1, "ერთი"),
+        (2, "I"),
+        (2, "II"),
+        (3, "თავი I: უმეცრება ძალაა"),
+    ]
+    assert [p.text for p in sections[2].paragraphs] == ["A credit line set apart"]
+
+
+def test_outline_leaving_a_section_out_still_gets_it_from_the_text() -> None:
+    tall = Paragraph("V", 2, [Line("V", 45, 40, 60, 62)])
+    paragraphs = [centred("I"), body("Text."), centred("II", page=2), body("Text.", 2), tall]
+    outline = [OutlineEntry(1, "ერთი", 1), OutlineEntry(1, "I", 1), OutlineEntry(1, "II", 2)]
+    paragraphs.insert(0, centred("ერთი"))
+    sections = build_sections([*paragraphs, body("More.", 2)], PAGES, outline)
+    assert [s.heading.label for s in sections if s.heading] == ["ერთი", "I", "II", "V"]
+    assert [s.heading.level for s in sections if s.heading] == [1, 2, 2, 2]

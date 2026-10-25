@@ -1,0 +1,27 @@
+PDF2EPUB
+Copyright (C) 2026 Andria Beridze
+
+This program is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License, in the file LICENSE,
+for more details.
+
+Additional term, under section 7(b) of the License
+--------------------------------------------------
+
+Any work that contains or is based on this program, in whole or in part, and any
+service that lets users interact with such a work over a network, must preserve
+this attribution and display it where the work's users can see it, such as in its
+Appropriate Legal Notices, an "About" page or a footer:
+
+    Uses PDF2EPUB by Andria Beridze (https://github.com/andriaberi/PDF2EPUB)
+
+Embedded fonts
+--------------
+
+The Noto fonts in src/pdf2epub/epub/fonts are under the SIL Open Font License,
+version 1.1 (src/pdf2epub/epub/fonts/OFL.txt).

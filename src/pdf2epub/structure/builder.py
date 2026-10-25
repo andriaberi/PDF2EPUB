@@ -1,3 +1,5 @@
+from collections import Counter
+
 from pdf2epub.labels import (
     NUMBER_LEVEL,
     SUBHEADING_LEVEL,
@@ -7,18 +9,19 @@ from pdf2epub.labels import (
     numeral_value,
 )
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.paragraphs.builder import join_lines
+from pdf2epub.paragraphs.builder import paragraph_of
 from pdf2epub.paragraphs.layout import (
-    DASHES,
+    SPEECH_DASHES,
     TITLE_LINES,
     TITLE_SPACE,
     Layout,
+    ends_sentence,
     is_short,
     is_tall,
     stands_apart,
     text_column,
 )
-from pdf2epub.pdf import Line, Page
+from pdf2epub.pdf import Line, OutlineEntry, Page
 
 from .epigraphs import take_epigraph
 from .headings import (
@@ -31,6 +34,7 @@ from .headings import (
 )
 from .models import Heading, Section
 from .notes import TITLES as NOTES_TITLES
+from .outline import Match, entry_headings, outline_headings
 
 # Lone numbers count as chapter numbers only when the book has at least this many.
 MIN_NUMBERED = 3
@@ -47,37 +51,67 @@ SUBHEADING_ENDS = (".", ",", ":", ";", "-", "–", "—")
 # Lines whose heights differ less than this are in the same font size.
 SAME_SIZE = 1.15
 
+# A book with no headings is split into chapters at blank lines only when it has at
+# least this many, so a stray space in the text can't make one.
+MIN_BREAKS = 2
+
+# Lines at the start of such a book that are this short and end no sentence are its
+# title page, not its first chapter.
+TITLE_PAGE_LINES = 3
+TITLE_PAGE_WORDS = 8
+
 # Named sections ("წინათქმა", "Epilogue") take the outermost level the book uses,
 # known only once all headings are found.
 SECTION_LEVEL = 0
 
 
-def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Section]:
-    """Split the paragraphs at chapter (and part, book) headings."""
+def build_sections(
+    paragraphs: list[Paragraph], pages: list[Page], outline: list[OutlineEntry] | None = None
+) -> list[Section]:
+    """Split the paragraphs at chapter (and part, book) headings: those the PDF's outline
+    lists when it fits the text, with any labelled ones under them; else those found."""
     column = text_column(pages)
-    numbered = numbered_chapters(paragraphs)
+    outlined = outline_headings(paragraphs, outline or [])
+    flat = len({entry.level for entry in outline or []}) == 1
+    numbered = numbered_chapters(paragraphs) if outlined is None else set()
+    from_outline: set[int] = set()
     sections = [Section(heading=None)]
 
     index = 0
     while index < len(paragraphs):
         paragraph = paragraphs[index]
         index += 1
+        if outlined is not None:
+            if (match := outlined.get(index - 1)) is not None:
+                index = add_outlined(sections, paragraphs, index, match, flat, column, from_outline)
+                continue
+            if is_tall_number(paragraph, column):
+                sections.append(Section(number_heading(paragraph)))
+                continue
+            # Besides the outline's headings only labelled ones count; the rest is text.
+            if not (is_label(paragraph, column) or run_in_label(paragraph, column)):
+                sections[-1].paragraphs.append(paragraph)
+                continue
         if is_label(paragraph, column):
-            heading = Heading(label_level(paragraph.text) or 0, fix_label(paragraph.text))
+            heading = Heading(
+                label_level(paragraph.text) or 0, fix_label(paragraph.text), page=paragraph.page
+            )
         elif id(paragraph) in numbered:
-            heading = Heading(NUMBER_LEVEL, paragraph.text.rstrip("."))
+            heading = number_heading(paragraph)
         elif is_named_section(paragraph, column):
-            heading = Heading(SECTION_LEVEL, paragraph.text)
+            heading = Heading(SECTION_LEVEL, paragraph.text, page=paragraph.page)
         elif run_in := run_in_label(paragraph, column):
             label, run_in_title = run_in
-            heading = Heading(label_level(label) or 0, label, run_in_title or None)
+            heading = Heading(
+                label_level(label) or 0, label, run_in_title or None, page=paragraph.page
+            )
             if run_in_title:
                 sections.append(Section(heading))
                 continue
         elif is_subheading(
             paragraph, paragraphs[index] if index < len(paragraphs) else None, column
         ):
-            sections.append(Section(Heading(SUBHEADING_LEVEL, paragraph.text)))
+            sections.append(Section(Heading(SUBHEADING_LEVEL, paragraph.text, page=paragraph.page)))
             continue
         else:
             sections[-1].paragraphs.append(paragraph)
@@ -117,10 +151,106 @@ def build_sections(paragraphs: list[Paragraph], pages: list[Page]) -> list[Secti
 
     if not sections[0].paragraphs:
         sections.pop(0)
+    if outlined is not None:
+        below_outline(sections, from_outline)
+    sections = chapters_at_breaks(sections)
     place_named_sections(sections)
     renumber_levels(sections)
     match_label_order(sections)
     return sections
+
+
+def add_outlined(
+    sections: list[Section],
+    paragraphs: list[Paragraph],
+    index: int,
+    match: Match,
+    flat: bool,
+    column: Layout,
+    from_outline: set[int],
+) -> int:
+    """Start the sections the outline entry names, at the paragraph before `index`, and
+    return the index after its title and epigraph."""
+    paragraph = paragraphs[index - 1]
+    page = paragraph.page
+    if match.span:
+        printed = " ".join(p.text for p in paragraphs[index - 1 : index - 1 + match.span])
+        index += match.span - 1
+    else:
+        if before := paragraph.lines[: match.line]:
+            sections[-1].paragraphs.append(paragraph_of(before, page))
+        printed = paragraph.lines[match.line].text
+        # A title further down a paragraph is on the page the outline gives.
+        if match.line:
+            page = match.entry.page
+    for heading in entry_headings(printed, match.entry, flat):
+        heading.page = page
+        from_outline.add(id(heading))
+        sections.append(Section(heading))
+    if match.span:
+        epigraph, index = take_epigraph(paragraphs, index, paragraph.page, column)
+        sections[-1].paragraphs.extend(epigraph)
+    elif rest := paragraph.lines[match.line + 1 :]:
+        sections[-1].paragraphs.append(paragraph_of(rest, page))
+    return index
+
+
+def number_heading(paragraph: Paragraph) -> Heading:
+    return Heading(NUMBER_LEVEL, paragraph.text.rstrip("."), page=paragraph.page)
+
+
+def below_outline(sections: list[Section], from_outline: set[int]) -> None:
+    """Fit the headings the outline leaves out in among its own: a numbered section
+    beside the outline's numbered ones, a labelled heading under its deepest level,
+    as the chapters of a book quoted within a chapter."""
+    listed = [s.heading for s in sections if s.heading and id(s.heading) in from_outline]
+    deepest = max(heading.level for heading in listed)
+    numbers = Counter(h.level for h in listed if numeral_value(h.label) is not None)
+    for section in sections:
+        heading = section.heading
+        if heading and id(heading) not in from_outline:
+            numbered = numbers and numeral_value(heading.label) is not None
+            heading.level = numbers.most_common(1)[0][0] if numbered else deepest + 1
+
+
+def is_tall_number(paragraph: Paragraph, column: Layout) -> bool:
+    """A lone number in a bigger font than the text: "II", "7"."""
+    return (
+        len(paragraph.lines) == 1
+        and numeral_value(paragraph.text.rstrip(".")) is not None
+        and is_tall(paragraph.lines[0], column)
+    )
+
+
+def chapters_at_breaks(sections: list[Section]) -> list[Section]:
+    """A book with no headings, its chapters marked only by a blank line, as chapters
+    numbered 1, 2, 3; a title page at the start stays before the first."""
+    if len(sections) != 1 or sections[0].heading:
+        return sections
+    paragraphs = sections[0].paragraphs
+    breaks = [
+        index
+        for index, paragraph in enumerate(paragraphs)
+        if index and (paragraph.apart or paragraph.after_page_gap)
+    ]
+    if len(breaks) < MIN_BREAKS:
+        return sections
+
+    title_page = 0
+    while title_page < min(TITLE_PAGE_LINES, len(paragraphs) - 1) and is_title_line(
+        paragraphs[title_page].text
+    ):
+        title_page += 1
+    starts = [title_page, *(index for index in breaks if index > title_page)]
+    chapters = [Section(None, paragraphs[:title_page])] if title_page else []
+    for number, (start, end) in enumerate(zip(starts, [*starts[1:], None], strict=True), start=1):
+        heading = Heading(1, str(number), page=paragraphs[start].page)
+        chapters.append(Section(heading, paragraphs[start:end]))
+    return chapters
+
+
+def is_title_line(text: str) -> bool:
+    return len(text.split()) <= TITLE_PAGE_WORDS and not ends_sentence(text)
 
 
 def numbered_chapters(paragraphs: list[Paragraph]) -> set[int]:
@@ -149,7 +279,7 @@ def split_title(paragraph: Paragraph, column: Layout) -> tuple[str, Paragraph] |
     first, *rest = paragraph.lines
     if not rest or not is_short(first, column) or first.text.endswith((".", ",", ";", ":")):
         return None
-    return first.text, Paragraph(join_lines(rest), paragraph.page, rest)
+    return first.text, paragraph_of(rest, paragraph.page)
 
 
 def is_subheading(paragraph: Paragraph, following: Paragraph | None, column: Layout) -> bool:
@@ -164,7 +294,7 @@ def is_subheading(paragraph: Paragraph, following: Paragraph | None, column: Lay
         and not paragraph.verse
         and not paragraph.scene_break
         and not text.endswith(SUBHEADING_ENDS)
-        and not text.startswith((*DASHES, "(", "["))
+        and not text.startswith((*SPEECH_DASHES, "(", "["))
         and following is not None
         and (
             following.page == paragraph.page + 1
@@ -187,7 +317,7 @@ def is_long_title(paragraph: Paragraph, following: Paragraph | None, column: Lay
     return (
         len(paragraph.lines) <= TITLE_LINES
         and not text.endswith(TEXT_ENDS)
-        and not text.startswith((*DASHES, "„", "«", '"'))
+        and not text.startswith((*SPEECH_DASHES, "„", "«", '"'))
         and not paragraph.verse
         and not is_label(paragraph, column)
         and not is_named_section(paragraph, column)
@@ -220,7 +350,7 @@ def is_title_part(
         and not paragraph.scene_break
         and not text.endswith(":")
         and not (text.endswith(".") and not text.endswith(".."))
-        and not text.startswith(DASHES)
+        and not text.startswith(SPEECH_DASHES)
         and (not tall or all(is_tall(line, column) for line in paragraph.lines))
         and is_title(paragraph, column)
         and not is_label(paragraph, column)

@@ -2,12 +2,13 @@ import re
 
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.paragraphs.builder import join
+from pdf2epub.pdf import Footnote
 from pdf2epub.pdf.text import NOTE_MARK
 
 from .models import Note, Section
 
 # Words the notes at the end of a book (or of a volume) are headed with.
-TITLES = {"შენიშვნები", "notes", "endnotes"}
+TITLES = {"შენიშვნები", "სქოლიო", "notes", "endnotes", "footnotes"}
 
 # A note starts with its mark, at a paragraph's start or after the last note, maybe
 # with a stray superscript: "[24]1 საამო ღამეს".
@@ -71,6 +72,15 @@ def extract_notes(sections: list[Section]) -> list[Note]:
                 link_marks(marked, found)
             waiting = [section]
     return notes
+
+
+def link_footnotes(sections: list[Section], footnotes: list[Footnote]) -> list[Note]:
+    """Notes of the footnotes, their marks in the text linked to them; numbered through
+    the book, each mark has one."""
+    notes = {f.mark: Note(f"footnote-{f.mark}", f.mark, f.text) for f in footnotes}
+    for section in sections:
+        link_marks(section, notes)
+    return list(notes.values())
 
 
 def find_block(paragraphs: list[Paragraph]) -> tuple[int, int, int] | None:

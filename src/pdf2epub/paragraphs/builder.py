@@ -5,13 +5,14 @@ from pdf2epub.pdf import Line, Page
 from pdf2epub.pdf.text import NOTE_MARK, script_of
 
 from .layout import (
-    DASHES,
     OPENINGS,
+    SPEECH_DASHES,
     TITLE_LINES,
     Layout,
     ends_page_early,
     ends_paragraph,
     ends_sentence,
+    ends_with_blank_line,
     fit,
     has_gap_before,
     is_indented,
@@ -21,10 +22,34 @@ from .layout import (
     is_tall,
     measure,
     stands_apart,
+    text_bottom,
     text_column,
 )
 from .models import Paragraph, is_scene_break
 from .verse import find_verse
+
+# Punctuation that closes what came before: "!", ". დიახ", ", -". Not "…" or ",,"
+# (typed for „), and "“" only before a space or punctuation: it opens English quotes.
+CLOSES = re.compile(r"^(?:[.!?;:)»](?!\.)|,(?!,)|“(?=[\s.,;:!?)]))")
+
+OPENING_QUOTES = ("„", "«")
+
+# A numbered section's opening: "29. როდესაც კროჲსოსმა ...".
+SECTION_NUMBER = re.compile(r"^(\d{1,3})\. ")
+
+# Punctuation inside a line of text, not a heading: "მან ჟურნალ", "ოსტატი, იტალიური".
+CLAUSE_BREAK = re.compile(r"[.,;:]\s")
+
+# A heading set in the text is a few words, well short of the line.
+SET_TITLE_WORDS = 6
+SET_TITLE_WIDTH = 0.6
+
+# A heading run into the text ends well short of the margin, at most this share of
+# the column; a paragraph's first line stops only a word or two short.
+MAX_HEADING_WIDTH = 0.8
+
+# A line ending in these is a clause or a sentence, not a heading set in the text.
+TITLE_ENDS = (".", ",", ":", ";", "!", "?", "…", "-", "–", "—", "“", "»", '"', ")")
 
 
 def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
@@ -34,6 +59,7 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
     if not any(page.lines for page in pages):
         return paragraphs
     column = text_column(pages)
+    bottom = text_bottom(pages)
     # The paragraph started far below the text above it: it may be a heading.
     apart = False
     # The number of the last numbered section started: "28. ...".
@@ -76,6 +102,11 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
                     and ends_sentence(above.text)
                 )
                 paragraphs[-1].apart = apart
+                paragraphs[-1].after_page_gap = (
+                    above is None
+                    and previous is not None
+                    and ends_with_blank_line(*previous, bottom)
+                )
                 if opening := SECTION_NUMBER.match(line.text):
                     section = int(opening.group(1))
             else:
@@ -100,7 +131,7 @@ def starts_paragraph(
     # on, whatever the layout: "სიტყვა „აღსდგა“ - „" / "Redivivus".
     if previous is not None and (
         breaks_word(previous[0].text)
-        or previous[0].text in DASHES
+        or previous[0].text in SPEECH_DASHES
         or previous[0].text.endswith(OPENING_QUOTES)
     ):
         return False
@@ -149,30 +180,6 @@ def starts_paragraph(
         return False
     # A short line ending a sentence closes its paragraph, across a page break too.
     return previous is not None and ends_paragraph(*previous)
-
-
-# Punctuation that closes what came before: "!", ". დიახ", ", -". Not "…" or ",,"
-# (typed for „), and "“" only before a space or punctuation: it opens English quotes.
-CLOSES = re.compile(r"^(?:[.!?;:)»](?!\.)|,(?!,)|“(?=[\s.,;:!?)]))")
-
-OPENING_QUOTES = ("„", "«")
-
-# A numbered section's opening: "29. როდესაც კროჲსოსმა ...".
-SECTION_NUMBER = re.compile(r"^(\d{1,3})\. ")
-
-# Punctuation inside a line of text, not a heading: "მან ჟურნალ", "ოსტატი, იტალიური".
-CLAUSE_BREAK = re.compile(r"[.,;:]\s")
-
-# A heading set in the text is a few words, well short of the line.
-SET_TITLE_WORDS = 6
-SET_TITLE_WIDTH = 0.6
-
-# A heading run into the text ends well short of the margin, at most this share of
-# the column; a paragraph's first line stops only a word or two short.
-MAX_HEADING_WIDTH = 0.8
-
-# A line ending in these is a clause or a sentence, not a heading set in the text.
-TITLE_ENDS = (".", ",", ":", ";", "!", "?", "…", "-", "–", "—", "“", "»", '"', ")")
 
 
 def starts_next_section(
@@ -282,3 +289,8 @@ def join_lines(lines: list[Line]) -> str:
     for line in lines[1:]:
         text = join(text, line.text)
     return text
+
+
+def paragraph_of(lines: list[Line], page: int, epigraph: bool = False) -> Paragraph:
+    """The lines as one paragraph, starting on `page`."""
+    return Paragraph(join_lines(lines), page, lines, epigraph=epigraph)

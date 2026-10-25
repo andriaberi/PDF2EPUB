@@ -1,5 +1,5 @@
 from pdf2epub.pdf import Line, Page
-from pdf2epub.structure import drop_printed_contents
+from pdf2epub.structure import drop_printed_contents, printed_contents
 
 
 def page(number: int, texts: list[str]) -> Page:
@@ -29,3 +29,22 @@ def test_text_with_a_few_numbers_is_kept() -> None:
 def test_chapter_opening_is_kept() -> None:
     opening = page(3, ["თავი მეორე", "ბატონი მირიელი", *["ტექსტი გრძელდება"] * 25])
     assert drop_printed_contents([opening]) == [opening]
+
+
+def test_contents_are_kept_line_by_line_to_show_if_wanted() -> None:
+    contents = page(9, [f"თავი {word} ........ {number}" for number, word in enumerate("abcdef")])
+    [kept] = printed_contents([TEXT, contents])
+    assert (kept.page, kept.role, kept.verse) == (9, "contents", True)
+    assert [line.text for line in kept.lines] == [line.text for line in contents.lines]
+
+
+def test_last_entries_carried_onto_a_page_of_their_own() -> None:
+    contents = page(9, [f"თავი {word} ........ {number}" for number, word in enumerate("abcdef")])
+    carried = page(10, ["მეორე თავი........ 640", "მესამე თავი....... 645"])
+    assert drop_printed_contents([TEXT, contents, carried]) == [TEXT]
+    assert [p.page for p in printed_contents([TEXT, contents, carried])] == [9, 10]
+
+
+def test_short_page_after_the_text_is_not_contents() -> None:
+    lines = page(2, ["მეორე თავი........ 640", "მესამე თავი....... 645"])
+    assert drop_printed_contents([TEXT, lines]) == [TEXT, lines]

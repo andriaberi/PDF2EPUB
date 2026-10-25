@@ -90,3 +90,8 @@ def test_strips_edge_debris(text: str, cleaned: str) -> None:
 )
 def test_keeps_real_edges(text: str) -> None:
     assert strip_edge_debris(text) == text
+
+
+def test_symbol_font_ornament_is_left_out() -> None:
+    assert clean_text("") == ""
+    assert clean_text("დასასრული ") == "დასასრული"

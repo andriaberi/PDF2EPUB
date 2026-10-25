@@ -7,14 +7,15 @@ from .models import Cover, CoverError
 JPEG_QUALITY = 90
 
 
-def load_cover(path: str) -> Cover:
-    """Read a cover image from a file: JPEG, PNG and most other image formats."""
-    if not Path(path).is_file():
-        raise CoverError(f"no such cover image: {path}")
+def load_cover(image: str | bytes) -> Cover:
+    """Read a cover image from a file or its bytes: JPEG, PNG and most other formats."""
+    if isinstance(image, str) and not Path(image).is_file():
+        raise CoverError(f"no such cover image: {image}")
     try:
-        pixmap = pymupdf.Pixmap(path)
+        pixmap = pymupdf.Pixmap(image)
     except (pymupdf.mupdf.FzErrorBase, pymupdf.FileDataError, RuntimeError, ValueError):
-        raise CoverError(f"not an image: {path}") from None
+        name = image if isinstance(image, str) else "the given cover"
+        raise CoverError(f"not an image: {name}") from None
     return to_cover(pixmap)
 
 

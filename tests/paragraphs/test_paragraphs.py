@@ -451,3 +451,29 @@ def test_text_before_a_bracketed_translation_carries_on() -> None:
         (488, "(the first matter (Lat.).) and so it went on and on and on", RIGHT),
     )
     assert "gone. nothing but prima materia (the first matter" in texts([p])[-1]
+
+
+def book_page(number: int, rows: int = 30, last: str = "the end of a sentence.") -> Page:
+    """Indented paragraphs of three lines, `rows` lines from the top."""
+    lines = [
+        line(
+            40 + 14 * row,
+            last if row == rows - 1 else "text goes on",
+            x0=INDENT if row % 3 == 0 else LEFT,
+        )
+        for row in range(rows)
+    ]
+    return page(number, *lines)
+
+
+def test_page_ending_a_blank_line_short_marks_the_next_page() -> None:
+    pages = [book_page(1), book_page(2, rows=28), book_page(3), book_page(4)]
+    paragraphs = build_paragraphs(pages)
+    gaps = [p.page for p in paragraphs if p.after_page_gap]
+    assert gaps == [3]
+    assert not any(p.apart for p in paragraphs)
+
+
+def test_page_one_line_short_marks_nothing() -> None:
+    pages = [book_page(1), book_page(2, rows=29), book_page(3), book_page(4)]
+    assert not any(p.after_page_gap for p in build_paragraphs(pages))

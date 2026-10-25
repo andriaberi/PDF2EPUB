@@ -4,8 +4,8 @@ import unicodedata
 # Ligatures such as "ﬁ" and "ﬂ", which NFC keeps.
 LIGATURES = re.compile(r"[\ufb00-\ufb06]")
 
-# Invisible characters that only get in the way.
-INVISIBLE = re.compile(r"[\u200b-\u200d\u2060\ufeff\u00ad\x00-\x08\x0b-\x1f\x7f]")
+# Invisible characters, and a symbol font's private ornaments, that only get in the way.
+INVISIBLE = re.compile(r"[\u200b-\u200d\u2060\ufeff\u00ad\x00-\x08\x0b-\x1f\x7f\ue000-\uf8ff]")
 
 DASHES = "\\-\u2010\u2011\u2012\u2013\u2014\u2015\u2212"
 
@@ -31,6 +31,11 @@ SPACES = re.compile(r"\s+")
 
 # A note's mark in the text, glued to the word it explains: "ფრეილინა[1]".
 NOTE_MARK = re.compile(r"\[(\d+)\]")
+
+# A note mark set as raised digits, kept apart from printed "[1]" until its footnote
+# is found: "pneumonia⁅79⁆".
+RAISED_OPEN, RAISED_CLOSE = "⁅", "⁆"
+RAISED_MARK = re.compile(rf"{RAISED_OPEN}(\d+){RAISED_CLOSE}")
 
 # A heading set letter-spaced, alone on its line with a number or a dash at most:
 # "IV წ ი გ ნ ი", "C h a p t e r 3". Spaced-out words inside the text stay as printed.

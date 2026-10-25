@@ -3,8 +3,9 @@ import statistics
 from collections import Counter
 from itertools import pairwise
 
-from pdf2epub.labels import label_level
+from pdf2epub.labels import label_level, split_label
 
+from .footnotes import marked_footnotes, number_footnotes
 from .models import Line, Page
 from .text import NOTE_MARK, script_of, strip_edge_debris
 
@@ -23,11 +24,16 @@ ROMAN = re.compile(r"^[ivxlcdm]+\.?$", re.IGNORECASE)
 # top of a page is a chapter number ("XI").
 CHAPTER_NUMBER = re.compile(r"^[IVXLCDM]+\.?$")
 NUMBER = re.compile(r"^[\d.,:;/()\[\]–—-]+$")
+# A word of two letters or more, which no page number has.
+WORD = re.compile(r"[^\W\d_]{2,}")
+# Headers repeat with a different page number each time: compare their words alone.
+NOT_LETTERS = re.compile(r"[\d\W_]+")
 SEPARATOR = re.compile(r"^[*⁂•·~=_—–\- ]+$")
 
-# A web address or copyright sign: a website's credits, not the book's text. They
-# are short, and stack at most a few lines high.
-WEB = re.compile(r"www\.|https?://|\b\w+\.(?:ge|com|org|net|ru)\b|©", re.IGNORECASE)
+# A web address, copyright sign or the word for a website ("საიტმა", "საიტი"): a
+# website's credits, not the book's text. They are short, and stack at most a few
+# lines high.
+WEB = re.compile(r"www\.|https?://|\b\w+\.(?:ge|com|org|net|ru)\b|©|საიტ", re.IGNORECASE)
 MAX_CREDIT_WORDS = 6
 MAX_CREDIT_LINES = 4
 
@@ -36,6 +42,9 @@ MAX_CREDIT_LINES = 4
 FOOTNOTE_AREA = 0.6
 FOOTNOTE_GAP = 3
 MAX_FOOTNOTE_LINES = 6
+
+# A footnote's number set small and run into its text: "79ფილტვების ანთება".
+GLUED_MARK = re.compile(r"^\d{1,3}(?=[^\W\d_])")
 
 # A footnote's mark: OCR reads a raised "¹" as "'!", "%", "31", so any short run of
 # digits and symbols, but no dash, which opens speech.
@@ -73,6 +82,7 @@ def remove_noise(pages: list[Page]) -> list[Page]:
                 line.text = strip_edge_debris(line.text)
             page.lines = [line for line in page.lines if line.text]
 
+    number_footnotes(pages)
     return pages
 
 
@@ -89,11 +99,23 @@ def drop_web_credits(lines: list[Line]) -> list[Line]:
             above >= 0
             and index - above <= MAX_CREDIT_LINES
             and lines[above + 1].y0 - lines[above].y1 < lines[above].height
-            and abs(lines[above].x1 - line.x1) < line.height
+            and aligned(lines[above], line)
         ):
             dropped.add(above)
             above -= 1
     return [line for index, line in enumerate(lines) if index not in dropped]
+
+
+def aligned(upper: Line, lower: Line) -> bool:
+    """Set flush on the same side, or centred on each other."""
+    return any(
+        abs(a - b) < lower.height
+        for a, b in [
+            (upper.x0, lower.x0),
+            (upper.x1, lower.x1),
+            (upper.x0 + upper.x1, lower.x0 + lower.x1),
+        ]
+    )
 
 
 def drop_junk(lines: list[Line]) -> list[Line]:
@@ -145,11 +167,16 @@ def is_furniture(line: Line, page: Page, repeated: set[str], running: set[str]) 
     # A chapter number repeats too, once in each part, but it is the book's text.
     if not in_margin or CHAPTER_NUMBER.match(line.text.replace(" ", "")):
         return False
-    # So does a label: every book of a novel has its "თავი მესამე". A label is a
-    # header only when it runs on from page to page.
-    if label_level(line.text) is not None and line.text.casefold() not in running:
+    # So does a label: every book of a novel has its "თავი მესამე", every part its
+    # "თავი მეორე - I". A label is a header only when it runs on from page to page.
+    if is_labelled(line.text) and line.text.casefold() not in running:
         return False
     return is_page_number(line.text) or furniture_key(line.text) in repeated
+
+
+def is_labelled(text: str) -> bool:
+    """A label, or a line opening with one: "თავი მეორე", "თავი მეორე - I"."""
+    return label_level(text) is not None or split_label(text) is not None
 
 
 def is_page_number(text: str) -> bool:
@@ -159,12 +186,11 @@ def is_page_number(text: str) -> bool:
         return False
     if ROMAN.match(compact):
         return True
-    return not re.search(r"[^\W\d_]{2,}", text)
+    return not WORD.search(text)
 
 
 def furniture_key(text: str) -> str:
-    """Headers repeat with a different page number each time, so ignore the digits."""
-    return re.sub(r"[\d\W_]+", " ", text).strip().lower()
+    return NOT_LETTERS.sub(" ", text).strip().lower()
 
 
 def edge_lines(page: Page) -> list[Line]:
@@ -185,9 +211,7 @@ def repeated_edge_lines(pages: list[Page]) -> set[str]:
 def running_labels(pages: list[Page]) -> set[str]:
     """Labels at the edges of two pages in a row: a running header like "თავი მესამე"."""
     edges = {
-        page.number: {
-            line.text.casefold() for line in edge_lines(page) if label_level(line.text) is not None
-        }
+        page.number: {line.text.casefold() for line in edge_lines(page) if is_labelled(line.text)}
         for page in pages
     }
     return {
@@ -196,13 +220,24 @@ def running_labels(pages: list[Page]) -> set[str]:
 
 
 def strip_edges(page: Page, repeated: set[str], running: set[str]) -> list[Line]:
-    """Peel furniture off the top and bottom of the page and return what was removed."""
-    removed = []
+    """Peel furniture off the top and bottom of the page and return what was removed.
+    A header comes off once: the same words again below it are the heading it names,
+    "მეორე ნაწილი" on the part's first page."""
+    removed: list[Line] = []
+    taken: set[str] = set()
+
+    def peel(index: int) -> None:
+        line = page.lines[index]
+        key = furniture_key(line.text)
+        if (not key or key not in taken) and is_furniture(line, page, repeated, running):
+            removed.append(page.lines.pop(index))
+            taken.add(key)
+
     for _ in range(MAX_EDGE_LINES):
-        if page.lines and is_furniture(page.lines[0], page, repeated, running):
-            removed.append(page.lines.pop(0))
-        if page.lines and is_furniture(page.lines[-1], page, repeated, running):
-            removed.append(page.lines.pop())
+        if page.lines:
+            peel(0)
+        if page.lines:
+            peel(-1)
     return removed
 
 
@@ -229,14 +264,17 @@ def strip_glued_page_number(page: Page, printed: int) -> None:
 
 
 def drop_footnotes(page: Page) -> None:
-    """Remove the footnotes at the page's foot, once page numbers are gone: from the
-    highest wide gap whose next line opens with a mark."""
+    """Take the footnotes off the page's foot, once page numbers are gone: from the
+    highest wide gap whose next line opens with a mark. Those whose marks are raised in
+    the text are kept as the page's footnotes."""
     lines = page.lines
     if len(lines) < 3:
         return
 
     gaps = [below.y0 - above.y1 for above, below in pairwise(lines)]
-    usual_gap = max(statistics.median(gaps), 0)
+    # The gap between lines of a paragraph: on a page of short dialogue most gaps are
+    # the wider ones between paragraphs, so the smaller ones tell.
+    usual_gap = max(statistics.quantiles(gaps, n=4)[0], 0)
     line_height = statistics.median(line.height for line in lines)
     wide_gap = max(FOOTNOTE_GAP * usual_gap, line_height / 2)
 
@@ -253,6 +291,7 @@ def drop_footnotes(page: Page) -> None:
 
     if start is not None and not runs_on(lines[-1], lines):
         page.lines = lines[:start]
+        page.footnotes = marked_footnotes(lines[start:], page.lines)
 
 
 def runs_on(last: Line, lines: list[Line]) -> bool:
@@ -263,5 +302,7 @@ def runs_on(last: Line, lines: list[Line]) -> bool:
 
 
 def starts_with_mark(text: str) -> bool:
+    if GLUED_MARK.match(text):
+        return True
     first, _, rest = text.partition(" ")
     return bool(rest) and FOOTNOTE_MARK.match(first) is not None

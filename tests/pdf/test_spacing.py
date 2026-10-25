@@ -68,3 +68,10 @@ def test_a_rare_font_is_spaced_by_the_gap_between_letters() -> None:
     glyphs = [Glyph(c, 6.0 * i, SIZE, "Bold", 6.0 * i + 5.5) for i, c in enumerate("ab")]
     glyphs += [Glyph(c, 6.0 * i + 15.0, SIZE, "Bold", 6.0 * i + 20.5) for i, c in enumerate("ba")]
     assert spaced_text(glyphs, learn_advances(LINES)) == "ab ba"
+
+
+def test_raised_mark_keeps_to_its_word() -> None:
+    advances = learn_advances(LINES)
+    line = set_line("ab", "79 ", "ba")
+    line[2:4] = [glyph._replace(raised=True, x=glyph.x - SPACE) for glyph in line[2:4]]
+    assert spaced_text(line, advances) == "ab⁅79⁆ ba"

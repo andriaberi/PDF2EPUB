@@ -19,17 +19,14 @@ def entries(sections: list[Section], files: list[str]) -> list[Entry]:
     ]
 
 
-def contents_title(language: str) -> str:
-    return CONTENTS.get(language.split("-")[0], CONTENTS["en"])
-
-
-def notes_title(language: str) -> str:
-    return NOTES.get(language.split("-")[0], NOTES["en"])
+def in_language(titles: dict[str, str], language: str) -> str:
+    """The title in the book's language, or in English."""
+    return titles.get(language.split("-")[0], titles["en"])
 
 
 def nav_document(toc: list[Entry], language: str) -> str:
     """The table of contents, nested by heading level. It is also a page of the book."""
-    title = contents_title(language)
+    title = in_language(CONTENTS, language)
     lines = ['<nav epub:type="toc" id="toc">', f"<h1>{escape(title)}</h1>"]
     depth = 0
     for index, (level, heading, file) in enumerate(toc):
