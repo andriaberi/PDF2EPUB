@@ -24,6 +24,10 @@ ROMAN = re.compile(r"^[ivxlcdm]+\.?$", re.IGNORECASE)
 # top of a page is a chapter number ("XI").
 CHAPTER_NUMBER = re.compile(r"^[IVXLCDM]+\.?$")
 NUMBER = re.compile(r"^[\d.,:;/()\[\]–—-]+$")
+# A word of two letters or more, which no page number has.
+WORD = re.compile(r"[^\W\d_]{2,}")
+# Headers repeat with a different page number each time: compare their words alone.
+NOT_LETTERS = re.compile(r"[\d\W_]+")
 SEPARATOR = re.compile(r"^[*⁂•·~=_—–\- ]+$")
 
 # A web address, copyright sign or the word for a website ("საიტმა", "საიტი"): a
@@ -182,12 +186,11 @@ def is_page_number(text: str) -> bool:
         return False
     if ROMAN.match(compact):
         return True
-    return not re.search(r"[^\W\d_]{2,}", text)
+    return not WORD.search(text)
 
 
 def furniture_key(text: str) -> str:
-    """Headers repeat with a different page number each time, so ignore the digits."""
-    return re.sub(r"[\d\W_]+", " ", text).strip().lower()
+    return NOT_LETTERS.sub(" ", text).strip().lower()
 
 
 def edge_lines(page: Page) -> list[Line]:

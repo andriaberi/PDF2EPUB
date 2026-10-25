@@ -56,6 +56,7 @@ ROMAN = [
     (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"),
     (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
 ]  # fmt: skip
+ROMAN_VALUES = {letter: value for value, letter in ROMAN if len(letter) == 1}
 
 
 def label_level(text: str) -> int | None:
@@ -132,12 +133,11 @@ def numeral_value(text: str) -> int | None:
 
 
 def roman_value(numeral: str) -> int:
-    values = [next(value for value, letter in ROMAN if letter == c) for c in numeral]
-    total = 0
-    for index, value in enumerate(values):
-        following = values[index + 1] if index + 1 < len(values) else 0
-        total += -value if value < following else value
-    return total
+    """A letter worth less than the next is taken off: "IX" is 9."""
+    values = [ROMAN_VALUES[letter] for letter in numeral]
+    return sum(
+        -v if v < following else v for v, following in zip(values, [*values[1:], 0], strict=True)
+    )
 
 
 def to_roman(value: int) -> str:
