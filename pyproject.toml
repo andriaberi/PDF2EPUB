@@ -1,10 +1,11 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdf2epub"
-version = "0"
+# From the latest release's git tag, "v2026.1025.1": see the release job in CI.
+dynamic = ["version"]
 description = "A fast, clean Python tool for converting PDF books into well-structured, reflowable EPUBs"
 readme = "README.md"
 license = "MIT"
@@ -24,6 +25,10 @@ dev = [
 ]
 
 # Build
+
+[tool.setuptools_scm]
+# A copy without its git history, such as a source download, still builds.
+fallback_version = "0"
 
 [tool.setuptools.packages.find]
 where = ["src"]
