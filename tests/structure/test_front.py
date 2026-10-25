@@ -172,3 +172,11 @@ def test_last_line_of_the_text_stays() -> None:
     chapter = Section(Heading(1, "თავი X"), [*text, one_line("[3] შენიშვნა 1943 წლისა.")])
     drop_front_matter([chapter], "ცხოველების ფერმა", None)
     assert len(chapter.paragraphs) == 6
+
+
+def test_closing_words_and_the_translator_are_colophon() -> None:
+    text = [one_line(f"სიტყვა {n}.") for n in range(5)]
+    colophon = [one_line("დასასრული"), one_line("მთარგმნელი: დალი ფანჯიკიძიე")]
+    chapter = Section(Heading(1, "თავი"), [*text, *colophon])
+    drop_front_matter([chapter], "ბუდენბროკები", None)
+    assert chapter.paragraphs == text

@@ -41,6 +41,9 @@ MAX_NAME_WORDS = 8
 MAX_BACK_MATTER = 6
 SET_RIGHT = 4
 YEAR = re.compile(r"\b(1[5-9]|20)\d\d\b")
+# ...or naming who made the book, or closing it: "მთარგმნელი: ...", "დასასრული".
+CREDIT = re.compile(r"თარგმ|რედაქტ|გამომცემ|translat|edited|publish", re.IGNORECASE)
+THE_END = {"დასასრული", "the end", "end", "fin"}
 
 # Text before the first heading that is more than this share of the book is the book
 # itself, its first chapters missed, not a title page or a translator's note.
@@ -69,7 +72,8 @@ def drop_front_matter(sections: list[Section], title: str, author: str | None) -
 
 def drop_back_matter(sections: list[Section]) -> list[Section]:
     """Leave out who translated or published the book, and when, printed after its last
-    line: "ინგლისურიდან თარგმნა - მზია კეკელიძემ", "ნოემბერი 1943 - თებერვალი 1944."."""
+    line: "ინგლისურიდან თარგმნა - მზია კეკელიძემ", "ნოემბერი 1943 - თებერვალი 1944.",
+    and "დასასრული"."""
     if not sections:
         return sections
     paragraphs = sections[-1].paragraphs
@@ -91,7 +95,13 @@ def is_colophon_line(paragraph: Paragraph, left: float) -> bool:
     if len(paragraph.lines) != 1 or paragraph.text.startswith("["):
         return False
     line = paragraph.lines[0]
-    return line.x0 - left > SET_RIGHT * line.height or YEAR.search(paragraph.text) is not None
+    text = paragraph.text
+    return (
+        line.x0 - left > SET_RIGHT * line.height
+        or YEAR.search(text) is not None
+        or CREDIT.search(text) is not None
+        or text.rstrip(".!").casefold() in THE_END
+    )
 
 
 def parts(sections: list[Section]) -> list[Heading | Paragraph]:
