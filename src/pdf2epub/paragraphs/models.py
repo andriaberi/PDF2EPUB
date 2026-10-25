@@ -23,7 +23,8 @@ class Paragraph:
     attribution: bool = False
     # Where it belongs: "body" is the book itself; the rest the EPUB leaves out unless
     # asked: "contents" (a printed table of contents), "preface", "front" (text before
-    # the first heading), "title-page" (the book's own) and "reprint" (of the title page).
+    # the first heading), "title-page" (the book's own), "reprint" (of the title page)
+    # and "back" (who translated or published it, printed after its last line).
     role: str = "body"
 
     @property

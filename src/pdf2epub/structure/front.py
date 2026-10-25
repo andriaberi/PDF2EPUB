@@ -1,4 +1,5 @@
 import re
+import statistics
 from difflib import SequenceMatcher
 
 from pdf2epub.labels import LABELS, is_preface
@@ -35,6 +36,12 @@ SAME_NAME = 0.75
 # Title page lines are short; longer ones are sentences.
 MAX_NAME_WORDS = 8
 
+# The colophon after the book's last line: at most this many lines, each set far right
+# of the text (this many line heights) or naming a year.
+MAX_BACK_MATTER = 6
+SET_RIGHT = 4
+YEAR = re.compile(r"\b(1[5-9]|20)\d\d\b")
+
 # Text before the first heading that is more than this share of the book is the book
 # itself, its first chapters missed, not a title page or a translator's note.
 MAX_FRONT_MATTER = 0.1
@@ -48,6 +55,7 @@ def drop_front_matter(sections: list[Section], title: str, author: str | None) -
         ("reprint", drop_title_page_reprints),
         ("title-page", lambda kept: drop_repeated_title(kept, title, author)),
         ("front", drop_text_before_first_heading),
+        ("back", drop_back_matter),
     ]
     for role, drop in steps:
         before = parts(sections)
@@ -57,6 +65,33 @@ def drop_front_matter(sections: list[Section], title: str, author: str | None) -
             if id(part) not in kept:
                 part.role = role
     return sections
+
+
+def drop_back_matter(sections: list[Section]) -> list[Section]:
+    """Leave out who translated or published the book, and when, printed after its last
+    line: "ინგლისურიდან თარგმნა - მზია კეკელიძემ", "ნოემბერი 1943 - თებერვალი 1944."."""
+    if not sections:
+        return sections
+    paragraphs = sections[-1].paragraphs
+    lines = [line for paragraph in paragraphs for line in paragraph.lines]
+    if not lines:
+        return sections
+    left = statistics.median(line.x0 for line in lines)
+    count = 0
+    while count < min(MAX_BACK_MATTER, len(paragraphs) - 1) and is_colophon_line(
+        paragraphs[-1 - count], left
+    ):
+        count += 1
+    if count:
+        sections[-1].paragraphs = paragraphs[:-count]
+    return sections
+
+
+def is_colophon_line(paragraph: Paragraph, left: float) -> bool:
+    if len(paragraph.lines) != 1 or paragraph.text.startswith("["):
+        return False
+    line = paragraph.lines[0]
+    return line.x0 - left > SET_RIGHT * line.height or YEAR.search(paragraph.text) is not None
 
 
 def parts(sections: list[Section]) -> list[Heading | Paragraph]:

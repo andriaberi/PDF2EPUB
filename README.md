@@ -86,6 +86,7 @@ is found and kept, to be included if wanted:
 | `front` | Other text before the first heading: credits, a translator's note |
 | `title-page` | The book's own title page, or its title and author repeated |
 | `reprint` | The title page printed again before a later volume |
+| `back` | Who translated or published the book, and when, after its last line |
 
 Set `book.include_notes = False` to write the book without its notes; removing a note
 from `book.notes` leaves out that note alone. Either way the marks that pointed to it

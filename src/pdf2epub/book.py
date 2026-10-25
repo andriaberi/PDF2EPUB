@@ -12,7 +12,7 @@ from pdf2epub.pdf import Line
 from pdf2epub.pdf.text import NOTE_MARK
 from pdf2epub.structure import Heading, Note, Section
 
-ROLES = ("body", "contents", "preface", "front", "title-page", "reprint")
+ROLES = ("body", "contents", "preface", "front", "title-page", "reprint", "back")
 
 # Heading levels run from the outermost division to a subheading set in the text.
 MAX_LEVEL = 6

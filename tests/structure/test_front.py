@@ -1,4 +1,5 @@
 from pdf2epub.paragraphs import Paragraph
+from pdf2epub.pdf import Line
 from pdf2epub.structure import Heading, Section
 from pdf2epub.structure.front import (
     drop_front_matter,
@@ -147,3 +148,27 @@ def test_what_is_left_out_is_marked_with_its_role() -> None:
         ("Why I wrote it.", "preface"),
         ("Les Misérables", "reprint"),
     ]
+
+
+def one_line(text: str, x0: float = 85, page: int = 65) -> Paragraph:
+    return Paragraph(text, page, [Line(text, x0, 100, 500, 112)])
+
+
+def test_colophon_after_the_last_line_is_left_out() -> None:
+    text = [one_line(f"სიტყვა {n}.") for n in range(5)]
+    colophon = [
+        one_line("ნოემბერი 1943 - თებერვალი 1944."),
+        one_line("გამომცემლობა „გულანი“", x0=384),
+        one_line("ინგლისურიდან თარგმნა - მზია კეკელიძემ", x0=318),
+    ]
+    chapter = Section(Heading(1, "თავი X"), [*text, *colophon])
+    drop_front_matter([chapter], "ცხოველების ფერმა", None)
+    assert chapter.paragraphs == text
+    assert [p.role for p in colophon] == ["back"] * 3
+
+
+def test_last_line_of_the_text_stays() -> None:
+    text = [one_line(f"სიტყვა {n}.") for n in range(5)]
+    chapter = Section(Heading(1, "თავი X"), [*text, one_line("[3] შენიშვნა 1943 წლისა.")])
+    drop_front_matter([chapter], "ცხოველების ფერმა", None)
+    assert len(chapter.paragraphs) == 6
