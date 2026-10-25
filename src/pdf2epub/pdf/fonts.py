@@ -5,8 +5,9 @@ UNKNOWN = "�"
 
 # Fonts whose glyphs follow the alphabet, so a letter the PDF lost can be worked out
 # from its glyph number: font name, its first letter's glyph, that letter, how many.
-# Windows' Georgian font, as Word exports it without a Unicode map: ა to ჰ.
-GLYPH_ORDERS = [("sylfaen", 0x2A8, "ა", 33)]
+# Windows' Georgian font, as Word exports it without a Unicode map: ა to ჰ; and the
+# opening quote Noto Sans Georgian loses: „.
+GLYPH_ORDERS = [("sylfaen", 0x2A8, "ა", 33), ("noto sans georgian", 0x468, "„", 1)]
 
 
 def has_unknown(blocks: list[dict[str, Any]]) -> bool:

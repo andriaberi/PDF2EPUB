@@ -40,3 +40,8 @@ def test_letters_matched_by_where_they_sit() -> None:
     numbered[0]["lines"][0]["spans"][0]["chars"].reverse()  # read in another order
     restore_letters(blocks, numbered)
     assert text(blocks) == "აბ"
+
+
+def test_noto_sans_georgian_opening_quote() -> None:
+    assert lost_letter("Noto Sans Georgian", 0x468) == "„"
+    assert lost_letter("Noto Sans Georgian", 0x469) is None
