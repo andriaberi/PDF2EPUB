@@ -1,1 +1,37 @@
 """Convert PDF books into well-structured, reflowable EPUBs."""
+
+from importlib.metadata import PackageNotFoundError, version
+
+from pdf2epub.book import Book, HeadingBlock, TextBlock
+from pdf2epub.errors import BookError, ConvertError
+from pdf2epub.pdf import render_page
+from pdf2epub.pipeline import (
+    STEPS,
+    Options,
+    Result,
+    convert,
+    read_book,
+    write_book,
+)
+
+try:
+    __version__ = version(
+        "pdf2epub"
+    )  # "2026.1025.1": the year, month and day, the release that day
+except PackageNotFoundError:  # run from the source folder without installing
+    __version__ = "0"
+
+__all__ = [
+    "STEPS",
+    "Book",
+    "BookError",
+    "ConvertError",
+    "HeadingBlock",
+    "Options",
+    "Result",
+    "TextBlock",
+    "convert",
+    "read_book",
+    "render_page",
+    "write_book",
+]

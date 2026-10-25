@@ -1,10 +1,12 @@
 import re
+import statistics
 from difflib import SequenceMatcher
 
 from pdf2epub.labels import LABELS, is_preface
+from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pdf.text import script_of
 
-from .models import Section
+from .models import Heading, Section
 
 # Front matter this short is a title page, not a preface.
 TITLE_PAGE = 3
@@ -34,17 +36,48 @@ SAME_NAME = 0.75
 # Title page lines are short; longer ones are sentences.
 MAX_NAME_WORDS = 8
 
+# The colophon after the book's last line: at most this many lines, each set far right
+# of the text (this many line heights) or naming a year.
+MAX_BACK_MATTER = 6
+SET_RIGHT = 4
+YEAR = re.compile(r"\b(1[5-9]|20)\d\d\b")
+# ...or naming who made the book, or closing it: "მთარგმნელი: ...", "დასასრული".
+CREDIT = re.compile(r"თარგმ|რედაქტ|გამომცემ|translat|edited|publish", re.IGNORECASE)
+THE_END = {"დასასრული", "the end", "end", "fin"}
+
 # Text before the first heading that is more than this share of the book is the book
 # itself, its first chapters missed, not a title page or a translator's note.
 MAX_FRONT_MATTER = 0.1
 
 
 def drop_front_matter(sections: list[Section], title: str, author: str | None) -> list[Section]:
-    """Leave out the book's own title pages; the EPUB opens with a title page of its own."""
-    sections = drop_prefaces(sections)
-    sections = drop_title_page_reprints(sections)
-    sections = drop_repeated_title(sections, title, author)
-    return drop_text_before_first_heading(sections)
+    """Leave out the book's own title pages; the EPUB opens with a title page of its own.
+    What each step leaves out is marked with its role, so it can be shown if wanted."""
+    steps = [
+        ("preface", drop_prefaces),
+        ("reprint", drop_title_page_reprints),
+        ("title-page", lambda kept: drop_repeated_title(kept, title, author)),
+        ("front", drop_text_before_first_heading),
+        ("back", drop_back_matter),
+    ]
+    for role, drop in steps:
+        before = parts(sections)
+        sections = drop(sections)
+        kept = {id(part) for part in parts(sections)}
+        for part in before:
+            if id(part) not in kept:
+                part.role = role
+    return sections
+
+
+def parts(sections: list[Section]) -> list[Heading | Paragraph]:
+    """The sections' headings and paragraphs in reading order."""
+    found: list[Heading | Paragraph] = []
+    for section in sections:
+        if section.heading:
+            found.append(section.heading)
+        found.extend(section.paragraphs)
+    return found
 
 
 def drop_prefaces(sections: list[Section]) -> list[Section]:
@@ -76,7 +109,8 @@ def drop_title_page_reprints(sections: list[Section]) -> list[Section]:
 
 
 def reprint_key(text: str) -> str:
-    return without_volume(text).casefold()
+    # One printing may trail off in dot leaders the other leaves out: "თარგმანი. . .. . .".
+    return without_volume(text).rstrip(" .…").casefold()
 
 
 def drop_repeated_title(sections: list[Section], title: str, author: str | None) -> list[Section]:
@@ -98,6 +132,40 @@ def drop_text_before_first_heading(sections: list[Section]) -> list[Section]:
     front = len(sections[0].paragraphs)
     total = sum(len(section.paragraphs) for section in sections)
     return sections[1:] if front <= MAX_FRONT_MATTER * total else sections
+
+
+def drop_back_matter(sections: list[Section]) -> list[Section]:
+    """Leave out who translated or published the book, and when, printed after its last
+    line: "ინგლისურიდან თარგმნა - მზია კეკელიძემ", "ნოემბერი 1943 - თებერვალი 1944.",
+    and "დასასრული"."""
+    if not sections:
+        return sections
+    paragraphs = sections[-1].paragraphs
+    lines = [line for paragraph in paragraphs for line in paragraph.lines]
+    if not lines:
+        return sections
+    left = statistics.median(line.x0 for line in lines)
+    count = 0
+    while count < min(MAX_BACK_MATTER, len(paragraphs) - 1) and is_colophon_line(
+        paragraphs[-1 - count], left
+    ):
+        count += 1
+    if count:
+        sections[-1].paragraphs = paragraphs[:-count]
+    return sections
+
+
+def is_colophon_line(paragraph: Paragraph, left: float) -> bool:
+    if len(paragraph.lines) != 1 or paragraph.text.startswith("["):
+        return False
+    line = paragraph.lines[0]
+    text = paragraph.text
+    return (
+        line.x0 - left > SET_RIGHT * line.height
+        or YEAR.search(text) is not None
+        or CREDIT.search(text) is not None
+        or text.rstrip(".!").casefold() in THE_END
+    )
 
 
 def is_title_page(section: Section) -> bool:

@@ -4,7 +4,7 @@ from itertools import pairwise
 from pdf2epub.labels import label_level, numeral_value
 from pdf2epub.pdf import Line
 
-from .layout import DASHES, GAP, Layout, has_gap_before, is_indented, is_tall
+from .layout import GAP, SPEECH_DASHES, Layout, has_gap_before, is_indented, is_tall
 
 # Verse, a list, a column of names: this many short lines in a row at least...
 MIN_LINES = 4
@@ -135,7 +135,7 @@ def is_introduction(line: Line, layout: Layout) -> bool:
 
 
 def is_dialogue(line: Line) -> bool:
-    return line.text.startswith(DASHES)
+    return line.text.startswith(SPEECH_DASHES)
 
 
 def ends_sentence(text: str) -> bool:

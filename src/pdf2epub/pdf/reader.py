@@ -3,8 +3,11 @@ from typing import Any
 
 import pymupdf
 
+from pdf2epub.errors import ConvertError
+
+from .fonts import has_unknown, restore_letters
 from .language import book_language
-from .models import Book, Line, Page
+from .models import Book, Line, OutlineEntry, Page
 from .noise import remove_noise
 from .pages import parse_pages
 from .spacing import (
@@ -18,7 +21,7 @@ from .spacing import (
 from .text import clean_text
 
 
-class ReadError(Exception):
+class ReadError(ConvertError):
     """The PDF can't be opened or has no text to extract."""
 
 
@@ -34,20 +37,27 @@ SAME_SIZE = 1.2
 SCAN_AREA = 0.5
 
 
-def read_pdf(path: str, spec: str | None = None) -> Book:
-    """Read the text lines of the selected pages, with page furniture and OCR noise removed."""
+def open_pdf(path: str) -> pymupdf.Document:
+    """The PDF, ready to read, or a ReadError saying why it isn't."""
     if not Path(path).is_file():
         raise ReadError(f"no such file: {path}")
     try:
         doc = pymupdf.open(path)
     except (pymupdf.FileDataError, RuntimeError) as e:
         raise ReadError(f"not a readable PDF: {path} ({e})") from None
+    if doc.needs_pass:
+        doc.close()
+        raise ReadError(f"the PDF is password-protected: {path}")
+    return doc
 
-    with doc:
-        if doc.needs_pass:
-            raise ReadError(f"the PDF is password-protected: {path}")
 
-        selected = [doc[index] for index in parse_pages(spec, doc.page_count)]
+def read_pdf(path: str, spec: str | None = None) -> Book:
+    """Read the text lines of the selected pages, with page furniture and OCR noise removed."""
+    with open_pdf(path) as doc:
+        try:
+            selected = [doc[index] for index in parse_pages(spec, doc.page_count)]
+        except ValueError as e:
+            raise ReadError(str(e)) from None
         pages = read_pages(selected)
         if not any(page.lines for page in pages):
             raise ReadError(f"no text found in {path}; is it a scan without OCR? Try ocrmypdf.")
@@ -59,6 +69,11 @@ def read_pdf(path: str, spec: str | None = None) -> Book:
             author=metadata_text(metadata.get("author")),
             language=book_language(declared_language(doc), pages),
             pages=pages,
+            outline=[
+                OutlineEntry(level, clean_text(title), page)
+                for level, title, page in doc.get_toc()
+                if page > 0 and clean_text(title)
+            ],
         )
 
 
@@ -104,6 +119,9 @@ def is_scan(page: pymupdf.Page) -> bool:
 def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
     """PyMuPDF's lines of horizontal text, each letter with its position."""
     blocks = page.get_text("rawdict", flags=pymupdf.TEXT_MEDIABOX_CLIP)["blocks"]
+    if has_unknown(blocks):
+        flags = pymupdf.TEXT_MEDIABOX_CLIP | pymupdf.TEXT_CID_FOR_UNKNOWN_UNICODE
+        restore_letters(blocks, page.get_text("rawdict", flags=flags)["blocks"])
     lines = []
     for block in blocks:
         block_glyphs = [glyph for line in block.get("lines", []) for glyph in glyphs(line)]
@@ -115,11 +133,27 @@ def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
 
 
 def glyphs(line: dict[str, Any]) -> list[Glyph]:
-    return [
-        Glyph(char["c"], char["origin"][0], span["size"], span["font"], char["bbox"][2])
-        for span in line["spans"]
-        for char in span["chars"]
-    ]
+    found = []
+    for span in line["spans"]:
+        raised = is_raised_mark(span)
+        found += [
+            Glyph(
+                char["c"],
+                char["origin"][0],
+                span["size"],
+                span["font"],
+                char["bbox"][2],
+                raised=raised and char["c"].isdigit(),
+            )
+            for char in span["chars"]
+        ]
+    return found
+
+
+def is_raised_mark(span: dict[str, Any]) -> bool:
+    """A note mark set as superscript: digits alone, raised above the line."""
+    text = "".join(char["c"] for char in span["chars"]).strip()
+    return bool(span["flags"] & pymupdf.TEXT_FONT_SUPERSCRIPT) and text.isdigit()
 
 
 def merge_rows(pieces: list[Line]) -> list[Line]:

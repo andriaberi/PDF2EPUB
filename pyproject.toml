@@ -1,31 +1,20 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdf2epub"
-version = "0"
+# From the latest release's git tag, "v2026.1025.1": see the release job in CI.
+dynamic = ["version"]
 description = "A fast, clean Python tool for converting PDF books into well-structured, reflowable EPUBs"
 readme = "README.md"
-license = "MIT"
-license-files = ["LICENSE"]
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Andria Beridze" }]
 requires-python = ">=3.12"
 dependencies = [
     "pymupdf>=1.24",
-    "pywebview>=5.3",  # the window: a web page in the platform's own web view
 ]
-
-[project.optional-dependencies]
-# Linux without GTK's Python bindings: Qt's web view instead (large, but installs anywhere).
-qt = ["pywebview[qt]>=5.3"]
-
-[project.scripts]
-pdf2epub = "pdf2epub.__main__:main"
-
-# A GUI script opens no console window on Windows.
-[project.gui-scripts]
-pdf2epub-gui = "pdf2epub.gui:main"
 
 [dependency-groups]
 dev = [
@@ -37,12 +26,15 @@ dev = [
 
 # Build
 
+[tool.setuptools_scm]
+# A copy without its git history, such as a source download, still builds.
+fallback_version = "0"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
 "pdf2epub.epub" = ["fonts/*.ttf", "fonts/OFL.txt"]
-"pdf2epub.gui" = ["web/*"]
 
 # Ruff
 
@@ -74,7 +66,7 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src", "tests"]
+files = ["src", "tests", "scripts"]
 mypy_path = "src"
 strict = true
 warn_unreachable = true

@@ -3,12 +3,14 @@ from datetime import UTC, datetime
 from html import escape
 from importlib.resources import files as package_files
 from pathlib import Path
+from typing import IO
 
 from pdf2epub.cover import Cover
+from pdf2epub.paragraphs import Paragraph
 from pdf2epub.structure import Heading, Note, Section
 
 from .models import Metadata
-from .navigation import entries, nav_document, ncx_document, notes_title
+from .navigation import NOTES, entries, in_language, nav_document, ncx_document
 from .pages import cover_page, notes_page, section_page, title_page
 from .style import STYLESHEET
 
@@ -34,9 +36,13 @@ FONTS = [
 
 NOTES_FILE = "notes.xhtml"
 
+# A section with more text than this, in bytes, goes on over several files: readers
+# open a long chapterless book slowly, or not at all, as one file.
+MAX_PAGE_TEXT = 400_000
+
 
 def write_epub(
-    path: Path,
+    path: Path | IO[bytes],
     sections: list[Section],
     metadata: Metadata,
     cover: Cover | None = None,
@@ -46,9 +52,11 @@ def write_epub(
 
     Notes, if the book has them, get a page of their own at the end.
     """
+    sections = [part for section in sections for part in split_long(section)]
     files = [f"text/section-{number:04}.xhtml" for number in range(1, len(sections) + 1)]
-    toc = entries(sections, files)
-    notes_heading = notes_title(metadata.language)
+    # A book with no headings at all is listed by its title, as one entry.
+    toc = entries(sections, files) or [(1, Heading(1, metadata.title), files[0])]
+    notes_heading = in_language(NOTES, metadata.language)
     if notes:
         toc.append((1, Heading(1, notes_heading), NOTES_FILE))
 
@@ -76,6 +84,34 @@ def write_epub(
                 notes, note_sources(sections, files), notes_heading, metadata.language
             )
             epub.writestr(f"EPUB/{NOTES_FILE}", page)
+
+
+def split_long(section: Section) -> list[Section]:
+    """The section as it is, or over several pages if long, the heading on the first.
+    Each page keeps the notes its own marks refer to."""
+    parts: list[list[Paragraph]] = [[]]
+    size = 0
+    for paragraph in section.paragraphs:
+        length = len(paragraph.text.encode())
+        if parts[-1] and size + length > MAX_PAGE_TEXT:
+            parts.append([])
+            size = 0
+        parts[-1].append(paragraph)
+        size += length
+    if len(parts) == 1:
+        return [section]
+    return [
+        Section(
+            section.heading if index == 0 else None,
+            part,
+            {
+                mark: note
+                for mark, note in section.notes.items()
+                if any(f"[{mark}]" in paragraph.text for paragraph in part)
+            },
+        )
+        for index, part in enumerate(parts)
+    ]
 
 
 def note_sources(sections: list[Section], files: list[str]) -> dict[str, str]:
