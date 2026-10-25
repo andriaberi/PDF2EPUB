@@ -3,6 +3,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import IO
 
 from pdf2epub.book import Book
 from pdf2epub.cover import Cover, CoverError, find_cover, load_cover
@@ -40,7 +41,7 @@ class Options:
 
 @dataclass
 class Result:
-    output: Path
+    output: Path | None  # None when written to a file object
     headings: int
     paragraphs: int
     notes: int
@@ -92,22 +93,24 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
     return Book.from_sections(metadata, sections, notes, cover, source)
 
 
-def write_book(book: Book, output: str | Path) -> Result:
-    """Write the book as an EPUB at `output`, unless it has problems() to fix first."""
+def write_book(book: Book, output: str | Path | IO[bytes]) -> Result:
+    """Write the book as an EPUB at `output`, a path or a binary file object such as
+    io.BytesIO, unless it has problems() to fix first."""
     if problems := book.problems():
         more = f"; and {len(problems) - MAX_PROBLEMS} more" if len(problems) > MAX_PROBLEMS else ""
         raise BookError("; ".join(problems[:MAX_PROBLEMS]) + more)
-    output = Path(output)
+    target = Path(output) if isinstance(output, str | Path) else output
     sections = book.sections()
     try:
-        write_epub(output, sections, book.metadata, book.cover, book.written_notes())
+        write_epub(target, sections, book.metadata, book.cover, book.written_notes())
     except OSError as e:
         raise ConvertError(f"can't write {output}: {e.strerror}") from None
 
     headings = sum(1 for section in sections if section.heading)
     paragraphs = sum(len(section.paragraphs) for section in sections)
     notes = len(book.written_notes())
-    return Result(output, headings, paragraphs, notes, book.cover_source)
+    path = target if isinstance(target, Path) else None
+    return Result(path, headings, paragraphs, notes, book.cover_source)
 
 
 def with_left_out(

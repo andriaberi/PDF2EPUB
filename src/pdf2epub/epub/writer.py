@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from html import escape
 from importlib.resources import files as package_files
 from pathlib import Path
+from typing import IO
 
 from pdf2epub.cover import Cover
 from pdf2epub.structure import Heading, Note, Section
@@ -36,7 +37,7 @@ NOTES_FILE = "notes.xhtml"
 
 
 def write_epub(
-    path: Path,
+    path: Path | IO[bytes],
     sections: list[Section],
     metadata: Metadata,
     cover: Cover | None = None,

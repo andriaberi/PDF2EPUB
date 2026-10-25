@@ -1,3 +1,4 @@
+import io
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
@@ -168,6 +169,15 @@ def test_error_names_the_first_problems_only(make_pdf: Callable[..., str], tmp_p
     book.blocks *= 8
     with pytest.raises(BookError, match=r"; and 2 more$"):
         write_book(book, tmp_path / "out.epub")
+
+
+def test_writes_to_a_file_object(make_pdf: Callable[..., str], tmp_path: Path) -> None:
+    book = read_book(Options(pdf=make_pdf([["Hello world."]])))
+    buffer = io.BytesIO()
+    result = write_book(book, buffer)
+    assert result.output is None
+    epub = zipfile.ZipFile(buffer)
+    assert "Hello world." in epub.read("EPUB/text/section-0001.xhtml").decode()
 
 
 def test_unwritable_output_is_reported(make_pdf: Callable[..., str], tmp_path: Path) -> None:
