@@ -19,45 +19,38 @@ It is made for Georgian books and handles English too.
 
 ## Installation
 
-PDF2EPUB installs straight from GitHub with [uv](https://docs.astral.sh/uv/), which also
-fetches Python 3.12 or newer if needed. No copy of the project is kept:
+PDF2EPUB is a Python library. Add it to a project straight from GitHub:
 
 ```sh
-uv tool install "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git"
+uv add "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git"
 ```
-
-This puts the `pdf2epub` command on your PATH.
-
-### Updating
-
-To get the latest version from GitHub:
-
-```sh
-uv tool install --reinstall "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git"
-```
-
-To remove it: `uv tool uninstall pdf2epub`.
 
 ## Usage
 
-```sh
-pdf2epub book.pdf
+```python
+from pdf2epub import ConvertError, Options, convert
+
+try:
+    result = convert(Options(pdf="book.pdf", output="book.epub"), progress=print)
+except ConvertError as e:
+    print(f"Can't convert: {e}")
+else:
+    print(result.headings, result.paragraphs, result.notes, result.cover)
 ```
 
-This writes `book.epub` next to the PDF:
-
-```
-Wrote book.epub: 172 headings, 5938 paragraphs, 206 notes, no cover
-```
+`convert` calls `progress` with the name of each step as it starts; `STEPS` lists them in
+order. It raises `ConvertError` for a PDF, page range or cover it can't read, or an
+output it can't write.
 
 | Option | Description |
 |---|---|
-| `-o`, `--output PATH` | Where to write the EPUB. Default: next to the PDF. |
-| `--pages SPEC` | Convert only some pages, such as `1-3,7,10-12`. |
-| `--title TEXT` | The book's title. Default: from the PDF, else the file name. |
-| `--author TEXT` | The book's author. Default: from the PDF. |
-| `--language CODE` | The book's language, such as `ka` or `en`. Default: detected. |
-| `--cover IMAGE` | A cover image, used when the PDF has no cover of its own. |
+| `pdf` | The PDF book. |
+| `output` | Where to write the EPUB. |
+| `pages` | Convert only some pages, such as `"1-3,7,10-12"`. |
+| `title` | The book's title. Default: from the PDF, else the file name. |
+| `author` | The book's author. Default: from the PDF. |
+| `language` | The book's language, such as `"ka"` or `"en"`. Default: detected. |
+| `cover` | A cover image, used when the PDF has no cover of its own. |
 
 ## Limitations
 
@@ -66,7 +59,7 @@ Wrote book.epub: 172 headings, 5938 paragraphs, 206 notes, no cover
   unusual headings may come out as one long chapter.
 - Footnotes at the bottom of a page are removed, not linked.
 - Bold, italics and pictures inside the book are not kept.
-- Only Georgian and English are detected. For other languages use `--language`.
+- Only Georgian and English are detected. For other languages pass `language`.
 
 ## Development
 
@@ -77,8 +70,13 @@ make install
 ```
 
 This creates a virtual environment in `.venv` with PDF2EPUB installed from the folder,
-so changes take effect at once. Add `.venv/bin/pip install -e ".[qt]"` for the window
-on Linux.
+so changes take effect at once. To try a book:
+
+```sh
+.venv/bin/python scripts/try_book.py book.pdf
+```
+
+This writes `book.epub` next to the PDF and says what it found.
 
 | Command | Description |
 |---|---|
