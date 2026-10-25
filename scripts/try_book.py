@@ -4,7 +4,7 @@ import argparse
 import time
 from pathlib import Path
 
-from pdf2epub.pipeline import ConvertError, Options, convert
+from pdf2epub import ConvertError, Options, convert
 
 
 def main() -> int:

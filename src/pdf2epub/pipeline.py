@@ -16,6 +16,9 @@ from pdf2epub.structure import (
     title_page_spelling,
 )
 
+# The steps convert() tells its progress callback, in order.
+STEPS = ("Reading the PDF", "Finding paragraphs", "Finding chapters", "Writing the EPUB")
+
 
 @dataclass
 class Options:

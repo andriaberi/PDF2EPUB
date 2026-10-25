@@ -6,6 +6,7 @@ import pytest
 
 from pdf2epub.cover import Cover
 from pdf2epub.pipeline import (
+    STEPS,
     ConvertError,
     Options,
     choose_cover,
@@ -24,12 +25,7 @@ def test_convert_reports_each_step(make_pdf: Callable[..., str], tmp_path: Path)
     result = convert(
         Options(pdf=make_pdf([["Hello world."]]), output=str(tmp_path / "out.epub")), steps.append
     )
-    assert steps == [
-        "Reading the PDF",
-        "Finding paragraphs",
-        "Finding chapters",
-        "Writing the EPUB",
-    ]
+    assert tuple(steps) == STEPS
     assert result.output == tmp_path / "out.epub"
     assert (result.headings, result.paragraphs, result.notes) == (0, 1, 0)
 
