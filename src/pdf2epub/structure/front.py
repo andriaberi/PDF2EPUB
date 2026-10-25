@@ -70,40 +70,6 @@ def drop_front_matter(sections: list[Section], title: str, author: str | None) -
     return sections
 
 
-def drop_back_matter(sections: list[Section]) -> list[Section]:
-    """Leave out who translated or published the book, and when, printed after its last
-    line: "ინგლისურიდან თარგმნა - მზია კეკელიძემ", "ნოემბერი 1943 - თებერვალი 1944.",
-    and "დასასრული"."""
-    if not sections:
-        return sections
-    paragraphs = sections[-1].paragraphs
-    lines = [line for paragraph in paragraphs for line in paragraph.lines]
-    if not lines:
-        return sections
-    left = statistics.median(line.x0 for line in lines)
-    count = 0
-    while count < min(MAX_BACK_MATTER, len(paragraphs) - 1) and is_colophon_line(
-        paragraphs[-1 - count], left
-    ):
-        count += 1
-    if count:
-        sections[-1].paragraphs = paragraphs[:-count]
-    return sections
-
-
-def is_colophon_line(paragraph: Paragraph, left: float) -> bool:
-    if len(paragraph.lines) != 1 or paragraph.text.startswith("["):
-        return False
-    line = paragraph.lines[0]
-    text = paragraph.text
-    return (
-        line.x0 - left > SET_RIGHT * line.height
-        or YEAR.search(text) is not None
-        or CREDIT.search(text) is not None
-        or text.rstrip(".!").casefold() in THE_END
-    )
-
-
 def parts(sections: list[Section]) -> list[Heading | Paragraph]:
     """The sections' headings and paragraphs in reading order."""
     found: list[Heading | Paragraph] = []
@@ -166,6 +132,40 @@ def drop_text_before_first_heading(sections: list[Section]) -> list[Section]:
     front = len(sections[0].paragraphs)
     total = sum(len(section.paragraphs) for section in sections)
     return sections[1:] if front <= MAX_FRONT_MATTER * total else sections
+
+
+def drop_back_matter(sections: list[Section]) -> list[Section]:
+    """Leave out who translated or published the book, and when, printed after its last
+    line: "ინგლისურიდან თარგმნა - მზია კეკელიძემ", "ნოემბერი 1943 - თებერვალი 1944.",
+    and "დასასრული"."""
+    if not sections:
+        return sections
+    paragraphs = sections[-1].paragraphs
+    lines = [line for paragraph in paragraphs for line in paragraph.lines]
+    if not lines:
+        return sections
+    left = statistics.median(line.x0 for line in lines)
+    count = 0
+    while count < min(MAX_BACK_MATTER, len(paragraphs) - 1) and is_colophon_line(
+        paragraphs[-1 - count], left
+    ):
+        count += 1
+    if count:
+        sections[-1].paragraphs = paragraphs[:-count]
+    return sections
+
+
+def is_colophon_line(paragraph: Paragraph, left: float) -> bool:
+    if len(paragraph.lines) != 1 or paragraph.text.startswith("["):
+        return False
+    line = paragraph.lines[0]
+    text = paragraph.text
+    return (
+        line.x0 - left > SET_RIGHT * line.height
+        or YEAR.search(text) is not None
+        or CREDIT.search(text) is not None
+        or text.rstrip(".!").casefold() in THE_END
+    )
 
 
 def is_title_page(section: Section) -> bool:

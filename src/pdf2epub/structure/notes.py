@@ -74,6 +74,15 @@ def extract_notes(sections: list[Section]) -> list[Note]:
     return notes
 
 
+def link_footnotes(sections: list[Section], footnotes: list[Footnote]) -> list[Note]:
+    """Notes of the footnotes, their marks in the text linked to them; numbered through
+    the book, each mark has one."""
+    notes = {f.mark: Note(f"footnote-{f.mark}", f.mark, f.text) for f in footnotes}
+    for section in sections:
+        link_marks(section, notes)
+    return list(notes.values())
+
+
 def find_block(paragraphs: list[Paragraph]) -> tuple[int, int, int] | None:
     """Where a block of notes is, [start, end) with its title, the notes from `first`
     on, up to the last paragraph that starts one."""
@@ -110,15 +119,6 @@ def split_notes(paragraphs: list[Paragraph]) -> list[tuple[str, str]]:
         (start.group(1), text[start.end() : following.start() if following else None].strip())
         for start, following in zip(starts, [*starts[1:], None], strict=True)
     ]
-
-
-def link_footnotes(sections: list[Section], footnotes: list[Footnote]) -> list[Note]:
-    """Notes of the footnotes, their marks in the text linked to them; numbered through
-    the book, each mark has one."""
-    notes = {f.mark: Note(f"footnote-{f.mark}", f.mark, f.text) for f in footnotes}
-    for section in sections:
-        link_marks(section, notes)
-    return list(notes.values())
 
 
 def link_marks(section: Section, notes: dict[str, Note]) -> None:
