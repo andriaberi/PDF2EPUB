@@ -1,10 +1,12 @@
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.structure import Heading, Section
 from pdf2epub.structure.front import (
+    drop_front_matter,
     drop_prefaces,
     drop_repeated_title,
     drop_text_before_first_heading,
     drop_title_page_reprints,
+    parts,
     title_page_spelling,
 )
 
@@ -105,3 +107,35 @@ def test_prefaces_are_dropped_with_their_sections() -> None:
 def test_prologue_is_kept() -> None:
     prologue = Section(Heading(1, "პროლოგი"), [Paragraph("Text.", 1)])
     assert drop_prefaces([prologue]) == [prologue]
+
+
+def test_what_is_left_out_is_marked_with_its_role() -> None:
+    front = Section(
+        None,
+        [
+            Paragraph("Victor Hugo", 1),
+            Paragraph("Les Misérables", 1),
+            Paragraph("Translated by someone.", 1),
+        ],
+    )
+    preface = Section(Heading(1, "Preface"), [Paragraph("Why I wrote it.", 2)])
+    chapter = Section(
+        Heading(1, "Chapter 1"),
+        [*(Paragraph(f"Text {n}.", 3) for n in range(40)), Paragraph("Les Misérables", 9)],
+    )
+    everything = parts([front, preface, chapter])
+    assert drop_front_matter([front, preface, chapter], "Les Misérables", "Victor Hugo") == [
+        chapter
+    ]
+    assert [
+        (part.label if isinstance(part, Heading) else part.text, part.role)
+        for part in everything
+        if part.role != "body"
+    ] == [
+        ("Victor Hugo", "title-page"),
+        ("Les Misérables", "title-page"),
+        ("Translated by someone.", "front"),
+        ("Preface", "preface"),
+        ("Why I wrote it.", "preface"),
+        ("Les Misérables", "reprint"),
+    ]

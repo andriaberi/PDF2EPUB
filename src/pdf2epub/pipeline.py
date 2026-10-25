@@ -7,9 +7,10 @@ from pathlib import Path
 from pdf2epub.book import Book
 from pdf2epub.cover import Cover, CoverError, find_cover, load_cover
 from pdf2epub.epub import Metadata, write_epub
-from pdf2epub.paragraphs import build_paragraphs
+from pdf2epub.paragraphs import Paragraph, build_paragraphs
 from pdf2epub.pdf import ReadError, read_pdf
 from pdf2epub.structure import (
+    Section,
     build_sections,
     drop_front_matter,
     drop_printed_contents,
@@ -77,8 +78,10 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
         language=options.language or pdf_book.language or "und",
         identifier=book_identifier(pdf),
     )
+    everything = [(section, list(section.paragraphs)) for section in sections]
     sections = drop_front_matter(sections, metadata.title, metadata.author)
     notes = extract_notes(sections)
+    sections = with_left_out(everything, sections)
 
     # The book's own cover comes first; the given one is for books without one.
     cover, source = choose_cover(find_cover(options.pdf), fallback_cover)
@@ -98,6 +101,22 @@ def write_book(book: Book, output: str | Path) -> Result:
     paragraphs = sum(len(section.paragraphs) for section in sections)
     notes = len(book.written_notes())
     return Result(output, headings, paragraphs, notes, book.cover_source)
+
+
+def with_left_out(
+    everything: list[tuple[Section, list[Paragraph]]], kept: list[Section]
+) -> list[Section]:
+    """The sections as they were, with the paragraphs left out marked by their role;
+    paragraphs taken into the notes are gone for good."""
+    written = {id(paragraph) for section in kept for paragraph in section.paragraphs}
+    return [
+        Section(
+            section.heading,
+            [p for p in paragraphs if p.role != "body" or id(p) in written],
+            section.notes,
+        )
+        for section, paragraphs in everything
+    ]
 
 
 def choose_cover(own: Cover | None, fallback: Cover | None) -> tuple[Cover | None, str]:

@@ -2,9 +2,10 @@ import re
 from difflib import SequenceMatcher
 
 from pdf2epub.labels import LABELS, is_preface
+from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pdf.text import script_of
 
-from .models import Section
+from .models import Heading, Section
 
 # Front matter this short is a title page, not a preface.
 TITLE_PAGE = 3
@@ -40,11 +41,32 @@ MAX_FRONT_MATTER = 0.1
 
 
 def drop_front_matter(sections: list[Section], title: str, author: str | None) -> list[Section]:
-    """Leave out the book's own title pages; the EPUB opens with a title page of its own."""
-    sections = drop_prefaces(sections)
-    sections = drop_title_page_reprints(sections)
-    sections = drop_repeated_title(sections, title, author)
-    return drop_text_before_first_heading(sections)
+    """Leave out the book's own title pages; the EPUB opens with a title page of its own.
+    What each step leaves out is marked with its role, so it can be shown if wanted."""
+    steps = [
+        ("preface", drop_prefaces),
+        ("reprint", drop_title_page_reprints),
+        ("title-page", lambda kept: drop_repeated_title(kept, title, author)),
+        ("front", drop_text_before_first_heading),
+    ]
+    for role, drop in steps:
+        before = parts(sections)
+        sections = drop(sections)
+        kept = {id(part) for part in parts(sections)}
+        for part in before:
+            if id(part) not in kept:
+                part.role = role
+    return sections
+
+
+def parts(sections: list[Section]) -> list[Heading | Paragraph]:
+    """The sections' headings and paragraphs in reading order."""
+    found: list[Heading | Paragraph] = []
+    for section in sections:
+        if section.heading:
+            found.append(section.heading)
+        found.extend(section.paragraphs)
+    return found
 
 
 def drop_prefaces(sections: list[Section]) -> list[Section]:

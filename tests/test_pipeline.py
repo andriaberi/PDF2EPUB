@@ -6,6 +6,7 @@ import pytest
 
 from pdf2epub.book import TextBlock
 from pdf2epub.cover import Cover
+from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pipeline import (
     STEPS,
     ConvertError,
@@ -13,9 +14,10 @@ from pdf2epub.pipeline import (
     choose_cover,
     convert,
     read_book,
+    with_left_out,
     write_book,
 )
-from pdf2epub.structure import Note
+from pdf2epub.structure import Heading, Note, Section
 
 
 def test_writes_an_epub(make_pdf: Callable[..., str], tmp_path: Path) -> None:
@@ -83,6 +85,21 @@ def test_book_without_its_notes(make_pdf: Callable[..., str], tmp_path: Path) ->
     assert "EPUB/notes.xhtml" not in epub.namelist()
     assert "Hello world. And more" in epub.read("EPUB/text/section-0001.xhtml").decode()
     assert result.notes == 0
+
+
+def test_left_out_text_comes_back_but_not_text_made_into_notes() -> None:
+    title_page = Paragraph("The Title", 1, role="title-page")
+    text, notes = Paragraph("Text.[1]", 2), Paragraph("[1] A note.", 9)
+    front, chapter = Section(None, [title_page]), Section(Heading(1, "Chapter 1"), [text, notes])
+    everything = [(section, list(section.paragraphs)) for section in [front, chapter]]
+    chapter.paragraphs.remove(notes)  # as extract_notes() does
+    chapter.notes = {"1": Note("note-1", "1", "A note.")}
+    sections = with_left_out(everything, [chapter])
+    assert [(s.heading, s.paragraphs) for s in sections] == [
+        (None, [title_page]),
+        (Heading(1, "Chapter 1"), [text]),
+    ]
+    assert sections[1].notes == chapter.notes
 
 
 def test_unwritable_output_is_reported(make_pdf: Callable[..., str], tmp_path: Path) -> None:
