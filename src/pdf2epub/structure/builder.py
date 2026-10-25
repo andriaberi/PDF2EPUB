@@ -1,3 +1,5 @@
+from collections import Counter
+
 from pdf2epub.labels import (
     NUMBER_LEVEL,
     SUBHEADING_LEVEL,
@@ -32,7 +34,7 @@ from .headings import (
 )
 from .models import Heading, Section
 from .notes import TITLES as NOTES_TITLES
-from .outline import outline_headings
+from .outline import entry_headings, outline_headings
 
 # Lone numbers count as chapter numbers only when the book has at least this many.
 MIN_NUMBERED = 3
@@ -70,6 +72,7 @@ def build_sections(
     lists when it fits the text, with any labelled ones under them; else those found."""
     column = text_column(pages)
     outlined = outline_headings(paragraphs, outline or [])
+    flat = len({entry.level for entry in outline or []}) == 1
     numbered = numbered_chapters(paragraphs) if outlined is None else set()
     from_outline: set[int] = set()
     sections = [Section(heading=None)]
@@ -79,17 +82,44 @@ def build_sections(
         paragraph = paragraphs[index]
         index += 1
         if outlined is not None:
-            if (entry := outlined.get(index - 1)) is not None:
-                level, span = entry
-                text = " ".join(p.text for p in paragraphs[index - 1 : index - 1 + span])
-                index += span - 1
-                heading = Heading(level, text, page=paragraph.page)
-                from_outline.add(id(heading))
-                epigraph, index = take_epigraph(paragraphs, index, paragraph.page, column)
-                sections.append(Section(heading, epigraph))
+            if (match := outlined.get(index - 1)) is not None:
+                if match.span:
+                    printed = " ".join(
+                        p.text for p in paragraphs[index - 1 : index - 1 + match.span]
+                    )
+                    index += match.span - 1
+                else:
+                    before = paragraph.lines[: match.line]
+                    if before:
+                        sections[-1].paragraphs.append(
+                            Paragraph(join_lines(before), paragraph.page, before)
+                        )
+                    printed = paragraph.lines[match.line].text
+                # A title further down a paragraph is on the page the outline gives.
+                page = paragraph.page if match.span or not match.line else match.entry.page
+                headings = entry_headings(printed, match.entry, flat)
+                for heading in headings:
+                    heading.page = page
+                    from_outline.add(id(heading))
+                    sections.append(Section(heading))
+                if match.span:
+                    epigraph, index = take_epigraph(paragraphs, index, paragraph.page, column)
+                    sections[-1].paragraphs.extend(epigraph)
+                elif rest := paragraph.lines[match.line + 1 :]:
+                    sections[-1].paragraphs.append(Paragraph(join_lines(rest), page, rest))
                 continue
-            if not is_label(paragraph, column) and not run_in_label(paragraph, column):
+            # Headings the outline leaves out: labelled ones, and sections numbered in
+            # a bigger font than the text.
+            if not (
+                is_label(paragraph, column)
+                or run_in_label(paragraph, column)
+                or is_tall_number(paragraph, column)
+            ):
                 sections[-1].paragraphs.append(paragraph)
+                continue
+            if is_tall_number(paragraph, column):
+                heading = Heading(NUMBER_LEVEL, paragraph.text.rstrip("."), page=paragraph.page)
+                sections.append(Section(heading))
                 continue
         if is_label(paragraph, column):
             heading = Heading(
@@ -160,12 +190,26 @@ def build_sections(
 
 
 def below_outline(sections: list[Section], from_outline: set[int]) -> None:
-    """Set the labelled headings the outline leaves out under its deepest level: the
-    chapters of a book quoted within a chapter."""
-    deepest = max(s.heading.level for s in sections if s.heading and id(s.heading) in from_outline)
+    """Fit the headings the outline leaves out in among its own: a numbered section
+    beside the outline's numbered ones, a labelled heading under its deepest level,
+    as the chapters of a book quoted within a chapter."""
+    listed = [s.heading for s in sections if s.heading and id(s.heading) in from_outline]
+    deepest = max(heading.level for heading in listed)
+    numbers = Counter(h.level for h in listed if numeral_value(h.label) is not None)
     for section in sections:
-        if section.heading and id(section.heading) not in from_outline:
-            section.heading.level = deepest + 1
+        heading = section.heading
+        if heading and id(heading) not in from_outline:
+            numbered = numbers and numeral_value(heading.label) is not None
+            heading.level = numbers.most_common(1)[0][0] if numbered else deepest + 1
+
+
+def is_tall_number(paragraph: Paragraph, column: Layout) -> bool:
+    """A lone number in a bigger font than the text: "II", "7"."""
+    return (
+        len(paragraph.lines) == 1
+        and numeral_value(paragraph.text.rstrip(".")) is not None
+        and is_tall(paragraph.lines[0], column)
+    )
 
 
 def chapters_at_breaks(sections: list[Section]) -> list[Section]:

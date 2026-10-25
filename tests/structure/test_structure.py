@@ -540,3 +540,13 @@ def test_outline_gives_the_headings_with_labelled_ones_under_it() -> None:
         (3, "თავი I: უმეცრება ძალაა"),
     ]
     assert [p.text for p in sections[2].paragraphs] == ["A credit line set apart"]
+
+
+def test_outline_leaving_a_section_out_still_gets_it_from_the_text() -> None:
+    tall = Paragraph("V", 2, [Line("V", 45, 40, 60, 62)])
+    paragraphs = [centred("I"), body("Text."), centred("II", page=2), body("Text.", 2), tall]
+    outline = [OutlineEntry(1, "ერთი", 1), OutlineEntry(1, "I", 1), OutlineEntry(1, "II", 2)]
+    paragraphs.insert(0, centred("ერთი"))
+    sections = build_sections([*paragraphs, body("More.", 2)], PAGES, outline)
+    assert [s.heading.label for s in sections if s.heading] == ["ერთი", "I", "II", "V"]
+    assert [s.heading.level for s in sections if s.heading] == [1, 2, 2, 2]
