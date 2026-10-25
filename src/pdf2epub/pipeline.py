@@ -5,12 +5,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import IO
 
-from pdf2epub.book import Book
-from pdf2epub.cover import Cover, CoverError, find_cover, load_cover
+from pdf2epub.book import GIVEN_COVER, NO_COVER, PDF_COVER, Book
+from pdf2epub.cover import Cover, find_cover, load_cover
 from pdf2epub.epub import Metadata, write_epub
 from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.paragraphs import Paragraph, build_paragraphs
-from pdf2epub.pdf import ReadError, read_pdf
+from pdf2epub.pdf import read_pdf
 from pdf2epub.structure import (
     Section,
     build_sections,
@@ -24,7 +24,6 @@ from pdf2epub.structure import (
 
 # The steps convert() tells its progress callback, in order; read_book() tells the first three.
 STEPS = ("Reading the PDF", "Finding paragraphs", "Finding chapters", "Writing the EPUB")
-
 
 # How many of a book's problems an error names.
 MAX_PROBLEMS = 5
@@ -46,7 +45,7 @@ class Result:
     headings: int
     paragraphs: int
     notes: int
-    cover: str  # where the cover came from: "cover from the PDF", ...
+    cover: str  # where the cover came from: PDF_COVER, GIVEN_COVER or NO_COVER
 
 
 def convert(
@@ -60,13 +59,10 @@ def convert(
 
 def read_book(options: Options, progress: Callable[[str], None] = lambda step: None) -> Book:
     """Find the book in the PDF, telling `progress` each step as it starts."""
-    try:
-        # Check the cover file first, so a typo fails before the slow part.
-        fallback_cover = load_cover(options.cover) if options.cover else None
-        progress("Reading the PDF")
-        pdf_book = read_pdf(options.pdf, options.pages)
-    except (CoverError, ReadError, ValueError) as e:
-        raise ConvertError(str(e)) from None
+    # Check the cover file first, so a typo fails before the slow part.
+    fallback_cover = load_cover(options.cover) if options.cover else None
+    progress("Reading the PDF")
+    pdf_book = read_pdf(options.pdf, options.pages)
 
     progress("Finding paragraphs")
     pages = drop_printed_contents(pdf_book.pages)
@@ -103,16 +99,16 @@ def write_book(book: Book, output: str | Path | IO[bytes]) -> Result:
         raise BookError("; ".join(problems[:MAX_PROBLEMS]) + more)
     target = Path(output) if isinstance(output, str | Path) else output
     sections = book.sections()
+    notes = book.written_notes()
     try:
-        write_epub(target, sections, book.metadata, book.cover, book.written_notes())
+        write_epub(target, sections, book.metadata, book.cover, notes)
     except OSError as e:
         raise ConvertError(f"can't write {output}: {e.strerror}") from None
 
     headings = sum(1 for section in sections if section.heading)
     paragraphs = sum(len(section.paragraphs) for section in sections)
-    notes = len(book.written_notes())
     path = target if isinstance(target, Path) else None
-    return Result(path, headings, paragraphs, notes, book.cover_source)
+    return Result(path, headings, paragraphs, len(notes), book.cover_source)
 
 
 def with_left_out(
@@ -152,10 +148,10 @@ def place_by_page(sections: list[Section], paragraph: Paragraph) -> None:
 
 def choose_cover(own: Cover | None, fallback: Cover | None) -> tuple[Cover | None, str]:
     if own:
-        return own, "cover from the PDF"
+        return own, PDF_COVER
     if fallback:
-        return fallback, "cover from the given image"
-    return None, "no cover"
+        return fallback, GIVEN_COVER
+    return None, NO_COVER
 
 
 def book_identifier(pdf: Path) -> str:

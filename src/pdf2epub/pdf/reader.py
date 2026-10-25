@@ -54,7 +54,10 @@ def open_pdf(path: str) -> pymupdf.Document:
 def read_pdf(path: str, spec: str | None = None) -> Book:
     """Read the text lines of the selected pages, with page furniture and OCR noise removed."""
     with open_pdf(path) as doc:
-        selected = [doc[index] for index in parse_pages(spec, doc.page_count)]
+        try:
+            selected = [doc[index] for index in parse_pages(spec, doc.page_count)]
+        except ValueError as e:
+            raise ReadError(str(e)) from None
         pages = read_pages(selected)
         if not any(page.lines for page in pages):
             raise ReadError(f"no text found in {path}; is it a scan without OCR? Try ocrmypdf.")

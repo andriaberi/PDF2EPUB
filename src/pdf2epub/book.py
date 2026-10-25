@@ -20,6 +20,11 @@ MAX_LEVEL = 6
 # A JPEG starts with these bytes; the EPUB names its cover cover.jpg.
 JPEG_START = b"\xff\xd8"
 
+# Where the cover came from.
+PDF_COVER = "cover from the PDF"
+GIVEN_COVER = "cover from the given image"
+NO_COVER = "no cover"
+
 # Goes up whenever the shape of to_dict()'s data changes, so older data is refused.
 VERSION = 1
 
@@ -58,7 +63,7 @@ class Book:
     blocks: list[HeadingBlock | TextBlock]
     notes: list[Note]
     cover: Cover | None
-    cover_source: str  # "cover from the PDF", "cover from the given image" or "no cover"
+    cover_source: str  # PDF_COVER, GIVEN_COVER or NO_COVER
     include_notes: bool = True  # False leaves out the notes and their marks in the text
 
     @classmethod
@@ -142,7 +147,7 @@ class Book:
     def set_cover(self, image: str | bytes) -> None:
         """Use this image, a path or its bytes, as the cover; CoverError if it isn't one."""
         self.cover = load_cover(image)
-        self.cover_source = "cover from the given image"
+        self.cover_source = GIVEN_COVER
 
     def problems(self) -> list[str]:
         """What keeps the book, as edited, from being written; empty if nothing does."""

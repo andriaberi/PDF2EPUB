@@ -224,3 +224,8 @@ def test_given_cover_may_be_image_bytes(make_pdf: Callable[..., str], tmp_path: 
 def test_bad_cover_file_is_reported(make_pdf: Callable[..., str], tmp_path: Path) -> None:
     with pytest.raises(ConvertError, match="no such cover image"):
         convert(Options(pdf=make_pdf([["Hello."]]), cover="missing.png"), tmp_path / "out.epub")
+
+
+def test_bad_page_range_is_reported(make_pdf: Callable[..., str]) -> None:
+    with pytest.raises(ConvertError, match="invalid page range: '3-1'"):
+        read_book(Options(pdf=make_pdf([["Hello world."]]), pages="3-1"))
