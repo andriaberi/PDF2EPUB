@@ -52,8 +52,12 @@ book.metadata.title = "A better title"
 write_book(book, "book.epub")
 ```
 
-A `Book` holds the metadata, the sections (each a heading and its paragraphs), the
-notes and the cover. Writing leaves it unchanged, so it can be written again.
+A `Book` holds the metadata, the notes, the cover and the book's blocks in reading
+order: each a `HeadingBlock` (level, label, title) or a `TextBlock` (a paragraph, verse
+with its `lines`, or an epigraph). A heading starts a section that runs to the next one.
+Every block has an `id`, the `page` of the PDF it is printed on, and `include`: set it to
+`False` to leave the block out of the EPUB. A left-out heading's text joins the section
+before it. Writing leaves the book unchanged, so it can be written again.
 
 | Option | Description |
 |---|---|

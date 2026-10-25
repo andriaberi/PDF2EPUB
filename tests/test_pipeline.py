@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from pdf2epub.book import TextBlock
 from pdf2epub.cover import Cover
 from pdf2epub.pipeline import (
     STEPS,
@@ -41,14 +42,15 @@ def test_reading_writes_nothing(make_pdf: Callable[..., str], tmp_path: Path) ->
     steps: list[str] = []
     book = read_book(Options(pdf=make_pdf([["Hello world."]])), steps.append)
     assert tuple(steps) == STEPS[:3]
-    assert [p.text for s in book.sections for p in s.paragraphs] == ["Hello world."]
+    assert [block.text for block in book.blocks if isinstance(block, TextBlock)] == ["Hello world."]
     assert sorted(path.name for path in tmp_path.iterdir()) == ["book.pdf"]
 
 
 def test_writes_the_book_as_edited(make_pdf: Callable[..., str], tmp_path: Path) -> None:
     book = read_book(Options(pdf=make_pdf([["Hello world."]])))
     book.metadata.title = "Edited"
-    book.sections[0].paragraphs[0].text = "Edited text."
+    assert isinstance(book.blocks[0], TextBlock)
+    book.blocks[0].text = "Edited text."
     write_book(book, tmp_path / "out.epub")
     epub = zipfile.ZipFile(tmp_path / "out.epub")
     assert "<dc:title>Edited</dc:title>" in epub.read("EPUB/content.opf").decode()
@@ -57,8 +59,9 @@ def test_writes_the_book_as_edited(make_pdf: Callable[..., str], tmp_path: Path)
 
 def test_writing_leaves_the_book_as_it_was(make_pdf: Callable[..., str], tmp_path: Path) -> None:
     book = read_book(Options(pdf=make_pdf([["Hello world.[1]", "And more of the story."]])))
-    note = Note("note-1", "1", "A note.")
-    book.notes, book.sections[0].notes = [note], {"1": note}
+    assert isinstance(book.blocks[0], TextBlock)
+    book.notes = [Note("note-1", "1", "A note.")]
+    book.blocks[0].notes = {"1": "note-1"}
     write_book(book, tmp_path / "first.epub")
     write_book(book, tmp_path / "second.epub")
     first = zipfile.ZipFile(tmp_path / "first.epub")

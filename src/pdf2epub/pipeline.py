@@ -4,13 +4,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from pdf2epub.book import Book
 from pdf2epub.cover import Cover, CoverError, find_cover, load_cover
 from pdf2epub.epub import Metadata, write_epub
 from pdf2epub.paragraphs import build_paragraphs
 from pdf2epub.pdf import ReadError, read_pdf
 from pdf2epub.structure import (
-    Note,
-    Section,
     build_sections,
     drop_front_matter,
     drop_printed_contents,
@@ -34,17 +33,6 @@ class Options:
 
 class ConvertError(Exception):
     """The book can't be converted: a bad PDF, page range or cover, or nowhere to write."""
-
-
-@dataclass
-class Book:
-    """Everything found in the PDF, ready to be written as an EPUB."""
-
-    metadata: Metadata
-    sections: list[Section]
-    notes: list[Note]
-    cover: Cover | None
-    cover_source: str  # "cover from the PDF", "cover from the given image" or "no cover"
 
 
 @dataclass
@@ -94,19 +82,20 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
 
     # The book's own cover comes first; the given one is for books without one.
     cover, source = choose_cover(find_cover(options.pdf), fallback_cover)
-    return Book(metadata, sections, notes, cover, source)
+    return Book.from_sections(metadata, sections, notes, cover, source)
 
 
 def write_book(book: Book, output: str | Path) -> Result:
     """Write the book as an EPUB at `output`."""
     output = Path(output)
+    sections = book.sections()
     try:
-        write_epub(output, book.sections, book.metadata, book.cover, book.notes)
+        write_epub(output, sections, book.metadata, book.cover, book.notes)
     except OSError as e:
         raise ConvertError(f"can't write {output}: {e.strerror}") from None
 
-    headings = sum(1 for section in book.sections if section.heading)
-    paragraphs = sum(len(section.paragraphs) for section in book.sections)
+    headings = sum(1 for section in sections if section.heading)
+    paragraphs = sum(len(section.paragraphs) for section in sections)
     return Result(output, headings, paragraphs, len(book.notes), book.cover_source)
 
 
