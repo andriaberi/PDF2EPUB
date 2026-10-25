@@ -3,6 +3,8 @@ from typing import Any
 
 import pymupdf
 
+from pdf2epub.errors import ConvertError
+
 from .language import book_language
 from .models import Book, Line, Page
 from .noise import remove_noise
@@ -18,7 +20,7 @@ from .spacing import (
 from .text import clean_text
 
 
-class ReadError(Exception):
+class ReadError(ConvertError):
     """The PDF can't be opened or has no text to extract."""
 
 
