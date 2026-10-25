@@ -36,3 +36,15 @@ def test_contents_are_kept_line_by_line_to_show_if_wanted() -> None:
     [kept] = printed_contents([TEXT, contents])
     assert (kept.page, kept.role, kept.verse) == (9, "contents", True)
     assert [line.text for line in kept.lines] == [line.text for line in contents.lines]
+
+
+def test_last_entries_carried_onto_a_page_of_their_own() -> None:
+    contents = page(9, [f"თავი {word} ........ {number}" for number, word in enumerate("abcdef")])
+    carried = page(10, ["მეორე თავი........ 640", "მესამე თავი....... 645"])
+    assert drop_printed_contents([TEXT, contents, carried]) == [TEXT]
+    assert [p.page for p in printed_contents([TEXT, contents, carried])] == [9, 10]
+
+
+def test_short_page_after_the_text_is_not_contents() -> None:
+    lines = page(2, ["მეორე თავი........ 640", "მესამე თავი....... 645"])
+    assert drop_printed_contents([TEXT, lines]) == [TEXT, lines]
