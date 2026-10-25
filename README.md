@@ -23,34 +23,22 @@ PDF2EPUB installs straight from GitHub with [uv](https://docs.astral.sh/uv/), wh
 fetches Python 3.12 or newer if needed. No copy of the project is kept:
 
 ```sh
-uv tool install "pdf2epub[qt] @ git+https://github.com/andriaberi/PDF2EPUB.git"
+uv tool install "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git"
 ```
 
-This puts the `pdf2epub` and `pdf2epub-gui` commands on your PATH. The `[qt]` part brings
-the web view the window needs on Linux; leave it out on Windows and macOS.
+This puts the `pdf2epub` command on your PATH.
 
 ### Updating
 
 To get the latest version from GitHub:
 
 ```sh
-uv tool install --reinstall "pdf2epub[qt] @ git+https://github.com/andriaberi/PDF2EPUB.git"
+uv tool install --reinstall "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git"
 ```
 
 To remove it: `uv tool uninstall pdf2epub`.
 
 ## Usage
-
-### Window
-
-```sh
-pdf2epub
-```
-
-Drop a PDF onto the window or click **Browse…**, check the title and author, and click
-**Convert**.
-
-### Command line
 
 ```sh
 pdf2epub book.pdf
