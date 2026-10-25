@@ -15,6 +15,12 @@ class Line:
 
 
 @dataclass
+class Footnote:
+    mark: str  # "12", as its mark reads in the text: "pneumonia[12]"
+    text: str
+
+
+@dataclass
 class Page:
     number: int  # 1-based, as printed by --pages
     width: float
@@ -22,6 +28,8 @@ class Page:
     lines: list[Line]
     # A scan with an OCR text layer: its text may hold misreads to clean up.
     scanned: bool = False
+    # The notes at its foot whose marks in its text could be told: raised digits.
+    footnotes: list[Footnote] = field(default_factory=list)
 
 
 @dataclass

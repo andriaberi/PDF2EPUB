@@ -32,6 +32,11 @@ SPACES = re.compile(r"\s+")
 # A note's mark in the text, glued to the word it explains: "ფრეილინა[1]".
 NOTE_MARK = re.compile(r"\[(\d+)\]")
 
+# A note mark set as raised digits, kept apart from printed "[1]" until its footnote
+# is found: "pneumonia⁅79⁆".
+RAISED_OPEN, RAISED_CLOSE = "⁅", "⁆"
+RAISED_MARK = re.compile(rf"{RAISED_OPEN}(\d+){RAISED_CLOSE}")
+
 # A heading set letter-spaced, alone on its line with a number or a dash at most:
 # "IV წ ი გ ნ ი", "C h a p t e r 3". Spaced-out words inside the text stay as printed.
 LETTER_SPACED = re.compile(

@@ -2,6 +2,7 @@ import re
 
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.paragraphs.builder import join
+from pdf2epub.pdf import Footnote
 from pdf2epub.pdf.text import NOTE_MARK
 
 from .models import Note, Section
@@ -109,6 +110,15 @@ def split_notes(paragraphs: list[Paragraph]) -> list[tuple[str, str]]:
         (start.group(1), text[start.end() : following.start() if following else None].strip())
         for start, following in zip(starts, [*starts[1:], None], strict=True)
     ]
+
+
+def link_footnotes(sections: list[Section], footnotes: list[Footnote]) -> list[Note]:
+    """Notes of the footnotes, their marks in the text linked to them; numbered through
+    the book, each mark has one."""
+    notes = {f.mark: Note(f"footnote-{f.mark}", f.mark, f.text) for f in footnotes}
+    for section in sections:
+        link_marks(section, notes)
+    return list(notes.values())
 
 
 def link_marks(section: Section, notes: dict[str, Note]) -> None:

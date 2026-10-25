@@ -1,6 +1,6 @@
 import pytest
 
-from pdf2epub.pdf.models import Line, Page
+from pdf2epub.pdf.models import Footnote, Line, Page
 from pdf2epub.pdf.noise import drop_web_credits, is_junk, is_page_number, remove_noise
 
 
@@ -190,3 +190,42 @@ def test_keeps_a_heading_opening_with_a_label_repeated_across_the_book() -> None
     for number in (2, 5, 8):
         pages[number - 1].lines.insert(0, Line("თავი მეორე - I", 50, 20, 150, 30))
     assert texts(remove_noise(pages)[4].lines) == ["თავი მეორე - I", "Text 5."]
+
+
+def test_footnote_with_a_raised_mark_is_kept_and_linked() -> None:
+    p = body(1, 30, (500, "79ფილტვების ანთება (ლათ.)."))
+    p.scanned = False
+    p.lines[3].text = "დიახ, pneumonia⁅79⁆ გახლავთ."
+    [result] = remove_noise([p])
+    assert result.footnotes == [Footnote("1", "ფილტვების ანთება (ლათ.).")]
+    assert result.lines[3].text == "დიახ, pneumonia[1] გახლავთ."
+    assert texts(result.lines)[-1] == "Body text line 29."
+
+
+def test_footnotes_numbered_from_1_on_each_page_are_numbered_through() -> None:
+    pages = [body(n, 30, (500, "1 შენიშვნა.")) for n in (1, 2)]
+    for p in pages:
+        p.scanned = False
+        p.lines[0].text = "სიტყვა⁅1⁆."
+    result = remove_noise(pages)
+    assert [p.lines[0].text for p in result] == ["სიტყვა[1].", "სიტყვა[2]."]
+    assert [f.mark for p in result for f in p.footnotes] == ["1", "2"]
+
+
+def test_raised_mark_without_its_footnote_is_taken_out() -> None:
+    p = body(1, 30)
+    p.scanned = False
+    p.lines[0].text = "სიტყვა⁅5⁆ და სხვა."
+    assert remove_noise([p])[0].lines[0].text == "სიტყვა და სხვა."
+
+
+def test_footnote_under_a_page_of_short_dialogue() -> None:
+    # Most gaps are the wide ones between one-line paragraphs; the narrow ones between
+    # a paragraph's lines tell the usual gap, so the footnote's gap still stands out.
+    rows, y = [], 100.0
+    for n in range(18):
+        rows.append((y, f"— ტექსტი {n}."))
+        y += 12 if n % 3 == 2 else 30
+    p = page(1, *rows, (rows[-1][0] + 40, "1 შენიშვნა."), scanned=False)
+    p.lines[0].text = "— ტექსტი⁅1⁆."
+    assert [f.text for f in remove_noise([p])[0].footnotes] == ["შენიშვნა."]

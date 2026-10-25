@@ -1,5 +1,6 @@
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.structure import Heading, Section, extract_notes
+from pdf2epub.pdf import Footnote
+from pdf2epub.structure import Heading, Note, Section, extract_notes, link_footnotes
 
 
 def section(*texts: str) -> Section:
@@ -139,3 +140,10 @@ def test_star_far_from_its_note_still_finds_it() -> None:
     notes = extract_notes([chapter])
     assert chapter.paragraphs[1].text == "მერე პრეფექტი[1] წავიდა."
     assert chapter.notes["1"] is notes[0]
+
+
+def test_footnotes_become_notes_their_marks_link_to() -> None:
+    chapter = Section(Heading(1, "თავი"), [Paragraph("pneumonia[1] გახლავთ.", 476)])
+    [note] = link_footnotes([chapter], [Footnote("1", "ფილტვების ანთება (ლათ.).")])
+    assert note == Note("footnote-1", "1", "ფილტვების ანთება (ლათ.).")
+    assert chapter.notes == {"1": note}

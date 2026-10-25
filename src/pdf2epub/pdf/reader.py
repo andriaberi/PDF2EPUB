@@ -126,11 +126,27 @@ def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
 
 
 def glyphs(line: dict[str, Any]) -> list[Glyph]:
-    return [
-        Glyph(char["c"], char["origin"][0], span["size"], span["font"], char["bbox"][2])
-        for span in line["spans"]
-        for char in span["chars"]
-    ]
+    found = []
+    for span in line["spans"]:
+        raised = is_raised_mark(span)
+        found += [
+            Glyph(
+                char["c"],
+                char["origin"][0],
+                span["size"],
+                span["font"],
+                char["bbox"][2],
+                raised=raised and char["c"].isdigit(),
+            )
+            for char in span["chars"]
+        ]
+    return found
+
+
+def is_raised_mark(span: dict[str, Any]) -> bool:
+    """A note mark set as superscript: digits alone, raised above the line."""
+    text = "".join(char["c"] for char in span["chars"]).strip()
+    return bool(span["flags"] & pymupdf.TEXT_FONT_SUPERSCRIPT) and text.isdigit()
 
 
 def merge_rows(pieces: list[Line]) -> list[Line]:

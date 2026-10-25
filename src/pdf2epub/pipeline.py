@@ -17,6 +17,7 @@ from pdf2epub.structure import (
     drop_front_matter,
     drop_printed_contents,
     extract_notes,
+    link_footnotes,
     printed_contents,
     title_page_spelling,
 )
@@ -84,6 +85,7 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
     everything = [(section, list(section.paragraphs)) for section in sections]
     sections = drop_front_matter(sections, metadata.title, metadata.author)
     notes = extract_notes(sections)
+    notes += link_footnotes(sections, [f for page in pdf_book.pages for f in page.footnotes])
     sections = with_left_out(everything, sections)
     for paragraph in printed_contents(pdf_book.pages):
         place_by_page(sections, paragraph)

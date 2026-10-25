@@ -10,6 +10,8 @@ from itertools import pairwise
 from statistics import median
 from typing import NamedTuple
 
+from .text import RAISED_CLOSE, RAISED_OPEN
+
 # Text has about one space in seven characters; a book with fewer than this share
 # has lost its spaces.
 MIN_SPACE_SHARE = 0.05
@@ -35,6 +37,7 @@ class Glyph(NamedTuple):
     size: float
     font: str
     right: float | None = None  # where its box ends
+    raised: bool = False  # a digit of a note mark set above the line: "pneumonia⁷⁹"
 
 
 # A letter's usual advance in a font, in font sizes: (font, char) -> advance.
@@ -76,10 +79,18 @@ def spaced_text(
         if glyph.char.isspace():
             spaced = True
             continue
-        if previous and is_word_break(previous, glyph, advances, tracking, spaced, unspaced):
+        in_mark = previous is not None and previous.raised
+        if in_mark and not glyph.raised:
+            text.append(RAISED_CLOSE)
+        # A raised note mark keeps to the word it follows: "pneumonia⁅79⁆".
+        if glyph.raised and not in_mark:
+            text.append(RAISED_OPEN)
+        elif previous and is_word_break(previous, glyph, advances, tracking, spaced, unspaced):
             text.append(" ")
         text.append(glyph.char)
         previous, spaced = glyph, False
+    if previous is not None and previous.raised:
+        text.append(RAISED_CLOSE)
     return "".join(text)
 
 

@@ -5,6 +5,7 @@ from itertools import pairwise
 
 from pdf2epub.labels import label_level, split_label
 
+from .footnotes import marked_footnotes, number_footnotes
 from .models import Line, Page
 from .text import NOTE_MARK, script_of, strip_edge_debris
 
@@ -37,6 +38,9 @@ MAX_CREDIT_LINES = 4
 FOOTNOTE_AREA = 0.6
 FOOTNOTE_GAP = 3
 MAX_FOOTNOTE_LINES = 6
+
+# A footnote's number set small and run into its text: "79ფილტვების ანთება".
+GLUED_MARK = re.compile(r"^\d{1,3}(?=[^\W\d_])")
 
 # A footnote's mark: OCR reads a raised "¹" as "'!", "%", "31", so any short run of
 # digits and symbols, but no dash, which opens speech.
@@ -74,6 +78,7 @@ def remove_noise(pages: list[Page]) -> list[Page]:
                 line.text = strip_edge_debris(line.text)
             page.lines = [line for line in page.lines if line.text]
 
+    number_footnotes(pages)
     return pages
 
 
@@ -256,14 +261,17 @@ def strip_glued_page_number(page: Page, printed: int) -> None:
 
 
 def drop_footnotes(page: Page) -> None:
-    """Remove the footnotes at the page's foot, once page numbers are gone: from the
-    highest wide gap whose next line opens with a mark."""
+    """Take the footnotes off the page's foot, once page numbers are gone: from the
+    highest wide gap whose next line opens with a mark. Those whose marks are raised in
+    the text are kept as the page's footnotes."""
     lines = page.lines
     if len(lines) < 3:
         return
 
     gaps = [below.y0 - above.y1 for above, below in pairwise(lines)]
-    usual_gap = max(statistics.median(gaps), 0)
+    # The gap between lines of a paragraph: on a page of short dialogue most gaps are
+    # the wider ones between paragraphs, so the smaller ones tell.
+    usual_gap = max(statistics.quantiles(gaps, n=4)[0], 0)
     line_height = statistics.median(line.height for line in lines)
     wide_gap = max(FOOTNOTE_GAP * usual_gap, line_height / 2)
 
@@ -280,6 +288,7 @@ def drop_footnotes(page: Page) -> None:
 
     if start is not None and not runs_on(lines[-1], lines):
         page.lines = lines[:start]
+        page.footnotes = marked_footnotes(lines[start:], page.lines)
 
 
 def runs_on(last: Line, lines: list[Line]) -> bool:
@@ -290,5 +299,7 @@ def runs_on(last: Line, lines: list[Line]) -> bool:
 
 
 def starts_with_mark(text: str) -> bool:
+    if GLUED_MARK.match(text):
+        return True
     first, _, rest = text.partition(" ")
     return bool(rest) and FOOTNOTE_MARK.match(first) is not None
