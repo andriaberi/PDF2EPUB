@@ -23,7 +23,6 @@ STEPS = ("Reading the PDF", "Finding paragraphs", "Finding chapters", "Writing t
 @dataclass
 class Options:
     pdf: str
-    output: str
     pages: str | None = None
     title: str | None = None
     author: str | None = None
@@ -44,8 +43,10 @@ class Result:
     cover: str  # where the cover came from: "cover from the PDF", ...
 
 
-def convert(options: Options, progress: Callable[[str], None] = lambda step: None) -> Result:
-    """Convert the PDF to an EPUB, telling `progress` each step as it starts."""
+def convert(
+    options: Options, output: str | Path, progress: Callable[[str], None] = lambda step: None
+) -> Result:
+    """Convert the PDF to an EPUB at `output`, telling `progress` each step as it starts."""
     try:
         # Check the cover file first, so a typo fails before the slow part.
         fallback_cover = load_cover(options.cover) if options.cover else None
@@ -74,7 +75,7 @@ def convert(options: Options, progress: Callable[[str], None] = lambda step: Non
     # The book's own cover comes first; --cover is for books without one.
     cover, source = choose_cover(find_cover(options.pdf), fallback_cover)
 
-    output = Path(options.output)
+    output = Path(output)
     progress("Writing the EPUB")
     try:
         write_epub(output, sections, metadata, cover, notes)

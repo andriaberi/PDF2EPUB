@@ -18,7 +18,7 @@ def main() -> int:
     output = args.output or str(Path(args.pdf).with_suffix(".epub"))
     start = time.perf_counter()
     try:
-        result = convert(Options(args.pdf, output, pages=args.pages, cover=args.cover))
+        result = convert(Options(args.pdf, pages=args.pages, cover=args.cover), output)
     except ConvertError as e:
         print(f"error: {e}")
         return 1

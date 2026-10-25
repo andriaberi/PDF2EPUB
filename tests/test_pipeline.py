@@ -16,15 +16,13 @@ from pdf2epub.pipeline import (
 
 def test_writes_an_epub(make_pdf: Callable[..., str], tmp_path: Path) -> None:
     output = tmp_path / "out.epub"
-    convert(Options(pdf=make_pdf([["Hello world."]]), output=str(output)))
+    convert(Options(pdf=make_pdf([["Hello world."]])), output)
     assert zipfile.ZipFile(output).read("mimetype") == b"application/epub+zip"
 
 
 def test_convert_reports_each_step(make_pdf: Callable[..., str], tmp_path: Path) -> None:
     steps: list[str] = []
-    result = convert(
-        Options(pdf=make_pdf([["Hello world."]]), output=str(tmp_path / "out.epub")), steps.append
-    )
+    result = convert(Options(pdf=make_pdf([["Hello world."]])), tmp_path / "out.epub", steps.append)
     assert tuple(steps) == STEPS
     assert result.output == tmp_path / "out.epub"
     assert (result.headings, result.paragraphs, result.notes) == (0, 1, 0)
@@ -32,7 +30,7 @@ def test_convert_reports_each_step(make_pdf: Callable[..., str], tmp_path: Path)
 
 def test_convert_raises_instead_of_printing(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(ConvertError, match="no such file"):
-        convert(Options(pdf="missing.pdf", output="out.epub"))
+        convert(Options(pdf="missing.pdf"), "out.epub")
     assert capsys.readouterr() == ("", "")
 
 
@@ -58,12 +56,11 @@ def test_given_cover_is_used_without_a_cover_in_the_pdf(
     image = tmp_path / "cover.png"
     pymupdf.open().new_page().get_pixmap().save(image)
     output = tmp_path / "out.epub"
-    result = convert(Options(pdf=make_pdf([["Hello."]]), output=str(output), cover=str(image)))
+    result = convert(Options(pdf=make_pdf([["Hello."]]), cover=str(image)), output)
     assert result.cover == "cover from the given image"
     assert "EPUB/images/cover.jpg" in zipfile.ZipFile(output).namelist()
 
 
 def test_bad_cover_file_is_reported(make_pdf: Callable[..., str], tmp_path: Path) -> None:
-    output = str(tmp_path / "out.epub")
     with pytest.raises(ConvertError, match="no such cover image"):
-        convert(Options(pdf=make_pdf([["Hello."]]), output=output, cover="missing.png"))
+        convert(Options(pdf=make_pdf([["Hello."]]), cover="missing.png"), tmp_path / "out.epub")

@@ -31,7 +31,7 @@ uv add "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git"
 from pdf2epub import ConvertError, Options, convert
 
 try:
-    result = convert(Options(pdf="book.pdf", output="book.epub"), progress=print)
+    result = convert(Options(pdf="book.pdf"), "book.epub", progress=print)
 except ConvertError as e:
     print(f"Can't convert: {e}")
 else:
@@ -45,7 +45,6 @@ output it can't write.
 | Option | Description |
 |---|---|
 | `pdf` | The PDF book. |
-| `output` | Where to write the EPUB. |
 | `pages` | Convert only some pages, such as `"1-3,7,10-12"`. |
 | `title` | The book's title. Default: from the PDF, else the file name. |
 | `author` | The book's author. Default: from the PDF. |
