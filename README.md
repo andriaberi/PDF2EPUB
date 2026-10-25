@@ -42,6 +42,19 @@ else:
 order. It raises `ConvertError` for a PDF, page range or cover it can't read, or an
 output it can't write.
 
+To look at the book or change it before it is written, read and write it in two steps:
+
+```python
+from pdf2epub import Options, read_book, write_book
+
+book = read_book(Options(pdf="book.pdf"))  # the first three steps
+book.metadata.title = "A better title"
+write_book(book, "book.epub")
+```
+
+A `Book` holds the metadata, the sections (each a heading and its paragraphs), the
+notes and the cover. Writing leaves it unchanged, so it can be written again.
+
 | Option | Description |
 |---|---|
 | `pdf` | The PDF book. |
