@@ -36,7 +36,7 @@ class Options:
     title: str | None = None
     author: str | None = None
     language: str | None = None
-    cover: str | None = None
+    cover: str | bytes | None = None  # a path or the image itself
 
 
 @dataclass

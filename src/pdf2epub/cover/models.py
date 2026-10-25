@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from pdf2epub.errors import ConvertError
+
 
 @dataclass
 class Cover:
@@ -10,5 +12,5 @@ class Cover:
     height: int
 
 
-class CoverError(Exception):
+class CoverError(ConvertError):
     """The cover image can't be read."""

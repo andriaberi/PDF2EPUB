@@ -42,6 +42,17 @@ def test_loads_jpeg(tmp_path: Path) -> None:
     assert is_jpeg(load_cover(image_file(tmp_path, "cover.jpg", alpha=False)))
 
 
+def test_loads_image_bytes(tmp_path: Path) -> None:
+    cover = load_cover(Path(image_file(tmp_path)).read_bytes())
+    assert is_jpeg(cover)
+    assert (cover.width, cover.height) == (60, 90)
+
+
+def test_bytes_that_are_not_an_image() -> None:
+    with pytest.raises(CoverError, match="not an image: the given cover"):
+        load_cover(b"hello")
+
+
 def test_missing_cover_file(tmp_path: Path) -> None:
     with pytest.raises(CoverError, match="no such cover image"):
         load_cover(str(tmp_path / "missing.png"))

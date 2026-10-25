@@ -283,3 +283,24 @@ def test_problems_in_edited_data(change: Callable[[dict[str, Any]], object], pro
     problems = Book.from_dict(data).problems()
     assert len(problems) == 1
     assert problems[0].startswith(problem)
+
+
+def test_cover_replaced_by_an_uploaded_image() -> None:
+    import pymupdf
+
+    book = sample_book()
+    book.set_cover(pymupdf.open().new_page(width=60, height=90).get_pixmap().tobytes("png"))
+    assert book.cover is not None
+    assert (book.cover.width, book.cover.height, book.cover_source) == (
+        60,
+        90,
+        "cover from the given image",
+    )
+    assert book.problems() == []
+
+
+def test_upload_that_is_not_an_image_is_a_conversion_error() -> None:
+    book = sample_book()
+    with pytest.raises(ConvertError, match="not an image"):
+        book.set_cover(b"hello")
+    assert book.cover_source == "cover from the PDF"

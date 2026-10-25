@@ -4,7 +4,7 @@ from collections.abc import Collection
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from pdf2epub.cover import Cover
+from pdf2epub.cover import Cover, load_cover
 from pdf2epub.epub import Metadata
 from pdf2epub.errors import BookError
 from pdf2epub.paragraphs import Paragraph
@@ -138,6 +138,11 @@ class Book:
             for mark, note in links.items():
                 section.notes.setdefault(mark, note)
         return sections
+
+    def set_cover(self, image: str | bytes) -> None:
+        """Use this image, a path or its bytes, as the cover; CoverError if it isn't one."""
+        self.cover = load_cover(image)
+        self.cover_source = "cover from the given image"
 
     def problems(self) -> list[str]:
         """What keeps the book, as edited, from being written; empty if nothing does."""

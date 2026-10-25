@@ -213,6 +213,14 @@ def test_given_cover_is_used_without_a_cover_in_the_pdf(
     assert "EPUB/images/cover.jpg" in zipfile.ZipFile(output).namelist()
 
 
+def test_given_cover_may_be_image_bytes(make_pdf: Callable[..., str], tmp_path: Path) -> None:
+    import pymupdf
+
+    image = pymupdf.open().new_page().get_pixmap().tobytes("png")
+    result = convert(Options(pdf=make_pdf([["Hello."]]), cover=image), tmp_path / "out.epub")
+    assert result.cover == "cover from the given image"
+
+
 def test_bad_cover_file_is_reported(make_pdf: Callable[..., str], tmp_path: Path) -> None:
     with pytest.raises(ConvertError, match="no such cover image"):
         convert(Options(pdf=make_pdf([["Hello."]]), cover="missing.png"), tmp_path / "out.epub")
