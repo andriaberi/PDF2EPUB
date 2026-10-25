@@ -27,6 +27,8 @@ uv add "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git"
 
 ## Usage
 
+### Converting
+
 ```python
 from pdf2epub import ConvertError, Options, convert
 
@@ -39,8 +41,20 @@ else:
 ```
 
 `convert` calls `progress` with the name of each step as it starts; `STEPS` lists them in
-order. It raises `ConvertError` for a PDF, page range or cover it can't read, or an
-output it can't write.
+order.
+
+| Option | Description |
+|---|---|
+| `pdf` | The PDF book. |
+| `pages` | Convert only some pages, such as `"1-3,7,10-12"`. |
+| `title` | The book's title. Default: from the PDF, else the file name. |
+| `author` | The book's author. Default: from the PDF. |
+| `language` | The book's language, such as `"ka"` or `"en"`. Default: detected. |
+| `cover` | A cover image, a path or its bytes, used when the PDF has no cover of its own. |
+
+The EPUB can be written to a path or to a binary file object such as `io.BytesIO`.
+
+### Editing before writing
 
 To look at the book or change it before it is written, read and write it in two steps:
 
@@ -75,18 +89,24 @@ Set `book.include_notes = False` to write the book without its notes; removing a
 from `book.notes` leaves out that note alone. Either way the marks that pointed to it
 are taken out of the text.
 
-`book.to_dict()` gives the book as JSON-able data, to keep between requests or edit
-elsewhere, and `Book.from_dict(data)` reads it back. Data of another version, or with a
-part missing or mistyped, raises `BookError`.
+`book.set_cover(image)` replaces the cover with an image, a path or its bytes.
+`render_page("book.pdf", block.page, width=800)` gives a page of the PDF as a PNG, to
+show next to the blocks printed on it.
 
-| Option | Description |
-|---|---|
-| `pdf` | The PDF book. |
-| `pages` | Convert only some pages, such as `"1-3,7,10-12"`. |
-| `title` | The book's title. Default: from the PDF, else the file name. |
-| `author` | The book's author. Default: from the PDF. |
-| `language` | The book's language, such as `"ka"` or `"en"`. Default: detected. |
-| `cover` | A cover image, used when the PDF has no cover of its own. |
+### Keeping the book between requests
+
+`book.to_dict()` gives the book as JSON-able data, and `Book.from_dict(data)` reads it
+back. Data of another version, or with a part missing or of the wrong kind, raises
+`BookError`.
+
+`book.problems()` lists what an edit has broken, such as a heading without a label, an
+unknown role or nothing left to write; `write_book` refuses a book with problems.
+
+### Errors
+
+Every error is a `ConvertError` with a message to show: a PDF, page or cover that can't
+be read, an output that can't be written, or a `BookError` for book data that can't be
+used.
 
 ## Limitations
 
