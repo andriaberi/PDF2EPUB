@@ -1,10 +1,11 @@
 import pytest
 
-from pdf2epub.cli.commands import Args, parse_args
+from pdf2epub.cli.commands import parse_args
+from pdf2epub.pipeline import Options
 
 
 def test_pdf_only() -> None:
-    assert parse_args(["book.pdf"]) == Args(pdf="book.pdf")
+    assert parse_args(["book.pdf"]) == Options(pdf="book.pdf")
 
 
 def test_all_options() -> None:
@@ -25,7 +26,7 @@ def test_all_options() -> None:
             "cover.jpg",
         ]
     )
-    assert args == Args(
+    assert args == Options(
         pdf="book.pdf",
         pages="1-20",
         title="Title",

@@ -5,7 +5,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from pdf2epub.cli.commands import Args
 from pdf2epub.cover import Cover, CoverError, find_cover, load_cover
 from pdf2epub.epub import Metadata, write_epub
 from pdf2epub.paragraphs import build_paragraphs
@@ -17,6 +16,17 @@ from pdf2epub.structure import (
     extract_notes,
     title_page_spelling,
 )
+
+
+@dataclass
+class Options:
+    pdf: str
+    pages: str | None = None
+    title: str | None = None
+    author: str | None = None
+    language: str | None = None
+    output: str | None = None
+    cover: str | None = None
 
 
 class ConvertError(Exception):
@@ -36,7 +46,7 @@ class Result:
         return f"Wrote {self.output}: {found}, {self.cover}"
 
 
-def run(args: Args) -> int:
+def run(args: Options) -> int:
     """Convert from the command line: the result on stdout, a failure on stderr."""
     try:
         result = convert(args)
@@ -47,13 +57,13 @@ def run(args: Args) -> int:
     return 0
 
 
-def convert(args: Args, progress: Callable[[str], None] = lambda step: None) -> Result:
+def convert(options: Options, progress: Callable[[str], None] = lambda step: None) -> Result:
     """Convert the PDF to an EPUB, telling `progress` each step as it starts."""
     try:
         # Check the cover file first, so a typo fails before the slow part.
-        fallback_cover = load_cover(args.cover) if args.cover else None
+        fallback_cover = load_cover(options.cover) if options.cover else None
         progress("Reading the PDF")
-        book = read_pdf(args.pdf, args.pages)
+        book = read_pdf(options.pdf, options.pages)
     except (CoverError, ReadError, ValueError) as e:
         raise ConvertError(str(e)) from None
 
@@ -63,21 +73,21 @@ def convert(args: Args, progress: Callable[[str], None] = lambda step: None) -> 
     progress("Finding chapters")
     sections = build_sections(paragraphs, pages)
 
-    pdf = Path(args.pdf)
+    pdf = Path(options.pdf)
     title, author = title_page_spelling(sections, book.title, book.author)
     metadata = Metadata(
-        title=args.title or title or pdf.stem,
-        author=args.author or author,
-        language=args.language or book.language or "und",
+        title=options.title or title or pdf.stem,
+        author=options.author or author,
+        language=options.language or book.language or "und",
         identifier=book_identifier(pdf),
     )
     sections = drop_front_matter(sections, metadata.title, metadata.author)
     notes = extract_notes(sections)
 
     # The book's own cover comes first; --cover is for books without one.
-    cover, source = choose_cover(find_cover(args.pdf), fallback_cover)
+    cover, source = choose_cover(find_cover(options.pdf), fallback_cover)
 
-    output = Path(args.output) if args.output else pdf.with_suffix(".epub")
+    output = Path(options.output) if options.output else pdf.with_suffix(".epub")
     progress("Writing the EPUB")
     try:
         write_epub(output, sections, metadata, cover, notes)
