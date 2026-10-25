@@ -177,3 +177,16 @@ def test_website_credits_are_dropped_with_the_lines_above_them() -> None:
         Line("www.ChiaturaINFO.GE", 419, 469, 559, 483),
     ]
     assert [line.text for line in drop_web_credits(lines)] == ["დასასრული."]
+
+
+def test_keeps_a_parts_heading_under_its_running_header() -> None:
+    pages = [page(n, (20, "მეორე ნაწილი"), (100, f"Text {n}.")) for n in range(1, 5)]
+    pages[0].lines.insert(1, Line("მეორე ნაწილი", 120, 40, 280, 56))
+    assert texts(remove_noise(pages)[0].lines) == ["მეორე ნაწილი", "Text 1."]
+
+
+def test_keeps_a_heading_opening_with_a_label_repeated_across_the_book() -> None:
+    pages = [page(n, (100, f"Text {n}.")) for n in range(1, 10)]
+    for number in (2, 5, 8):
+        pages[number - 1].lines.insert(0, Line("თავი მეორე - I", 50, 20, 150, 30))
+    assert texts(remove_noise(pages)[4].lines) == ["თავი მეორე - I", "Text 5."]

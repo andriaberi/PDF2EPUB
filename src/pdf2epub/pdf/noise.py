@@ -3,7 +3,7 @@ import statistics
 from collections import Counter
 from itertools import pairwise
 
-from pdf2epub.labels import label_level
+from pdf2epub.labels import label_level, split_label
 
 from .models import Line, Page
 from .text import NOTE_MARK, script_of, strip_edge_debris
@@ -158,11 +158,16 @@ def is_furniture(line: Line, page: Page, repeated: set[str], running: set[str]) 
     # A chapter number repeats too, once in each part, but it is the book's text.
     if not in_margin or CHAPTER_NUMBER.match(line.text.replace(" ", "")):
         return False
-    # So does a label: every book of a novel has its "თავი მესამე". A label is a
-    # header only when it runs on from page to page.
-    if label_level(line.text) is not None and line.text.casefold() not in running:
+    # So does a label: every book of a novel has its "თავი მესამე", every part its
+    # "თავი მეორე - I". A label is a header only when it runs on from page to page.
+    if is_labelled(line.text) and line.text.casefold() not in running:
         return False
     return is_page_number(line.text) or furniture_key(line.text) in repeated
+
+
+def is_labelled(text: str) -> bool:
+    """A label, or a line opening with one: "თავი მეორე", "თავი მეორე - I"."""
+    return label_level(text) is not None or split_label(text) is not None
 
 
 def is_page_number(text: str) -> bool:
@@ -198,9 +203,7 @@ def repeated_edge_lines(pages: list[Page]) -> set[str]:
 def running_labels(pages: list[Page]) -> set[str]:
     """Labels at the edges of two pages in a row: a running header like "თავი მესამე"."""
     edges = {
-        page.number: {
-            line.text.casefold() for line in edge_lines(page) if label_level(line.text) is not None
-        }
+        page.number: {line.text.casefold() for line in edge_lines(page) if is_labelled(line.text)}
         for page in pages
     }
     return {
@@ -209,13 +212,24 @@ def running_labels(pages: list[Page]) -> set[str]:
 
 
 def strip_edges(page: Page, repeated: set[str], running: set[str]) -> list[Line]:
-    """Peel furniture off the top and bottom of the page and return what was removed."""
-    removed = []
+    """Peel furniture off the top and bottom of the page and return what was removed.
+    A header comes off once: the same words again below it are the heading it names,
+    "მეორე ნაწილი" on the part's first page."""
+    removed: list[Line] = []
+    taken: set[str] = set()
+
+    def peel(index: int) -> None:
+        line = page.lines[index]
+        key = furniture_key(line.text)
+        if (not key or key not in taken) and is_furniture(line, page, repeated, running):
+            removed.append(page.lines.pop(index))
+            taken.add(key)
+
     for _ in range(MAX_EDGE_LINES):
-        if page.lines and is_furniture(page.lines[0], page, repeated, running):
-            removed.append(page.lines.pop(0))
-        if page.lines and is_furniture(page.lines[-1], page, repeated, running):
-            removed.append(page.lines.pop())
+        if page.lines:
+            peel(0)
+        if page.lines:
+            peel(-1)
     return removed
 
 
