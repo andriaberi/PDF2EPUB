@@ -1,4 +1,6 @@
 import base64
+import re
+from collections.abc import Collection
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
@@ -52,6 +54,7 @@ class Book:
     notes: list[Note]
     cover: Cover | None
     cover_source: str  # "cover from the PDF", "cover from the given image" or "no cover"
+    include_notes: bool = True  # False leaves out the notes and their marks in the text
 
     @classmethod
     def from_sections(
@@ -93,8 +96,9 @@ class Book:
         return cls(metadata, blocks, notes, cover, cover_source)
 
     def sections(self) -> list[Section]:
-        """The included blocks as sections, each heading starting one."""
-        notes = {note.id: note for note in self.notes}
+        """The included blocks as sections, each heading starting one. A mark whose note
+        is left out, or no longer in the book, is taken out of the text."""
+        notes = {note.id: note for note in self.written_notes()}
         sections: list[Section] = []
         for block in self.blocks:
             if not block.include:
@@ -106,21 +110,25 @@ class Book:
             if not sections:
                 sections.append(Section(heading=None))
             section = sections[-1]
+            links = {mark: notes[i] for mark, i in block.notes.items() if i in notes}
+            unwritten = block.notes.keys() - links.keys()
             section.paragraphs.append(
                 Paragraph(
-                    block.text,
+                    without_marks(block.text, unwritten),
                     block.page,
                     # Verse is written line by line; where the lines were no longer matters.
-                    [Line(text, 0, 0, 0, 0) for text in block.lines],
+                    [Line(without_marks(text, unwritten), 0, 0, 0, 0) for text in block.lines],
                     verse=block.verse,
                     epigraph=block.epigraph,
                     attribution=block.attribution,
                 )
             )
-            for mark, note_id in block.notes.items():
-                if note_id in notes:
-                    section.notes.setdefault(mark, notes[note_id])
+            for mark, note in links.items():
+                section.notes.setdefault(mark, note)
         return sections
+
+    def written_notes(self) -> list[Note]:
+        return self.notes if self.include_notes else []
 
     def to_dict(self) -> dict[str, Any]:
         """The book as JSON-able data; from_dict() reads it back."""
@@ -138,6 +146,7 @@ class Book:
             "notes": [asdict(note) for note in self.notes],
             "cover": cover,
             "cover_source": self.cover_source,
+            "include_notes": self.include_notes,
         }
 
     @classmethod
@@ -155,6 +164,7 @@ class Book:
                 [Note(**note) for note in data["notes"]],
                 cover,
                 data["cover_source"],
+                data["include_notes"],
             )
         except (KeyError, TypeError, ValueError) as e:
             raise BookError(f"bad book data: {e!r}") from None
@@ -167,3 +177,10 @@ def read_block(data: dict[str, Any]) -> HeadingBlock | TextBlock:
     if data.get("type") == "text":
         return TextBlock(**fields)
     raise BookError(f"unknown block type {data.get('type')!r}")
+
+
+def without_marks(text: str, marks: Collection[str]) -> str:
+    """The text without these note marks, or the space before them: "word [1] next"."""
+    if not marks:
+        return text
+    return re.sub(rf"\s*{NOTE_MARK.pattern}", lambda m: "" if m[1] in marks else m[0], text)

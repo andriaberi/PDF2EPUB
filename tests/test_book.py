@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from pdf2epub.book import Book, BookError, HeadingBlock, TextBlock
+from pdf2epub.book import Book, BookError, HeadingBlock, TextBlock, without_marks
 from pdf2epub.cover import Cover
 from pdf2epub.epub import Metadata
 from pdf2epub.paragraphs import Paragraph
@@ -112,6 +112,57 @@ def test_left_out_text_is_not_written() -> None:
     assert book.sections()[0].heading == Heading(1, "Volume I")
 
 
+def texts(sections: list[Section]) -> list[str]:
+    return [p.text for section in sections for p in section.paragraphs]
+
+
+def test_notes_left_out_take_their_marks_with_them() -> None:
+    book = sample_book()
+    book.include_notes = False
+    sections = book.sections()
+    assert texts(sections) == [
+        "Before the first heading.",
+        "A quotation.",
+        "Its author",
+        "Text with a note.",
+        "A sung line and another",
+        "Again.",
+    ]
+    assert [line.text for line in sections[2].paragraphs[3].lines] == ["A sung line", "and another"]
+    assert all(not section.notes for section in sections)
+    assert book.written_notes() == []
+
+
+def test_removed_note_takes_only_its_own_marks() -> None:
+    book = sample_book()
+    book.notes.remove(OTHER_ONE)
+    sections = book.sections()
+    assert texts(sections)[-1] == "Again."
+    assert texts(sections)[3] == "Text with a note.[1]"
+    assert sections[2].notes == {"1": ONE}
+
+
+def test_marks_never_linked_stay_as_printed() -> None:
+    book = sample_book()
+    book.include_notes = False
+    book.blocks.append(TextBlock(id="new", page=10, text="Printed as [7] in the book."))
+    assert texts(book.sections())[-1] == "Printed as [7] in the book."
+
+
+@pytest.mark.parametrize(
+    ("text", "left"),
+    [
+        ("word.[1] Next", "word. Next"),
+        ("word [1] next", "word next"),
+        ("end[1]", "end"),
+        ("one[1] two[2]", "one two[2]"),
+        ("[12] stays, [1] goes", "[12] stays, goes"),
+    ],
+)
+def test_without_marks(text: str, left: str) -> None:
+    assert without_marks(text, {"1"}) == left
+
+
 def test_data_is_json_and_reads_back_the_same() -> None:
     book = sample_book()
     data = json.loads(json.dumps(book.to_dict()))
@@ -129,9 +180,10 @@ def test_data_is_json_and_reads_back_the_same() -> None:
     assert Book.from_dict(data) == book
 
 
-def test_book_without_a_cover_reads_back() -> None:
+def test_book_without_a_cover_or_notes_reads_back() -> None:
     book = sample_book()
     book.cover, book.cover_source = None, "no cover"
+    book.include_notes = False
     assert Book.from_dict(book.to_dict()) == book
 
 

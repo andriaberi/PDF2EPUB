@@ -72,6 +72,19 @@ def test_writing_leaves_the_book_as_it_was(make_pdf: Callable[..., str], tmp_pat
     assert 'href="../notes.xhtml#note-1"' in first.read("EPUB/text/section-0001.xhtml").decode()
 
 
+def test_book_without_its_notes(make_pdf: Callable[..., str], tmp_path: Path) -> None:
+    book = read_book(Options(pdf=make_pdf([["Hello world.[1]", "And more of the story."]])))
+    assert isinstance(book.blocks[0], TextBlock)
+    book.notes = [Note("note-1", "1", "A note.")]
+    book.blocks[0].notes = {"1": "note-1"}
+    book.include_notes = False
+    result = write_book(book, tmp_path / "out.epub")
+    epub = zipfile.ZipFile(tmp_path / "out.epub")
+    assert "EPUB/notes.xhtml" not in epub.namelist()
+    assert "Hello world. And more" in epub.read("EPUB/text/section-0001.xhtml").decode()
+    assert result.notes == 0
+
+
 def test_unwritable_output_is_reported(make_pdf: Callable[..., str], tmp_path: Path) -> None:
     book = read_book(Options(pdf=make_pdf([["Hello world."]])))
     with pytest.raises(ConvertError, match="can't write"):

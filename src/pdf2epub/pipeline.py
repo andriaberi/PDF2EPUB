@@ -90,13 +90,14 @@ def write_book(book: Book, output: str | Path) -> Result:
     output = Path(output)
     sections = book.sections()
     try:
-        write_epub(output, sections, book.metadata, book.cover, book.notes)
+        write_epub(output, sections, book.metadata, book.cover, book.written_notes())
     except OSError as e:
         raise ConvertError(f"can't write {output}: {e.strerror}") from None
 
     headings = sum(1 for section in sections if section.heading)
     paragraphs = sum(len(section.paragraphs) for section in sections)
-    return Result(output, headings, paragraphs, len(book.notes), book.cover_source)
+    notes = len(book.written_notes())
+    return Result(output, headings, paragraphs, notes, book.cover_source)
 
 
 def choose_cover(own: Cover | None, fallback: Cover | None) -> tuple[Cover | None, str]:
