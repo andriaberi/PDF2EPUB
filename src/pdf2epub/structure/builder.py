@@ -34,7 +34,7 @@ from .headings import (
 )
 from .models import Heading, Section
 from .notes import TITLES as NOTES_TITLES
-from .outline import entry_headings, outline_headings
+from .outline import Match, entry_headings, outline_headings
 
 # Lone numbers count as chapter numbers only when the book has at least this many.
 MIN_NUMBERED = 3
@@ -83,48 +83,21 @@ def build_sections(
         index += 1
         if outlined is not None:
             if (match := outlined.get(index - 1)) is not None:
-                if match.span:
-                    printed = " ".join(
-                        p.text for p in paragraphs[index - 1 : index - 1 + match.span]
-                    )
-                    index += match.span - 1
-                else:
-                    before = paragraph.lines[: match.line]
-                    if before:
-                        sections[-1].paragraphs.append(paragraph_of(before, paragraph.page))
-                    printed = paragraph.lines[match.line].text
-                # A title further down a paragraph is on the page the outline gives.
-                page = paragraph.page if match.span or not match.line else match.entry.page
-                headings = entry_headings(printed, match.entry, flat)
-                for heading in headings:
-                    heading.page = page
-                    from_outline.add(id(heading))
-                    sections.append(Section(heading))
-                if match.span:
-                    epigraph, index = take_epigraph(paragraphs, index, paragraph.page, column)
-                    sections[-1].paragraphs.extend(epigraph)
-                elif rest := paragraph.lines[match.line + 1 :]:
-                    sections[-1].paragraphs.append(paragraph_of(rest, page))
-                continue
-            # Headings the outline leaves out: labelled ones, and sections numbered in
-            # a bigger font than the text.
-            if not (
-                is_label(paragraph, column)
-                or run_in_label(paragraph, column)
-                or is_tall_number(paragraph, column)
-            ):
-                sections[-1].paragraphs.append(paragraph)
+                index = add_outlined(sections, paragraphs, index, match, flat, column, from_outline)
                 continue
             if is_tall_number(paragraph, column):
-                heading = Heading(NUMBER_LEVEL, paragraph.text.rstrip("."), page=paragraph.page)
-                sections.append(Section(heading))
+                sections.append(Section(number_heading(paragraph)))
+                continue
+            # Besides the outline's headings only labelled ones count; the rest is text.
+            if not (is_label(paragraph, column) or run_in_label(paragraph, column)):
+                sections[-1].paragraphs.append(paragraph)
                 continue
         if is_label(paragraph, column):
             heading = Heading(
                 label_level(paragraph.text) or 0, fix_label(paragraph.text), page=paragraph.page
             )
         elif id(paragraph) in numbered:
-            heading = Heading(NUMBER_LEVEL, paragraph.text.rstrip("."), page=paragraph.page)
+            heading = number_heading(paragraph)
         elif is_named_section(paragraph, column):
             heading = Heading(SECTION_LEVEL, paragraph.text, page=paragraph.page)
         elif run_in := run_in_label(paragraph, column):
@@ -185,6 +158,45 @@ def build_sections(
     renumber_levels(sections)
     match_label_order(sections)
     return sections
+
+
+def add_outlined(
+    sections: list[Section],
+    paragraphs: list[Paragraph],
+    index: int,
+    match: Match,
+    flat: bool,
+    column: Layout,
+    from_outline: set[int],
+) -> int:
+    """Start the sections the outline entry names, at the paragraph before `index`, and
+    return the index after its title and epigraph."""
+    paragraph = paragraphs[index - 1]
+    page = paragraph.page
+    if match.span:
+        printed = " ".join(p.text for p in paragraphs[index - 1 : index - 1 + match.span])
+        index += match.span - 1
+    else:
+        if before := paragraph.lines[: match.line]:
+            sections[-1].paragraphs.append(paragraph_of(before, page))
+        printed = paragraph.lines[match.line].text
+        # A title further down a paragraph is on the page the outline gives.
+        if match.line:
+            page = match.entry.page
+    for heading in entry_headings(printed, match.entry, flat):
+        heading.page = page
+        from_outline.add(id(heading))
+        sections.append(Section(heading))
+    if match.span:
+        epigraph, index = take_epigraph(paragraphs, index, paragraph.page, column)
+        sections[-1].paragraphs.extend(epigraph)
+    elif rest := paragraph.lines[match.line + 1 :]:
+        sections[-1].paragraphs.append(paragraph_of(rest, page))
+    return index
+
+
+def number_heading(paragraph: Paragraph) -> Heading:
+    return Heading(NUMBER_LEVEL, paragraph.text.rstrip("."), page=paragraph.page)
 
 
 def below_outline(sections: list[Section], from_outline: set[int]) -> None:
