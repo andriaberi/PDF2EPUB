@@ -98,7 +98,8 @@ def drop_title_page_reprints(sections: list[Section]) -> list[Section]:
 
 
 def reprint_key(text: str) -> str:
-    return without_volume(text).casefold()
+    # One printing may trail off in dot leaders the other leaves out: "თარგმანი. . .. . .".
+    return without_volume(text).rstrip(" .…").casefold()
 
 
 def drop_repeated_title(sections: list[Section], title: str, author: str | None) -> list[Section]:

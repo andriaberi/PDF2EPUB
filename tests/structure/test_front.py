@@ -66,6 +66,14 @@ def test_title_page_printed_again_before_a_volume_is_dropped() -> None:
     assert [p.text for p in chapter.paragraphs] == ["ტექსტი."]
 
 
+def test_reprint_without_the_dot_leaders_is_dropped() -> None:
+    front = Section(None, [Paragraph("ლევ ტოლსტოი", 1), Paragraph("თამარის თარგმანი. . .. . .", 1)])
+    chapter = Section(Heading(3, "XXIII"), [Paragraph("ტექსტი.", 2)])
+    chapter.paragraphs += [Paragraph("ლევ ტოლსტოი", 9), Paragraph("თამარის თარგმანი", 9)]
+    drop_title_page_reprints([front, chapter, Section(Heading(1, "ნაწილი მეხუთე"))])
+    assert [p.text for p in chapter.paragraphs] == ["ტექსტი."]
+
+
 def test_title_page_reprinted_for_the_next_volume_is_dropped() -> None:
     front = Section(
         None,
