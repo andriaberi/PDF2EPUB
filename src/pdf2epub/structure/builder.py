@@ -9,7 +9,7 @@ from pdf2epub.labels import (
     numeral_value,
 )
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.paragraphs.builder import join_lines
+from pdf2epub.paragraphs.builder import paragraph_of
 from pdf2epub.paragraphs.layout import (
     DASHES,
     TITLE_LINES,
@@ -91,9 +91,7 @@ def build_sections(
                 else:
                     before = paragraph.lines[: match.line]
                     if before:
-                        sections[-1].paragraphs.append(
-                            Paragraph(join_lines(before), paragraph.page, before)
-                        )
+                        sections[-1].paragraphs.append(paragraph_of(before, paragraph.page))
                     printed = paragraph.lines[match.line].text
                 # A title further down a paragraph is on the page the outline gives.
                 page = paragraph.page if match.span or not match.line else match.entry.page
@@ -106,7 +104,7 @@ def build_sections(
                     epigraph, index = take_epigraph(paragraphs, index, paragraph.page, column)
                     sections[-1].paragraphs.extend(epigraph)
                 elif rest := paragraph.lines[match.line + 1 :]:
-                    sections[-1].paragraphs.append(Paragraph(join_lines(rest), page, rest))
+                    sections[-1].paragraphs.append(paragraph_of(rest, page))
                 continue
             # Headings the outline leaves out: labelled ones, and sections numbered in
             # a bigger font than the text.
@@ -269,7 +267,7 @@ def split_title(paragraph: Paragraph, column: Layout) -> tuple[str, Paragraph] |
     first, *rest = paragraph.lines
     if not rest or not is_short(first, column) or first.text.endswith((".", ",", ";", ":")):
         return None
-    return first.text, Paragraph(join_lines(rest), paragraph.page, rest)
+    return first.text, paragraph_of(rest, paragraph.page)
 
 
 def is_subheading(paragraph: Paragraph, following: Paragraph | None, column: Layout) -> bool:

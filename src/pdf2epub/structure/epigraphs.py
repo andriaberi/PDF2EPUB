@@ -1,6 +1,6 @@
 from pdf2epub.labels import numeral_value
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.paragraphs.builder import join_lines
+from pdf2epub.paragraphs.builder import paragraph_of
 from pdf2epub.paragraphs.layout import SET_APART, Layout
 from pdf2epub.pdf import Line
 
@@ -38,15 +38,11 @@ def quotations(lines: list[Line], page: int, column: Layout) -> list[Paragraph]:
     for line in lines:
         # A name starts well right of its quotation; the next quotation, back at its left.
         if quote and line.x0 - min(q.x0 for q in quote) > SET_APART * column.line_height:
-            parts.append(quotation(quote, page))
+            parts.append(paragraph_of(quote, page, epigraph=True))
             parts.append(Paragraph(line.text, page, [line], epigraph=True, attribution=True))
             quote = []
         else:
             quote.append(line)
     if quote:
-        parts.append(quotation(quote, page))
+        parts.append(paragraph_of(quote, page, epigraph=True))
     return parts
-
-
-def quotation(lines: list[Line], page: int) -> Paragraph:
-    return Paragraph(join_lines(lines), page, lines, epigraph=True)

@@ -290,3 +290,8 @@ def join_lines(lines: list[Line]) -> str:
     for line in lines[1:]:
         text = join(text, line.text)
     return text
+
+
+def paragraph_of(lines: list[Line], page: int, epigraph: bool = False) -> Paragraph:
+    """The lines as one paragraph, starting on `page`."""
+    return Paragraph(join_lines(lines), page, lines, epigraph=epigraph)
