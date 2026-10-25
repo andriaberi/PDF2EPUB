@@ -13,19 +13,10 @@ authors = [{ name = "Andria Beridze" }]
 requires-python = ">=3.12"
 dependencies = [
     "pymupdf>=1.24",
-    "pywebview>=5.3",  # the window: a web page in the platform's own web view
 ]
-
-[project.optional-dependencies]
-# Linux without GTK's Python bindings: Qt's web view instead (large, but installs anywhere).
-qt = ["pywebview[qt]>=5.3"]
 
 [project.scripts]
 pdf2epub = "pdf2epub.__main__:main"
-
-# A GUI script opens no console window on Windows.
-[project.gui-scripts]
-pdf2epub-gui = "pdf2epub.gui:main"
 
 [dependency-groups]
 dev = [
@@ -42,7 +33,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "pdf2epub.epub" = ["fonts/*.ttf", "fonts/OFL.txt"]
-"pdf2epub.gui" = ["web/*"]
 
 # Ruff
 
