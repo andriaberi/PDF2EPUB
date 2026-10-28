@@ -162,6 +162,12 @@ This writes `book.epub` next to the PDF and says what it found.
 | `make test` | Run the tests |
 | `make clean` | Remove caches |
 
+## Contributing
+
+Contributions are welcome under the [Developer Certificate of Origin](https://developercertificate.org/):
+sign off each commit (`git commit -s`) to certify you wrote it, or otherwise have the right
+to submit it under this project's license. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 [GNU AGPL-3.0](LICENSE) or later, with one added term (see [NOTICE](NOTICE)): anything
