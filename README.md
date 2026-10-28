@@ -136,7 +136,16 @@ used.
 - Footnotes at the bottom of a page are linked only when their marks are set raised in
   the text, as Word sets them; others are removed.
 - Bold, italics and pictures inside the book are not kept.
-- Only Georgian and English are detected. For other languages pass `language`.
+- Only languages with a file in `src/pdf2epub/languages/` are detected; for others pass
+  `language`.
+
+## Languages
+
+The words PDF2EPUB reads books with, such as "თავი" and "Chapter", the contents and
+notes titles, and its own headings, are in `src/pdf2epub/languages/`, one TOML file per
+language named by its code (`ka.toml`, `en.toml`). To add a language, copy one, name it by
+the new code and fill in every field. It is picked up on its own: books in its script are
+detected as it, and its `common` words tell it from other languages in the same script.
 
 ## Development
 
@@ -161,6 +170,12 @@ This writes `book.epub` next to the PDF and says what it found.
 | `make format` | Format the code |
 | `make test` | Run the tests |
 | `make clean` | Remove caches |
+
+## Contributing
+
+Contributions are welcome under the [Developer Certificate of Origin](https://developercertificate.org/):
+sign off each commit (`git commit -s`) to certify you wrote it, or otherwise have the right
+to submit it under this project's license. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

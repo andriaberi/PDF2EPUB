@@ -4,6 +4,7 @@ from collections import Counter
 from itertools import pairwise
 
 from pdf2epub.labels import label_level, split_label
+from pdf2epub.languages import all_words
 
 from .footnotes import marked_footnotes, number_footnotes
 from .models import Line, Page
@@ -30,10 +31,14 @@ WORD = re.compile(r"[^\W\d_]{2,}")
 NOT_LETTERS = re.compile(r"[\d\W_]+")
 SEPARATOR = re.compile(r"^[*⁂•·~=_—–\- ]+$")
 
-# A web address, copyright sign or the word for a website ("საიტმა", "საიტი"): a
+# A web address, copyright sign or a language's word for a website ("საიტმა", "საიტი"): a
 # website's credits, not the book's text. They are short, and stack at most a few
 # lines high.
-WEB = re.compile(r"www\.|https?://|\b\w+\.(?:ge|com|org|net|ru)\b|©|საიტ", re.IGNORECASE)
+WEB = re.compile(
+    r"www\.|https?://|\b\w+\.(?:ge|com|org|net|ru)\b|©"
+    + "".join(f"|{re.escape(word)}" for word in sorted(all_words("website"))),
+    re.IGNORECASE,
+)
 MAX_CREDIT_WORDS = 6
 MAX_CREDIT_LINES = 4
 

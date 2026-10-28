@@ -1,5 +1,6 @@
 import re
 
+from pdf2epub.languages import all_words, any_of
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.paragraphs.builder import join
 from pdf2epub.pdf import Footnote
@@ -8,7 +9,7 @@ from pdf2epub.pdf.text import NOTE_MARK
 from .models import Note, Section
 
 # Words the notes at the end of a book (or of a volume) are headed with.
-TITLES = {"შენიშვნები", "სქოლიო", "notes", "endnotes", "footnotes"}
+TITLES = all_words("notes_titles")
 
 # A note starts with its mark, at a paragraph's start or after the last note, maybe
 # with a stray superscript: "[24]1 საამო ღამეს".
@@ -16,7 +17,9 @@ NOTE_START = re.compile(r"(?:^|(?<=\s))\[(\d+)\]\d*\s+")
 
 # Notes may instead be keyed by page, their word starred in the text: "გვ. 45.
 # ფრანშკონტე _ ..." for "ფრანშკონტეში.*". A line or two may come before the first.
-PAGE_KEY = re.compile(r"^(?:გვ|p|pp|page)\.?\s*\d+\.\s*", re.IGNORECASE)
+PAGE_KEY = re.compile(
+    rf"^(?:{any_of(all_words('page_abbreviations'))})\.?\s*\d+\.\s*", re.IGNORECASE
+)
 MAX_SUBTITLE_LINES = 2
 STAR = re.compile(r"\*")
 
