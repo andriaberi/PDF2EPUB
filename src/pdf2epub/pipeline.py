@@ -37,6 +37,7 @@ class Options:
     author: str | None = None
     language: str | None = None
     cover: str | bytes | None = None  # a path or the image itself
+    credit: bool = True  # name PDF2EPUB in the EPUB's metadata
 
 
 @dataclass
@@ -54,7 +55,7 @@ def convert(
     """Convert the PDF to an EPUB at `output`, telling `progress` each step as it starts."""
     book = read_book(options, progress)
     progress("Writing the EPUB")
-    return write_book(book, output)
+    return write_book(book, output, options.credit)
 
 
 def read_book(options: Options, progress: Callable[[str], None] = lambda step: None) -> Book:
@@ -91,9 +92,10 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
     return Book.from_sections(metadata, sections, notes, cover, source)
 
 
-def write_book(book: Book, output: str | Path | IO[bytes]) -> Result:
+def write_book(book: Book, output: str | Path | IO[bytes], credit: bool = True) -> Result:
     """Write the book as an EPUB at `output`, a path or a binary file object such as
-    io.BytesIO, unless it has problems() to fix first."""
+    io.BytesIO, unless it has problems() to fix first. With `credit`, the EPUB's metadata
+    names PDF2EPUB as its producer."""
     if problems := book.problems():
         more = f"; and {len(problems) - MAX_PROBLEMS} more" if len(problems) > MAX_PROBLEMS else ""
         raise BookError("; ".join(problems[:MAX_PROBLEMS]) + more)
@@ -101,7 +103,7 @@ def write_book(book: Book, output: str | Path | IO[bytes]) -> Result:
     sections = book.sections()
     notes = book.written_notes()
     try:
-        write_epub(target, sections, book.metadata, book.cover, notes)
+        write_epub(target, sections, book.metadata, book.cover, notes, credit)
     except OSError as e:
         raise ConvertError(f"can't write {output}: {e.strerror}") from None
 

@@ -1,6 +1,7 @@
 import zipfile
 from datetime import UTC, datetime
 from html import escape
+from importlib.metadata import PackageNotFoundError, version
 from importlib.resources import files as package_files
 from pathlib import Path
 from typing import IO
@@ -37,6 +38,19 @@ FONTS = [
 
 NOTES_FILE = "notes.xhtml"
 
+# Credit in the metadata, where readers don't show it: PDF2EPUB as the book producer
+# (MARC relator "bkp"), and the release that wrote the file.
+SOURCE_URL = "https://github.com/andriaberi/PDF2EPUB"
+try:
+    VERSION = version("pdf2epub")
+except PackageNotFoundError:  # run from the source folder without installing
+    VERSION = "0"
+CREDIT = f"""\
+<dc:contributor id="producer">PDF2EPUB</dc:contributor>
+<meta refines="#producer" property="role" scheme="marc:relators">bkp</meta>
+<meta name="generator" content="PDF2EPUB {VERSION} ({SOURCE_URL})"/>
+"""
+
 # A section with more text than this, in bytes, goes on over several files: readers
 # open a long chapterless book slowly, or not at all, as one file.
 MAX_PAGE_TEXT = 400_000
@@ -48,6 +62,7 @@ def write_epub(
     metadata: Metadata,
     cover: Cover | None = None,
     notes: list[Note] | None = None,
+    credit: bool = True,
 ) -> None:
     """Write the book as an EPUB 3 file, one page per section, after the cover if any.
 
@@ -66,7 +81,8 @@ def write_epub(
         epub.writestr("mimetype", "application/epub+zip", compress_type=zipfile.ZIP_STORED)
         epub.writestr("META-INF/container.xml", CONTAINER)
         epub.writestr(
-            "EPUB/content.opf", package_document(files, metadata, cover is not None, bool(notes))
+            "EPUB/content.opf",
+            package_document(files, metadata, cover is not None, bool(notes), credit),
         )
         epub.writestr("EPUB/style.css", STYLESHEET)
         epub.writestr("EPUB/nav.xhtml", nav_document(toc, metadata.language))
@@ -124,7 +140,9 @@ def note_sources(sections: list[Section], files: list[str]) -> dict[str, str]:
     return sources
 
 
-def package_document(files: list[str], metadata: Metadata, has_cover: bool, has_notes: bool) -> str:
+def package_document(
+    files: list[str], metadata: Metadata, has_cover: bool, has_notes: bool, credit: bool = True
+) -> str:
     modified = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     creator = f"<dc:creator>{escape(metadata.author)}</dc:creator>\n" if metadata.author else ""
     items = "\n".join(
@@ -159,7 +177,7 @@ xml:lang="{escape(metadata.language)}">
 <dc:identifier id="book-id">{escape(metadata.identifier)}</dc:identifier>
 <dc:title>{escape(metadata.title)}</dc:title>
 <dc:language>{escape(metadata.language)}</dc:language>
-{creator}{cover_meta}<meta property="dcterms:modified">{modified}</meta>
+{creator}{CREDIT if credit else ""}{cover_meta}<meta property="dcterms:modified">{modified}</meta>
 </metadata>
 <manifest>
 <item id="nav" href="nav.xhtml" media-type="{XHTML}" properties="nav"/>

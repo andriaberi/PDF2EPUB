@@ -126,6 +126,26 @@ def test_cover_comes_first(tmp_path: Path) -> None:
     minidom.parseString(page)
 
 
+def test_metadata_credits_pdf2epub_as_the_producer(tmp_path: Path) -> None:
+    opf = written(tmp_path).read("EPUB/content.opf").decode()
+
+    assert '<dc:contributor id="producer">PDF2EPUB</dc:contributor>' in opf
+    assert '<meta refines="#producer" property="role" scheme="marc:relators">bkp</meta>' in opf
+    assert '<meta name="generator" content="PDF2EPUB ' in opf
+    assert "https://github.com/andriaberi/PDF2EPUB" in opf
+    # The book's own author stays its only creator.
+    assert opf.count("<dc:creator>") == 1
+
+
+def test_credit_can_be_left_out(tmp_path: Path) -> None:
+    path = tmp_path / "book.epub"
+    write_epub(path, SECTIONS, METADATA, credit=False)
+    opf = zipfile.ZipFile(path).read("EPUB/content.opf").decode()
+
+    assert "PDF2EPUB" not in opf
+    assert "dc:contributor" not in opf
+
+
 def test_no_cover_without_one(tmp_path: Path) -> None:
     epub = written(tmp_path)
     assert "EPUB/cover.xhtml" not in epub.namelist()
