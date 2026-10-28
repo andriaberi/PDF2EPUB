@@ -25,6 +25,25 @@ jobs:
       - name: Check
         run: make check PYTHON=python
 
+  dco:
+    # Every commit in a pull request certifies the DCO (CONTRIBUTING.md).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Check every commit is signed off
+        run: |
+          missing=0
+          for c in $(git rev-list --no-merges ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}); do
+            if ! git show -s --format=%B "$c" | grep -q '^Signed-off-by: '; then
+              echo "::error::$(git show -s --format='%h %s' "$c") is not signed off: see CONTRIBUTING.md"
+              missing=1
+            fi
+          done
+          exit $missing
+
   # Each push to main that passes the checks is released, numbered by its date:
   # 2026.1025.1, then 2026.1025.2 the same day, then 2026.1026.1 (no leading zeros,
   # so 5 January is 2027.105.1).
