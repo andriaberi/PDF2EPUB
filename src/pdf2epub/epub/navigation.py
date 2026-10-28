@@ -1,13 +1,11 @@
 from html import escape
 
+from pdf2epub.languages import epub_heading
 from pdf2epub.structure import Heading, Section
 
 from .pages import page
 
 Entry = tuple[int, Heading, str]  # level, heading, file
-
-CONTENTS = {"ka": "სარჩევი", "en": "Contents"}
-NOTES = {"ka": "შენიშვნები", "en": "Notes"}
 
 
 def entries(sections: list[Section], files: list[str]) -> list[Entry]:
@@ -19,14 +17,9 @@ def entries(sections: list[Section], files: list[str]) -> list[Entry]:
     ]
 
 
-def in_language(titles: dict[str, str], language: str) -> str:
-    """The title in the book's language, or in English."""
-    return titles.get(language.split("-")[0], titles["en"])
-
-
 def nav_document(toc: list[Entry], language: str) -> str:
     """The table of contents, nested by heading level. It is also a page of the book."""
-    title = in_language(CONTENTS, language)
+    title = epub_heading("contents", language)
     lines = ['<nav epub:type="toc" id="toc">', f"<h1>{escape(title)}</h1>"]
     depth = 0
     for index, (level, heading, file) in enumerate(toc):
