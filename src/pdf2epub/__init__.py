@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Convert PDF books into well-structured, reflowable EPUBs."""
 
 from importlib.metadata import PackageNotFoundError, version
