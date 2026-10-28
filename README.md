@@ -68,6 +68,7 @@ order.
 | `author` | The book's author. Default: from the PDF. |
 | `language` | The book's language, such as `"ka"` or `"en"`. Default: detected. |
 | `cover` | A cover image, a path or its bytes, used when the PDF has no cover of its own. |
+| `credit` | Name PDF2EPUB in the EPUB's metadata, as its producer and with the release that wrote it. Readers don't show it. Default: `True`; `write_book` takes it too. |
 
 The EPUB can be written to a path or to a binary file object such as `io.BytesIO`.
 
@@ -175,7 +176,9 @@ This writes `book.epub` next to the PDF and says what it found.
 
 Contributions are welcome under the [Developer Certificate of Origin](https://developercertificate.org/):
 sign off each commit (`git commit -s`) to certify you wrote it, or otherwise have the right
-to submit it under this project's license. See [CONTRIBUTING.md](CONTRIBUTING.md).
+to submit it under this project's license. See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+and the [code of conduct](docs/CODE_OF_CONDUCT.md). Security problems go privately, as
+[docs/SECURITY.md](docs/SECURITY.md) says.
 
 ## License
 
