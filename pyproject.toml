@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdf2epub"
-# From the latest release's git tag, "v2026.1025.1": see the release job in CI.
+# From the latest release's git tag, "v1.2026.1025.1": see the release job in CI.
 dynamic = ["version"]
 description = "A fast, clean Python tool for converting PDF books into well-structured, reflowable EPUBs"
 readme = "README.md"
