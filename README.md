@@ -176,7 +176,9 @@ This writes `book.epub` next to the PDF and says what it found.
 
 Contributions are welcome under the [Developer Certificate of Origin](https://developercertificate.org/):
 sign off each commit (`git commit -s`) to certify you wrote it, or otherwise have the right
-to submit it under this project's license. See [CONTRIBUTING.md](CONTRIBUTING.md).
+to submit it under this project's license. See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+and the [code of conduct](docs/CODE_OF_CONDUCT.md). Security problems go privately, as
+[docs/SECURITY.md](docs/SECURITY.md) says.
 
 ## License
 

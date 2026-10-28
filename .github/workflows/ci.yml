@@ -26,7 +26,7 @@ jobs:
         run: make check PYTHON=python
 
   dco:
-    # Every commit in a pull request certifies the DCO (CONTRIBUTING.md).
+    # Every commit in a pull request certifies the DCO (docs/CONTRIBUTING.md).
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +38,7 @@ jobs:
           missing=0
           for c in $(git rev-list --no-merges ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}); do
             if ! git show -s --format=%B "$c" | grep -q '^Signed-off-by: '; then
-              echo "::error::$(git show -s --format='%h %s' "$c") is not signed off: see CONTRIBUTING.md"
+              echo "::error::$(git show -s --format='%h %s' "$c") is not signed off: see docs/CONTRIBUTING.md"
               missing=1
             fi
           done
