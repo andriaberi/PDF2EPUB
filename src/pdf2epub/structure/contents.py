@@ -1,11 +1,12 @@
 import re
 
 from pdf2epub.labels import label_level
+from pdf2epub.languages import all_words
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pdf import Page
 
 # Words a printed table of contents is headed with.
-TITLES = {"სარჩევი", "შინაარსი", "contents", "table of contents"}
+TITLES = all_words("contents_titles")
 
 # "Chapter 3 ........ 45", "თავი მესამე 45": an entry ending in its page number.
 ENTRY = re.compile(r"\S.*(\s|\.{2,}|…)\d{1,4}$")

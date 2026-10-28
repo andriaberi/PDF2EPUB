@@ -1,0 +1,27 @@
+name = "English"
+script = "LATIN"
+common = ["the", "and", "of", "to", "a", "in", "was", "it", "that", "he"]
+numbers = [
+    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+    "eleven", "twelve",
+]
+prefaces = ["foreword", "preface"]
+sections = ["introduction", "prologue", "epilogue", "afterword"]
+contents_titles = ["contents", "table of contents"]
+notes_titles = ["notes", "endnotes", "footnotes"]
+page_abbreviations = ["p", "pp", "page"]
+credits = ["translat", "edited", "publish"]
+the_end = ["the end", "end", "fin"]
+website = []
+
+[divisions]
+volume = ["volume"]
+part = ["part"]
+book = ["book"]
+chapter = ["chapter"]
+
+[headings]
+contents = "Contents"
+notes = "Notes"
+
+[romanisation]

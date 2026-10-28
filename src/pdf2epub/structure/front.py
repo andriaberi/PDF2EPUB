@@ -3,8 +3,8 @@ import statistics
 from difflib import SequenceMatcher
 
 from pdf2epub.labels import LABELS, is_preface
+from pdf2epub.languages import LANGUAGES, all_words, any_of
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.pdf.text import script_of
 
 from .models import Heading, Section
 
@@ -18,17 +18,10 @@ REPRINTED_TITLE_PAGE = 6
 # A note in brackets after the title: "ანა კარენინა (ტომი I)".
 BRACKETED = re.compile(r"\s*\([^)]*\)\s*$")
 
-# Georgian letters in Latin, the national romanisation, to compare with metadata
-# written in Latin: "ლევ ტოლსტოი" reads "lev tolstoi", close to "Leo Tolstoy".
-ROMANISATION = str.maketrans(
-    {
-        "ა": "a", "ბ": "b", "გ": "g", "დ": "d", "ე": "e", "ვ": "v", "ზ": "z", "თ": "t",
-        "ი": "i", "კ": "k", "ლ": "l", "მ": "m", "ნ": "n", "ო": "o", "პ": "p", "ჟ": "zh",
-        "რ": "r", "ს": "s", "ტ": "t", "უ": "u", "ფ": "p", "ქ": "k", "ღ": "gh", "ყ": "q",
-        "შ": "sh", "ჩ": "ch", "ც": "ts", "ძ": "dz", "წ": "ts", "ჭ": "ch", "ხ": "kh",
-        "ჯ": "j", "ჰ": "h",
-    }
-)  # fmt: skip
+# Letters in Latin, to compare with metadata written in Latin: "ლევ ტოლსტოი" reads
+# "lev tolstoi", close to "Leo Tolstoy".
+ROMANISED = {k: v for language in LANGUAGES.values() for k, v in language.romanisation.items()}
+ROMANISATION = str.maketrans(ROMANISED)
 
 # How alike a romanised line and the metadata must be to spell the same name.
 SAME_NAME = 0.75
@@ -42,8 +35,8 @@ MAX_BACK_MATTER = 6
 SET_RIGHT = 4
 YEAR = re.compile(r"\b(1[5-9]|20)\d\d\b")
 # ...or naming who made the book, or closing it: "მთარგმნელი: ...", "დასასრული".
-CREDIT = re.compile(r"თარგმ|რედაქტ|გამომცემ|translat|edited|publish", re.IGNORECASE)
-THE_END = {"დასასრული", "the end", "end", "fin"}
+CREDIT = re.compile(any_of(all_words("credits")), re.IGNORECASE)
+THE_END = all_words("the_end")
 
 # Text before the first heading that is more than this share of the book is the book
 # itself, its first chapters missed, not a title page or a translator's note.
@@ -194,15 +187,15 @@ def title_page_spelling(
 
 
 def same_name(name: str | None, lines: list[str]) -> str | None:
-    if not name or any(is_georgian(c) for c in name):
+    if not name or is_romanisable(name):
         return name
     # Metadata may name the volume too: "Ana karenina II".
     wanted = re.sub(r"\s+[IVX]+$", "", without_volume(name)).casefold()
     best, score = name, SAME_NAME
     for line in lines:
-        if not any(is_georgian(c) for c in line):
+        if not is_romanisable(line):
             continue
-        ratio = SequenceMatcher(None, line.translate(ROMANISATION).casefold(), wanted).ratio()
+        ratio = SequenceMatcher(None, line.casefold().translate(ROMANISATION), wanted).ratio()
         if ratio >= score:
             best, score = line, ratio
     return best
@@ -217,5 +210,5 @@ def without_volume(text: str) -> str:
     return text
 
 
-def is_georgian(char: str) -> bool:
-    return script_of(char) == "GEORGIAN"
+def is_romanisable(text: str) -> bool:
+    return any(c in ROMANISED for c in text.casefold())

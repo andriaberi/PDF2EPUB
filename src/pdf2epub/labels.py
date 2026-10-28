@@ -2,17 +2,12 @@
 
 import re
 
-# Division words, outermost first. Georgian: ტომი volume, ნაწილი part, წიგნი book,
-# თავი chapter.
+from pdf2epub.languages import LANGUAGES, all_words
+
+# Division words of every language, and their level, outermost first: ტომი and volume 1,
+# თავი and chapter 4.
 LABELS = {
-    "ტომი": 1,
-    "volume": 1,
-    "ნაწილი": 2,
-    "part": 2,
-    "წიგნი": 3,
-    "book": 3,
-    "თავი": 4,
-    "chapter": 4,
+    word: level for language in LANGUAGES.values() for word, level in language.divisions.items()
 }
 
 # "Chapter 12", "თავი მეორე", "მესამე ნაწილი": any one word as the number, since OCR
@@ -20,27 +15,18 @@ LABELS = {
 LABEL = re.compile(r"^(\w+)\s+(\w+|\d+\.|[IVXLCDM]+\.)$", re.IGNORECASE)
 
 # The number of a label run into its title, "თავი მეშვიდე ...": stricter than a
-# label alone, a numeral, a Georgian ordinal or an English number word.
+# label alone, a numeral or a language's number word, "მეორე", "two".
+NUMBER_WORDS = [pattern for language in LANGUAGES.values() for pattern in language.words["numbers"]]
 NUMBER_WORD = re.compile(
-    r"^(\d+\.?|[IVXLCDM]+\.?|პირველი|მე\w+ე|one|two|three|four|five|six|seven|eight|nine"
-    r"|ten|eleven|twelve)$",
+    r"^(\d+\.?|[IVXLCDM]+\.?" + "".join(f"|{pattern}" for pattern in NUMBER_WORDS) + ")$",
     re.IGNORECASE,
 )
 
 # Named sections the EPUB leaves out unless asked: forewords and prefaces.
-PREFACE_NAMES = {"წინათქმა", "წინასიტყვაობა", "წინასიტყვა", "foreword", "preface"}
+PREFACE_NAMES = all_words("prefaces")
 
 # Sections a book names instead of numbering. They sit at the book's outermost level.
-SECTION_NAMES = PREFACE_NAMES | {
-    "შესავალი",  # introduction
-    "პროლოგი",
-    "ეპილოგი",
-    "ბოლოთქმა",  # afterword
-    "introduction",
-    "prologue",
-    "epilogue",
-    "afterword",
-}
+SECTION_NAMES = PREFACE_NAMES | all_words("sections")
 
 # Chapters numbered without a label word sit below every labelled division.
 NUMBER_LEVEL = 5
