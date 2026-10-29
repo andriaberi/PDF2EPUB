@@ -1,6 +1,6 @@
 from typing import Any
 
-from pdf2epub.pdf.fonts import UNKNOWN, has_unknown, lost_letter, restore_letters
+from pdf2epub.pdf.fonts import UNKNOWN, has_unknown, lost_letter, restore_letters, type_letters
 
 
 def page(font: str, letters: list[str]) -> list[dict[str, Any]]:
@@ -45,3 +45,23 @@ def test_letters_matched_by_where_they_sit() -> None:
 def test_noto_sans_georgian_opening_quote() -> None:
     assert lost_letter("Noto Sans Georgian", 0x468) == "„"
     assert lost_letter("Noto Sans Georgian", 0x469) is None
+
+
+def test_a_keyboard_font_shows_georgian_letters() -> None:
+    blocks = page("FNTSBS+ProgTV,Bold", list("ithtrbkt,b"))
+    type_letters(blocks)
+    assert text(blocks) == "შერეკილები"
+
+
+def test_a_keyboard_fonts_symbol_keys_and_punctuation() -> None:
+    # As a symbol font gives them: U+F000 and the key; U+F020 is the space.
+    keys = "sfdb gbhdtkb- 'vhbs~ |@lf#=_1"
+    blocks = page("ProgTV", [chr(0xF000 + ord(key)) for key in keys])
+    type_letters(blocks)
+    assert text(blocks) == "თავი პირველი, ძმრით? :„და“.-1"
+
+
+def test_other_fonts_keep_their_letters() -> None:
+    blocks = page("Arial", list("ithtrbkt,b"))
+    type_letters(blocks)
+    assert text(blocks) == "ithtrbkt,b"
