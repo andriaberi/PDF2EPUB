@@ -11,14 +11,16 @@ It is made for Georgian books and handles English too.
 ## Features
 
 - Removes page numbers, running headers and website credits
-- Rebuilds paragraphs, including ones broken across pages
+- Rebuilds paragraphs, including ones broken across pages, double-spaced text, and
+  words broken at a line's end with or without a hyphen
 - Finds volumes, parts and chapters, and builds the table of contents from them. It
   follows the PDF's own outline when that matches the text; a book with no headings
   gets numbered chapters wherever it leaves a blank line
 - Links notes to their marks in the text, numbered or starred, and footnotes too
 - Keeps the line breaks of verse, and sets epigraphs apart under their chapter
 - Uses the PDF's cover, or an image you give it
-- Reads the Georgian letters of Word PDFs set in Sylfaen that lost them
+- Reads the Georgian letters of Word PDFs set in Sylfaen that lost them, and Georgian
+  typed in the old ProgTV font
 
 ## Installation
 
@@ -31,13 +33,13 @@ uv add "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git"
 ### Versions
 
 Every change to `main` that passes the checks is released on its own, numbered by the
-day: `1.2026.1025.1` is the first release of 25 October 2026, `1.2026.1025.2` the second,
+day: `1.2026.1028.1` is the first release of 28 October 2026, `1.2026.1028.2` the second,
 and 5 January 2027 starts at `1.2027.105.1`. Each is a tag and a
 [GitHub release](https://github.com/andriaberi/PDF2EPUB/releases) with its changes
 listed. To stay on one release, name its tag:
 
 ```sh
-uv add "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git@v1.2026.1025.1"
+uv add "pdf2epub @ git+https://github.com/andriaberi/PDF2EPUB.git@v1.2026.1028.1"
 ```
 
 The installed version is `pdf2epub.__version__`.
