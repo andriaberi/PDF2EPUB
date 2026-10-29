@@ -36,6 +36,14 @@ SAME_SIZE = 1.2
 # A scanned page is an image covering at least this share of the page.
 SCAN_AREA = 0.5
 
+# Some books put a space at the end of a line, or the start of the next, wherever the
+# break falls between words, at least this share of their line breaks, and break words
+# with no hyphen: there a line ending in a letter with no space after it breaks a word.
+SPACED_BREAKS = 0.5
+# Such a book breaks words on many lines, at least this share; a book that only seems to,
+# on a few, has lost the space at those breaks instead.
+MIN_BROKEN = 0.05
+
 
 def open_pdf(path: str) -> pymupdf.Document:
     """The PDF, ready to read, or a ReadError saying why it isn't."""
@@ -83,17 +91,50 @@ def read_pages(pages: list[pymupdf.Page]) -> list[Page]:
     every_line = [glyphs(line) for page in lines for line in page]
     advances = learn_advances(every_line)
     unspaced = lacks_spaces("".join(g.char for g in line) for line in every_line)
+    breaks = iter(word_breaks(every_line))
     return [
-        read_page(page, page_lines, advances, unspaced)
+        read_page(page, page_lines, advances, unspaced, [next(breaks) for _ in page_lines])
         for page, page_lines in zip(pages, lines, strict=True)
     ]
 
 
+def word_breaks(lines: list[list[Glyph]]) -> list[bool]:
+    """Which lines break a word with no hyphen to show it, in a book that marks the
+    breaks between words with a space (SPACED_BREAKS)."""
+    if not lines:
+        return []
+    spaced = [
+        ends_spaced(line) or starts_spaced(following)
+        for line, following in zip(lines, [*lines[1:], []], strict=True)
+    ]
+    if sum(spaced) < SPACED_BREAKS * len(lines):
+        return [False] * len(lines)
+    breaks = [
+        not space and bool(line) and line[-1].char.isalpha()
+        for line, space in zip(lines, spaced, strict=True)
+    ]
+    if sum(breaks) < MIN_BROKEN * len(lines):
+        return [False] * len(lines)
+    return breaks
+
+
+def ends_spaced(line: list[Glyph]) -> bool:
+    return bool(line) and line[-1].char.isspace()
+
+
+def starts_spaced(line: list[Glyph]) -> bool:
+    return bool(line) and line[0].char.isspace()
+
+
 def read_page(
-    page: pymupdf.Page, lines: list[dict[str, Any]], advances: Advances, unspaced: bool
+    page: pymupdf.Page,
+    lines: list[dict[str, Any]],
+    advances: Advances,
+    unspaced: bool,
+    breaks: list[bool] | None = None,
 ) -> Page:
     pieces: list[Line] = []
-    for line in lines:
+    for line, breaks_word in zip(lines, breaks or [False] * len(lines), strict=True):
         line_glyphs = glyphs(line)
         # A line too short to tell its letter-spacing has its block's.
         tracking = letter_spacing(line_glyphs, advances)
@@ -101,7 +142,8 @@ def read_page(
             tracking = letter_spacing(line["block"], advances) or 0.0
         text = spaced_text(line_glyphs, advances, tracking, unspaced)
         if text.strip():
-            pieces.append(Line(text, *line["bbox"]))
+            x0, y0, x1, y1 = line["bbox"]
+            pieces.append(Line(text, x0, y0, x1, y1, breaks_word=breaks_word))
 
     merged = [line for line in merge_rows(pieces) if line.text]
     return Page(page.number + 1, page.rect.width, page.rect.height, merged, scanned=is_scan(page))
@@ -179,6 +221,7 @@ def merge_rows(pieces: list[Line]) -> list[Line]:
                 y0=min(p.y0 for p in row),
                 x1=max(p.x1 for p in row),
                 y1=max(p.y1 for p in row),
+                breaks_word=row[-1].breaks_word,
             )
         )
     return merged

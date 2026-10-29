@@ -72,3 +72,22 @@ def test_pieces_of_one_printed_line_are_joined() -> None:
 def test_a_heading_level_with_an_epigraph_is_a_line_of_its_own() -> None:
     pieces = [Line("ნაწილი პირველი", 55, 415, 167, 437), Line("ჰობსი", 484, 411, 517, 424)]
     assert [line.text for line in merge_rows(pieces)] == ["ჰობსი", "ნაწილი პირველი"]
+
+
+def test_a_word_broken_without_a_hyphen_is_marked(make_pdf: MakePdf) -> None:
+    # Breaks between words have a space at the line's end or the next line's start.
+    lines = [
+        "It was a quiet eve",
+        "ning in the village ",
+        "and the lamps were",
+        " lit one by one ",
+        "along the narrow ",
+        "street.",
+    ]
+    book = read_pdf(make_pdf([lines]))
+    assert [line.breaks_word for line in book.pages[0].lines] == [True] + [False] * 5
+
+
+def test_lines_without_spaces_at_their_ends_break_no_words(make_pdf: MakePdf) -> None:
+    book = read_pdf(make_pdf([["It was a quiet", "evening in the", "village."]]))
+    assert not any(line.breaks_word for line in book.pages[0].lines)
