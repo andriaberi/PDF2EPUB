@@ -67,7 +67,7 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
 
     texts = [page for page in pages if page.lines]
     for number, page in enumerate(texts):
-        layout = fit(measure(page), column, page)
+        layout = fit(measure(page, column.usual_gap), column, page)
         verse = find_verse(page.lines, layout)
         next_page = texts[number + 1].lines if number + 1 < len(texts) else []
         for index, line in enumerate(page.lines):
