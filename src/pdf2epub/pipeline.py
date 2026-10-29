@@ -24,6 +24,7 @@ from pdf2epub.structure import (
 
 # The steps convert() tells its progress callback, in order; read_book() tells the first three.
 STEPS = ("Reading the PDF", "Finding paragraphs", "Finding chapters", "Writing the EPUB")
+READING, PARAGRAPHS, CHAPTERS, WRITING = STEPS
 
 # How many of a book's problems an error names.
 MAX_PROBLEMS = 5
@@ -54,7 +55,7 @@ def convert(
 ) -> Result:
     """Convert the PDF to an EPUB at `output`, telling `progress` each step as it starts."""
     book = read_book(options, progress)
-    progress("Writing the EPUB")
+    progress(WRITING)
     return write_book(book, output, options.credit)
 
 
@@ -62,13 +63,13 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
     """Find the book in the PDF, telling `progress` each step as it starts."""
     # Check the cover file first, so a typo fails before the slow part.
     fallback_cover = load_cover(options.cover) if options.cover else None
-    progress("Reading the PDF")
+    progress(READING)
     pdf_book = read_pdf(options.pdf, options.pages)
 
-    progress("Finding paragraphs")
+    progress(PARAGRAPHS)
     pages = drop_printed_contents(pdf_book.pages)
     paragraphs = build_paragraphs(pages)
-    progress("Finding chapters")
+    progress(CHAPTERS)
     sections = build_sections(paragraphs, pages, pdf_book.outline)
 
     pdf = Path(options.pdf)
