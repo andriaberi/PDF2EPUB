@@ -8,6 +8,8 @@ class Line:
     y0: float
     x1: float
     y1: float
+    # Ends partway through a word that the next line finishes, with no hyphen to show it.
+    breaks_word: bool = False
 
     @property
     def height(self) -> float:
