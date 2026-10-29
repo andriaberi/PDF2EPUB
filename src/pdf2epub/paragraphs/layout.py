@@ -25,6 +25,11 @@ SET_APART = 4
 MIN_OWN_MARGIN = 10
 MIN_FULL = 0.3
 
+# The widest gap between lines, in line heights, taken as usual on a page: a title page's
+# few spread-out lines have wide gaps that aren't. A book set wider throughout, such as
+# double-spaced, has its own width instead.
+USUAL_GAP = 0.5
+
 # Text that stops above this share of the page height ends the page early.
 FULL_PAGE = 0.75
 
@@ -88,28 +93,40 @@ class Layout:
     indents: bool = False
     # The book has space between lines mid-sentence too, so space alone ends nothing.
     loose: bool = False
+    # The widest gap between lines taken as usual, in line heights (USUAL_GAP).
+    usual_gap: float = USUAL_GAP
     # The book's lines run to the right margin, all but a paragraph's last.
     justified: bool = False
 
 
-def measure(page: Page) -> Layout:
+def measure(page: Page, usual_gap: float = USUAL_GAP) -> Layout:
     lines = page.lines
     line_height = statistics.median(line.height for line in lines)
-    gaps = [below.y0 - above.y1 for above, below in pairwise(lines)]
-    # On a title page with a few spread-out lines every gap is wide; don't call that usual.
-    gap = min(max(statistics.median(gaps), 0), line_height / 2) if gaps else 0
+    gap = min(spread(page), usual_gap) * line_height
     return Layout(
         left=statistics.median(line.x0 for line in lines),
         right=statistics.median(line.x1 for line in lines),
         line_height=line_height,
         gap=gap,
         height=page.height,
+        usual_gap=usual_gap,
     )
+
+
+def spread(page: Page) -> float:
+    """The page's usual gap between lines, in line heights."""
+    line_height = statistics.median(line.height for line in page.lines)
+    gaps = [below.y0 - above.y1 for above, below in pairwise(page.lines)]
+    return max(statistics.median(gaps), 0) / line_height if gaps and line_height else 0
 
 
 def text_column(pages: list[Page]) -> Layout:
     """The book's usual text column."""
-    layouts = [measure(page) for page in measured(pages)] or [
+    full = measured(pages)
+    usual_gap = (
+        max(USUAL_GAP, statistics.median(spread(page) for page in full)) if full else USUAL_GAP
+    )
+    layouts = [measure(page, usual_gap) for page in full] or [
         measure(page) for page in pages if page.lines
     ]
     step, loose = spacing(pages)
@@ -123,6 +140,7 @@ def text_column(pages: list[Page]) -> Layout:
         indents=indents(pages),
         loose=loose,
         justified=is_justified(pages),
+        usual_gap=usual_gap,
     )
 
 
