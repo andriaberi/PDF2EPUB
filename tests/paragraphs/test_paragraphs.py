@@ -28,6 +28,19 @@ def test_rejoins_hyphenated_words() -> None:
     assert texts([p]) == ["შვილი არ დარჩენია. როგორ"]
 
 
+def test_rejoins_words_broken_without_a_hyphen() -> None:
+    first = Line("სანამ ძარღ", LEFT, 100, RIGHT, 110, breaks_word=True)
+    p = page(1, first, line(114, "ვი არ გაუწყვეტია.", x1=150))
+    assert texts([p]) == ["სანამ ძარღვი არ გაუწყვეტია."]
+
+
+def test_a_word_broken_without_a_hyphen_keeps_its_paragraph() -> None:
+    # The second line is indented, as a paragraph's first is, but finishes a word.
+    first = Line("მიწა ღორღიან", LEFT, 100, 300, 110, breaks_word=True)
+    p = page(1, first, line(114, "ია, თესლს კი ჩაიტევს.", x0=INDENT, x1=150))
+    assert texts([p]) == ["მიწა ღორღიანია, თესლს კი ჩაიტევს."]
+
+
 def test_keeps_hyphen_before_a_non_letter() -> None:
     p = page(1, line(100, "ten-"), line(114, "20 years", x1=150))
     assert texts([p]) == ["ten- 20 years"]

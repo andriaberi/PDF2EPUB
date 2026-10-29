@@ -1,4 +1,5 @@
 import re
+from itertools import pairwise
 
 from pdf2epub.labels import is_section_name, label_level, numeral_value, split_label
 from pdf2epub.pdf import Line, Page
@@ -111,7 +112,10 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
                     section = int(opening.group(1))
             else:
                 last = paragraphs[-1]
-                last.text = f"{last.text} {line.text}" if last.verse else join(last.text, line.text)
+                if last.verse:
+                    last.text = f"{last.text} {line.text}"
+                else:
+                    last.text = join(last.text, line.text, last.lines[-1].breaks_word)
                 last.lines.append(line)
             previous = (line, layout)
 
@@ -127,10 +131,11 @@ def starts_paragraph(
     below: Line | None = None,
 ) -> bool:
     """`heading` is the paragraph so far when it started far below the text: maybe a heading."""
-    # A broken word, a lone dialogue dash or a quote opened at the line's end carries
-    # on, whatever the layout: "სიტყვა „აღსდგა“ - „" / "Redivivus".
+    # A broken word, with a hyphen or without, a lone dialogue dash or a quote opened at
+    # the line's end carries on, whatever the layout: "სიტყვა „აღსდგა“ - „" / "Redivivus".
     if previous is not None and (
         breaks_word(previous[0].text)
+        or previous[0].breaks_word
         or previous[0].text in SPEECH_DASHES
         or previous[0].text.endswith(OPENING_QUOTES)
     ):
@@ -274,10 +279,13 @@ def breaks_word(text: str) -> bool:
     return text.endswith("-") and text[-2:-1].isalpha()
 
 
-def join(text: str, line: str) -> str:
-    """Add a line to a paragraph, rejoining a word broken by a hyphen."""
+def join(text: str, line: str, word_goes_on: bool = False) -> str:
+    """Add a line to a paragraph, rejoining a word broken by a hyphen, or with none
+    when the line above is known to break one."""
     if breaks_word(text) and line[:1].isalpha():
         return text[:-1] + line
+    if word_goes_on and line[:1].isalpha():
+        return text + line
     if CLOSES.match(line) or text.endswith(OPENING_QUOTES):
         return text + line
     return f"{text} {line}"
@@ -286,8 +294,8 @@ def join(text: str, line: str) -> str:
 def join_lines(lines: list[Line]) -> str:
     """The lines' text run together as one paragraph's."""
     text = lines[0].text
-    for line in lines[1:]:
-        text = join(text, line.text)
+    for above, line in pairwise(lines):
+        text = join(text, line.text, above.breaks_word)
     return text
 
 
