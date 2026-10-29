@@ -18,7 +18,7 @@ from pdf2epub.pipeline import (
 try:
     __version__ = version(
         "pdf2epub"
-    )  # "2026.1025.1": the year, month and day, the release that day
+    )  # "1.2026.1025.1": the major version, then the year, month and day, the release that day
 except PackageNotFoundError:  # run from the source folder without installing
     __version__ = "0"
 

@@ -49,6 +49,17 @@ def test_gap_starts_a_paragraph() -> None:
     assert texts([p]) == ["თავი პირველი", "ბატონი მირიელი"]
 
 
+def test_double_spaced_lines_join() -> None:
+    # Lines 10 high, 30 apart: twice the line's height between each.
+    lines = [line(100 + 30 * n, f"word{n}", x0=INDENT if n % 6 == 0 else LEFT) for n in range(12)]
+    lines[5] = line(250, "word5.", x1=150)
+    lines[11] = line(430, "word11.", x1=150)
+    assert texts([page(1, *lines)]) == [
+        "word0 word1 word2 word3 word4 word5.",
+        "word6 word7 word8 word9 word10 word11.",
+    ]
+
+
 def test_line_in_a_bigger_font_stands_alone() -> None:
     p = page(
         1,
