@@ -2,7 +2,7 @@ import re
 from itertools import pairwise
 
 from pdf2epub.labels import is_section_name, label_level, numeral_value, split_label
-from pdf2epub.pdf import Line, Page
+from pdf2epub.pdf import Line, Page, Picture
 from pdf2epub.pdf.text import NOTE_MARK, script_of
 
 from .layout import (
@@ -88,6 +88,8 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
             if index in verse:
                 # Verse goes on line by line until a stanza ends; text never joins it.
                 starts = verse[index] or not paragraphs or not paragraphs[-1].verse
+            elif above is not None and runs_past_picture(above, line, page.pictures):
+                starts = False
             else:
                 heading = paragraphs[-1] if apart else None
                 starts = (
@@ -106,14 +108,21 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
                     and ends_sentence(above.text)
                 )
                 paragraphs[-1].apart = apart
+                # A picture at the page's edge moves the text, as a blank line does.
+                before = texts[number - 1] if number else None
                 paragraphs[-1].after_page_gap = (
                     above is None
                     and previous is not None
                     and (
-                        ends_with_blank_line(*previous, bottom)
+                        (
+                            ends_with_blank_line(*previous, bottom)
+                            and before is not None
+                            and not any(p.y0 >= previous[0].y1 for p in before.pictures)
+                        )
                         or (
                             ends_sentence(previous[0].text)
                             and starts_with_blank_line(line, layout, top)
+                            and not any(p.y1 <= line.y0 for p in page.pictures)
                         )
                     )
                 )
@@ -194,6 +203,13 @@ def starts_paragraph(
         return False
     # A short line ending a sentence closes its paragraph, across a page break too.
     return previous is not None and ends_paragraph(*previous)
+
+
+def runs_past_picture(above: Line, line: Line, pictures: list[Picture]) -> bool:
+    """A sentence going on below a picture printed in the middle of it."""
+    return not ends_sentence(above.text) and any(
+        above.y1 <= picture.y0 and picture.y1 <= line.y0 for picture in pictures
+    )
 
 
 def starts_next_section(

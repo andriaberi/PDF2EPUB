@@ -29,6 +29,17 @@ class Footnote:
 
 
 @dataclass
+class Picture:
+    """A picture printed on a page, as a JPEG."""
+
+    data: bytes
+    width: int  # in pixels
+    height: int
+    y0: float  # where it is printed on its page
+    y1: float
+
+
+@dataclass
 class Page:
     number: int  # 1-based
     width: float
@@ -38,6 +49,8 @@ class Page:
     scanned: bool = False
     # The notes at its foot whose marks in its text could be told: raised digits.
     footnotes: list[Footnote] = field(default_factory=list)
+    # The pictures printed on it, top to bottom.
+    pictures: list[Picture] = field(default_factory=list)
 
 
 @dataclass

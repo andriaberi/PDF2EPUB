@@ -4,12 +4,12 @@ from typing import Any
 
 import pytest
 
-from pdf2epub.book import Book, HeadingBlock, TextBlock, without_marks
+from pdf2epub.book import Book, HeadingBlock, PictureBlock, TextBlock, without_marks
 from pdf2epub.cover import Cover
 from pdf2epub.epub import Metadata
 from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.pdf import Line
+from pdf2epub.pdf import Line, Picture
 from pdf2epub.structure import Heading, Note, Section
 
 ONE = Note("note-1", "1", "The first volume's note.")
@@ -326,3 +326,40 @@ def test_a_styled_scene_break_stays_as_printed() -> None:
         METADATA, [Section(None, [Paragraph("* * *", 1, [stars])])], [], None, "no cover"
     )
     assert isinstance(block := book.blocks[0], TextBlock) and block.text == "* * *"
+
+
+def pictured_book() -> Book:
+    picture = Paragraph("", 2, picture=Picture(b"\xff\xd8 picture", 300, 200, 10, 20))
+    sections = [Section(None, [Paragraph("Text.", 1, [line("x")]), picture])]
+    return Book.from_sections(METADATA, sections, [], None, "no cover")
+
+
+def test_a_picture_is_a_block_of_its_own() -> None:
+    _, picture = pictured_book().blocks
+    assert isinstance(picture, PictureBlock)
+    assert (picture.page, picture.data, picture.width, picture.height) == (
+        2,
+        b"\xff\xd8 picture",
+        300,
+        200,
+    )
+    (section,) = pictured_book().sections()
+    assert section.paragraphs[1].picture is not None
+    assert section.paragraphs[1].picture.data == b"\xff\xd8 picture"
+
+
+def test_a_picture_reads_back_from_data() -> None:
+    book = pictured_book()
+    data = json.loads(json.dumps(book.to_dict()))
+    assert data["blocks"][1]["type"] == "picture"
+    assert Book.from_dict(data) == book
+
+
+def test_a_picture_must_be_a_jpeg() -> None:
+    book = pictured_book()
+    picture = book.blocks[1]
+    assert isinstance(picture, PictureBlock)
+    picture.data = b"GIF89a"
+    assert book.problems() == [
+        "block 'b2': a picture must be a JPEG image with its width and height"
+    ]

@@ -9,12 +9,14 @@ from pdf2epub.book import TextBlock
 from pdf2epub.cover import Cover
 from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.paragraphs import Paragraph
+from pdf2epub.pdf import Line, Page, Picture
 from pdf2epub.pipeline import (
     STEPS,
     Options,
     choose_cover,
     convert,
     place_by_page,
+    place_pictures,
     read_book,
     with_left_out,
     write_book,
@@ -229,3 +231,62 @@ def test_bad_cover_file_is_reported(make_pdf: Callable[..., str], tmp_path: Path
 def test_bad_page_range_is_reported(make_pdf: Callable[..., str]) -> None:
     with pytest.raises(ConvertError, match="invalid page range: '3-1'"):
         read_book(Options(pdf=make_pdf([["Hello world."]]), pages="3-1"))
+
+
+def text(content: str, page: int, y: float, role: str = "body") -> Paragraph:
+    return Paragraph(content, page, [Line(content, 50, y, 350, y + 10)], role=role)
+
+
+def pictured(page: int, y: float) -> list[list[str]]:
+    """Where a picture printed on `page` at `y` goes: shown as "#"."""
+    sections = [
+        Section(None, [text("Front", 1, 100, role="front")]),
+        Section(Heading(1, "Chapter 1", page=3), [text("A", 3, 200), text("B", 4, 300)]),
+        Section(Heading(1, "Chapter 2", page=5), [text("C", 5, 200)]),
+    ]
+    picture = Picture(b"\xff\xd8", 10, 10, y, y + 50)
+    pages = [Page(n, 400, 600, [], pictures=[picture] if n == page else []) for n in range(1, 6)]
+    return [
+        ["#" if p.picture else p.text for p in section.paragraphs]
+        for section in place_pictures(sections, pages)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("page", "y", "where"),
+    [
+        (1, 50, [["#", "Front"], ["A", "B"], ["C"]]),
+        (2, 100, [["Front", "#"], ["A", "B"], ["C"]]),
+        (3, 100, [["Front"], ["#", "A", "B"], ["C"]]),
+        (3, 250, [["Front"], ["A", "#", "B"], ["C"]]),
+        (4, 400, [["Front"], ["A", "B", "#"], ["C"]]),
+        (5, 400, [["Front"], ["A", "B"], ["C", "#"]]),
+    ],
+)
+def test_pictures_placed_where_they_are_printed(
+    page: int, y: float, where: list[list[str]]
+) -> None:
+    assert pictured(page, y) == where
+
+
+def test_a_picture_takes_the_role_of_the_text_after_it() -> None:
+    sections = [Section(None, [text("Title", 1, 300, role="title-page")])]
+    pages = [Page(1, 400, 600, [], pictures=[Picture(b"\xff\xd8", 10, 10, 100, 200)])]
+    picture, _ = place_pictures(sections, pages)[0].paragraphs
+    assert picture.role == "title-page"
+
+
+def test_pictures_are_written_into_the_epub(
+    make_picture_pdf: Callable[..., str], tmp_path: Path
+) -> None:
+    output = tmp_path / "book.epub"
+    result = convert(Options(pdf=make_picture_pdf({1: [(100, 200, 300, 300)]})), output)
+    assert result.pictures == 1
+    epub = zipfile.ZipFile(output)
+    assert epub.read("EPUB/images/picture-0001.jpg").startswith(b"\xff\xd8")
+    assert (
+        'href="images/picture-0001.jpg" media-type="image/jpeg"'
+        in epub.read("EPUB/content.opf").decode()
+    )
+    pages = [epub.read(name).decode() for name in epub.namelist() if name.startswith("EPUB/text/")]
+    assert sum('<img src="../images/picture-0001.jpg" alt=""/>' in page for page in pages) == 1

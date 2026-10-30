@@ -3,7 +3,7 @@
 
 from importlib.metadata import PackageNotFoundError, version
 
-from pdf2epub.book import Book, HeadingBlock, TextBlock
+from pdf2epub.book import Book, HeadingBlock, PictureBlock, TextBlock
 from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.pdf import render_page
 from pdf2epub.pipeline import (
@@ -28,6 +28,7 @@ __all__ = [
     "ConvertError",
     "HeadingBlock",
     "Options",
+    "PictureBlock",
     "Result",
     "TextBlock",
     "convert",
