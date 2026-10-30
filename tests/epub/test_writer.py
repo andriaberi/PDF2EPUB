@@ -237,3 +237,11 @@ def test_long_section_goes_on_over_several_pages(
     notes = epub.read("EPUB/notes.xhtml").decode()
     assert 'href="text/section-0001.xhtml#ref-note-1"' in notes
     assert 'href="text/section-0003.xhtml#ref-note-2"' in notes
+
+
+def test_italics_and_bold_are_kept(tmp_path: Path) -> None:
+    path = tmp_path / "book.epub"
+    sections = [Section(None, [paragraph("A <i>very</i> good day & <b>not</b> over.")])]
+    write_epub(path, sections, METADATA)
+    page = zipfile.ZipFile(path).read("EPUB/text/section-0001.xhtml").decode()
+    assert "<p>A <em>very</em> good day &amp; <strong>not</strong> over.</p>" in page

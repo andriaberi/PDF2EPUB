@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
 
+# How a run of text is set: "i" italic, "b" bold, "bi" both, "" plain.
+ITALIC, BOLD = "i", "b"
+
 
 @dataclass
 class Line:
@@ -10,6 +13,9 @@ class Line:
     y1: float
     # Ends partway through a word that the next line finishes, with no hyphen to show it.
     breaks_word: bool = False
+    # The line as printed, run by run with each run's style, when any of it is in
+    # italics or bold; empty when it is all plain.
+    runs: list[tuple[str, str]] = field(default_factory=list)
 
     @property
     def height(self) -> float:

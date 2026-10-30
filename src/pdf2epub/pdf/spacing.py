@@ -38,6 +38,7 @@ class Glyph(NamedTuple):
     font: str
     right: float | None = None  # where its box ends
     raised: bool = False  # a digit of a note mark set above the line: "pneumonia⁷⁹"
+    style: str = ""  # see Line.runs
 
 
 # A letter's usual advance in a font, in font sizes: (font, char) -> advance.
@@ -72,7 +73,15 @@ def spaced_text(
 ) -> str:
     """The line's text with a space at every word break and nowhere else. `tracking` is
     its letter-spacing; `unspaced`, a book without spaces, where punctuation ends words."""
-    text: list[str] = []
+    return "".join(char for char, _ in spaced_chars(glyphs, advances, tracking, unspaced))
+
+
+def spaced_chars(
+    glyphs: list[Glyph], advances: Advances, tracking: float = 0.0, unspaced: bool = False
+) -> list[tuple[str, str]]:
+    """The characters of spaced_text(), each with the style of the letter it is, or of
+    the letter before a space put in."""
+    text: list[tuple[str, str]] = []
     previous = None
     spaced = False  # a space character since the previous letter
     for glyph in glyphs:
@@ -81,17 +90,17 @@ def spaced_text(
             continue
         in_mark = previous is not None and previous.raised
         if in_mark and not glyph.raised:
-            text.append(RAISED_CLOSE)
+            text.append((RAISED_CLOSE, ""))
         # A raised note mark keeps to the word it follows: "pneumonia⁅79⁆".
         if glyph.raised and not in_mark:
-            text.append(RAISED_OPEN)
+            text.append((RAISED_OPEN, ""))
         elif previous and is_word_break(previous, glyph, advances, tracking, spaced, unspaced):
-            text.append(" ")
-        text.append(glyph.char)
+            text.append((" ", previous.style))
+        text.append((glyph.char, glyph.style))
         previous, spaced = glyph, False
     if previous is not None and previous.raised:
-        text.append(RAISED_CLOSE)
-    return "".join(text)
+        text.append((RAISED_CLOSE, ""))
+    return text
 
 
 def letter_spacing(glyphs: list[Glyph], advances: Advances) -> float | None:

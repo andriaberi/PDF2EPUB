@@ -229,3 +229,33 @@ def test_footnote_under_a_page_of_short_dialogue() -> None:
     p = page(1, *rows, (rows[-1][0] + 40, "1 შენიშვნა."), scanned=False)
     p.lines[0].text = "— ტექსტი⁅1⁆."
     assert [f.text for f in remove_noise([p])[0].footnotes] == ["შენიშვნა."]
+
+
+def test_footnote_with_its_mark_in_the_texts_size_is_linked() -> None:
+    p = body(1, 30, (500, "12 ფილტვების ანთება (ლათ.)."))
+    p.scanned = False
+    p.lines[3].text = "დიახ, pneumonia.12 გახლავთ, 1912 წელს."
+    [result] = remove_noise([p])
+    assert result.footnotes == [Footnote("1", "ფილტვების ანთება (ლათ.).")]
+    assert result.lines[3].text == "დიახ, pneumonia.[1] გახლავთ, 1912 წელს."
+
+
+def test_starred_footnotes_are_linked_in_order() -> None:
+    p = body(1, 30, (500, "* პირველი შენიშვნა."), (513, "** მეორე შენიშვნა."))
+    p.scanned = False
+    p.lines[2].text = "ერთი სიტყვა* და მეორე**."
+    [result] = remove_noise([p])
+    assert [(f.mark, f.text) for f in result.footnotes] == [
+        ("1", "პირველი შენიშვნა."),
+        ("2", "მეორე შენიშვნა."),
+    ]
+    assert result.lines[2].text == "ერთი სიტყვა[1] და მეორე[2]."
+
+
+def test_a_number_standing_alone_is_not_a_mark() -> None:
+    p = body(1, 30, (500, "7 შენიშვნა."))
+    p.scanned = False
+    p.lines[3].text = "მოვიდა 7 კაცი."
+    [result] = remove_noise([p])
+    assert result.footnotes == []
+    assert result.lines[3].text == "მოვიდა 7 კაცი."
