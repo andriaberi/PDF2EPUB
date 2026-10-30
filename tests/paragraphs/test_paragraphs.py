@@ -1,5 +1,5 @@
 from pdf2epub.paragraphs import Paragraph, build_paragraphs
-from pdf2epub.pdf import Line, Page
+from pdf2epub.pdf import Line, Page, Picture
 
 LEFT = 45.0
 RIGHT = 385.0
@@ -519,4 +519,22 @@ def test_page_starting_low_mid_sentence_marks_nothing() -> None:
 
 def test_page_starting_one_line_low_marks_nothing() -> None:
     pages = [book_page(1), book_page(2), book_page(3, rows=29, top=54), book_page(4)]
+    assert not any(p.after_page_gap for p in build_paragraphs(pages))
+
+
+def test_a_sentence_runs_on_past_a_picture() -> None:
+    p = page(1, line(100, "the sentence goes"), line(400, "on below the picture."))
+    p.pictures = [Picture(b"", 10, 10, 120, 380)]
+    assert texts([p]) == ["the sentence goes on below the picture."]
+
+
+def test_a_picture_at_a_pages_head_is_no_blank_line() -> None:
+    pages = [book_page(1), book_page(2), book_page(3, rows=28, top=68), book_page(4)]
+    pages[2].pictures = [Picture(b"", 10, 10, 40, 60)]
+    assert not any(p.after_page_gap for p in build_paragraphs(pages))
+
+
+def test_a_picture_at_a_pages_foot_is_no_blank_line() -> None:
+    pages = [book_page(1), book_page(2, rows=28), book_page(3), book_page(4)]
+    pages[1].pictures = [Picture(b"", 10, 10, 440, 460)]
     assert not any(p.after_page_gap for p in build_paragraphs(pages))
