@@ -156,8 +156,8 @@ def package_document(
     metadata: Metadata,
     has_cover: bool,
     has_notes: bool,
-    credit: bool = True,
-    pictures: list[str] | None = None,
+    credit: bool,
+    pictures: list[str],
 ) -> str:
     modified = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     creator = f"<dc:creator>{escape(metadata.author)}</dc:creator>\n" if metadata.author else ""
@@ -171,7 +171,7 @@ def package_document(
     )
     images = "".join(
         f'\n<item id="picture{number}" href="{file}" media-type="image/jpeg"/>'
-        for number, file in enumerate(pictures or [], start=1)
+        for number, file in enumerate(pictures, start=1)
     )
     spine = "\n".join(f'<itemref idref="s{number}"/>' for number in range(1, len(files) + 1))
     # The cover-image property is EPUB 3; the "cover" meta is for older readers.
