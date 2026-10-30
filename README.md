@@ -72,6 +72,7 @@ order.
 | `author` | The book's author. Default: from the PDF. |
 | `language` | The book's language, such as `"ka"` or `"en"`. Default: detected. |
 | `cover` | A cover image, a path or its bytes, used when the PDF has no cover of its own. |
+| `pictures` | Keep the pictures printed in the book. Default: `True`. |
 | `credit` | Name PDF2EPUB in the EPUB's metadata, as its producer and with the release that wrote it. Readers don't show it. Default: `True`; `write_book` takes it too. |
 
 The EPUB can be written to a path or to a binary file object such as `io.BytesIO`.
