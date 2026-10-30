@@ -304,3 +304,25 @@ def test_upload_that_is_not_an_image_is_a_conversion_error() -> None:
     with pytest.raises(ConvertError, match="not an image"):
         book.set_cover(b"hello")
     assert book.cover_source == "cover from the PDF"
+
+
+def test_text_keeps_its_italics_in_tags() -> None:
+    styled = Line(
+        "a very good day", 0, 0, 0, 0, runs=[("a ", ""), ("very", "i"), (" good day", "")]
+    )
+    sections = [
+        Section(None, [Paragraph("a very good day", 1, [styled])]),
+        Section(None, [Paragraph("a very good day", 1, [styled], verse=True)]),
+    ]
+    prose, verse = Book.from_sections(METADATA, sections, [], None, "no cover").blocks
+    assert isinstance(prose, TextBlock) and isinstance(verse, TextBlock)
+    assert prose.text == "a <i>very</i> good day"
+    assert verse.lines == ["a <i>very</i> good day"]
+
+
+def test_a_styled_scene_break_stays_as_printed() -> None:
+    stars = Line("* * *", 0, 0, 0, 0, runs=[("* * *", "b")])
+    book = Book.from_sections(
+        METADATA, [Section(None, [Paragraph("* * *", 1, [stars])])], [], None, "no cover"
+    )
+    assert isinstance(block := book.blocks[0], TextBlock) and block.text == "* * *"
