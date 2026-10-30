@@ -16,7 +16,8 @@ class Paragraph:
     verse: bool = False  # keeps its line breaks: a poem, a list
     # Starts far below the finished text above it, as a heading set in the text does.
     apart: bool = False
-    # Starts a page after one whose text ended a blank line or more short of the bottom.
+    # Starts a page after one whose text ended a blank line or more short of the bottom,
+    # or starts a blank line or more below the top after a finished sentence.
     after_page_gap: bool = False
     # A quotation set under a heading, and the line naming whose it is.
     epigraph: bool = False

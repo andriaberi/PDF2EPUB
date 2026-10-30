@@ -135,9 +135,10 @@ used.
 
 - Scanned PDFs need a text layer first. `ocrmypdf` can add one.
 - Chapters are found by their headings ("თავი I", "Chapter 3", "XII"), or by blank
-  lines in a book with none. A blank line at the top or bottom of a page can't be
-  seen, so such a chapter break is missed. A book with neither comes out as one text,
-  listed by its title.
+  lines in a book with none. A blank line at a page's top or foot is seen by the page
+  starting lower or ending higher than the book's pages do; one that falls exactly
+  between two full pages can't be seen, so such a chapter break is missed. A book
+  with neither headings nor blank lines comes out as one text, listed by its title.
 - Footnotes at the bottom of a page are linked when their marks are set raised in the
   text, as Word sets them, or glued to the word they follow: "word12", "word.12",
   "word*". A footnote whose mark isn't found on its page is removed.

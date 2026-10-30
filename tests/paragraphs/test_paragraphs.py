@@ -477,11 +477,13 @@ def test_text_before_a_bracketed_translation_carries_on() -> None:
     assert "gone. nothing but prima materia (the first matter" in texts([p])[-1]
 
 
-def book_page(number: int, rows: int = 30, last: str = "the end of a sentence.") -> Page:
-    """Indented paragraphs of three lines, `rows` lines from the top."""
+def book_page(
+    number: int, rows: int = 30, last: str = "the end of a sentence.", top: float = 40
+) -> Page:
+    """Indented paragraphs of three lines, `rows` lines from `top`."""
     lines = [
         line(
-            40 + 14 * row,
+            top + 14 * row,
             last if row == rows - 1 else "text goes on",
             x0=INDENT if row % 3 == 0 else LEFT,
         )
@@ -500,4 +502,21 @@ def test_page_ending_a_blank_line_short_marks_the_next_page() -> None:
 
 def test_page_one_line_short_marks_nothing() -> None:
     pages = [book_page(1), book_page(2, rows=29), book_page(3), book_page(4)]
+    assert not any(p.after_page_gap for p in build_paragraphs(pages))
+
+
+def test_page_starting_a_blank_line_low_is_marked() -> None:
+    pages = [book_page(1), book_page(2), book_page(3, rows=28, top=68), book_page(4)]
+    paragraphs = build_paragraphs(pages)
+    assert [p.page for p in paragraphs if p.after_page_gap] == [3]
+    assert not any(p.apart for p in paragraphs)
+
+
+def test_page_starting_low_mid_sentence_marks_nothing() -> None:
+    pages = [book_page(1), book_page(2, last="text goes on"), book_page(3, rows=28, top=68)]
+    assert not any(p.after_page_gap for p in build_paragraphs(pages))
+
+
+def test_page_starting_one_line_low_marks_nothing() -> None:
+    pages = [book_page(1), book_page(2), book_page(3, rows=29, top=54), book_page(4)]
     assert not any(p.after_page_gap for p in build_paragraphs(pages))
