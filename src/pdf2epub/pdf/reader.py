@@ -1,3 +1,6 @@
+import re
+from collections import Counter
+from itertools import groupby
 from pathlib import Path
 from typing import Any
 
@@ -7,7 +10,7 @@ from pdf2epub.errors import ConvertError
 
 from .fonts import has_unknown, restore_letters, type_letters
 from .language import book_language
-from .models import Book, Line, OutlineEntry, Page
+from .models import BOLD, ITALIC, Book, Line, OutlineEntry, Page
 from .noise import remove_noise
 from .pages import parse_pages
 from .spacing import (
@@ -16,7 +19,7 @@ from .spacing import (
     lacks_spaces,
     learn_advances,
     letter_spacing,
-    spaced_text,
+    spaced_chars,
 )
 from .text import clean_text
 
@@ -43,6 +46,15 @@ SPACED_BREAKS = 0.5
 # Such a book breaks words on many lines, at least this share; a book that only seems to,
 # on a few, has lost the space at those breaks instead.
 MIN_BROKEN = 0.05
+
+# Font names that tell a font's style where its flags don't: "Sylfaen,Bold",
+# "LiberationSerif-Italic".
+ITALIC_NAME = re.compile("italic|oblique", re.IGNORECASE)
+BOLD_NAME = re.compile("bold", re.IGNORECASE)
+
+# A style at least this share of the book's text is set in is its text's own, not
+# emphasis: a book printed in italics throughout.
+USUAL_STYLE = 0.5
 
 
 def open_pdf(path: str) -> pymupdf.Document:
@@ -92,10 +104,29 @@ def read_pages(pages: list[pymupdf.Page]) -> list[Page]:
     advances = learn_advances(every_line)
     unspaced = lacks_spaces("".join(g.char for g in line) for line in every_line)
     breaks = iter(word_breaks(every_line))
-    return [
+    read = [
         read_page(page, page_lines, advances, unspaced, [next(breaks) for _ in page_lines])
         for page, page_lines in zip(pages, lines, strict=True)
     ]
+    drop_usual_style(read)
+    return read
+
+
+def drop_usual_style(pages: list[Page]) -> None:
+    """Take out of the lines' runs any style most of the book is set in."""
+    lines = [line for page in pages for line in page.lines]
+    counts: Counter[str] = Counter()
+    for line in lines:
+        for text, style in line.runs or [(line.text, "")]:
+            size = len(text.strip())
+            counts.update(dict.fromkeys(style, size))
+            counts["all"] += size
+    usual = "".join(kind for kind in (BOLD, ITALIC) if counts[kind] >= USUAL_STYLE * counts["all"])
+    if not usual or not counts["all"]:
+        return
+    for line in lines:
+        runs = [(text, "".join(k for k in style if k not in usual)) for text, style in line.runs]
+        line.runs = styled_runs(runs)
 
 
 def word_breaks(lines: list[list[Glyph]]) -> list[bool]:
@@ -140,13 +171,24 @@ def read_page(
         tracking = letter_spacing(line_glyphs, advances)
         if tracking is None:
             tracking = letter_spacing(line["block"], advances) or 0.0
-        text = spaced_text(line_glyphs, advances, tracking, unspaced)
+        chars = spaced_chars(line_glyphs, advances, tracking, unspaced)
+        text = "".join(char for char, _ in chars)
         if text.strip():
             x0, y0, x1, y1 = line["bbox"]
-            pieces.append(Line(text, x0, y0, x1, y1, breaks_word=breaks_word))
+            runs = styled_runs(chars)
+            pieces.append(Line(text, x0, y0, x1, y1, breaks_word=breaks_word, runs=runs))
 
     merged = [line for line in merge_rows(pieces) if line.text]
     return Page(page.number + 1, page.rect.width, page.rect.height, merged, scanned=is_scan(page))
+
+
+def styled_runs(chars: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """The text, characters or runs, as runs of one style each; none if it is all plain."""
+    runs = [
+        ("".join(text for text, _ in group), style)
+        for style, group in groupby(chars, key=lambda char: char[1])
+    ]
+    return runs if any(style for _, style in runs) else []
 
 
 def is_scan(page: pymupdf.Page) -> bool:
@@ -179,6 +221,7 @@ def glyphs(line: dict[str, Any]) -> list[Glyph]:
     found = []
     for span in line["spans"]:
         raised = is_raised_mark(span)
+        style = span_style(span)
         found += [
             Glyph(
                 char["c"],
@@ -187,10 +230,19 @@ def glyphs(line: dict[str, Any]) -> list[Glyph]:
                 span["font"],
                 char["bbox"][2],
                 raised=raised and char["c"].isdigit(),
+                style=style,
             )
             for char in span["chars"]
         ]
     return found
+
+
+def span_style(span: dict[str, Any]) -> str:
+    """The span's style, from its font's flags or its name."""
+    flags, font = span["flags"], span["font"]
+    bold = flags & pymupdf.TEXT_FONT_BOLD or BOLD_NAME.search(font)
+    italic = flags & pymupdf.TEXT_FONT_ITALIC or ITALIC_NAME.search(font)
+    return (BOLD if bold else "") + (ITALIC if italic else "")
 
 
 def is_raised_mark(span: dict[str, Any]) -> bool:
@@ -222,9 +274,22 @@ def merge_rows(pieces: list[Line]) -> list[Line]:
                 x1=max(p.x1 for p in row),
                 y1=max(p.y1 for p in row),
                 breaks_word=row[-1].breaks_word,
+                runs=row_runs(row),
             )
         )
     return merged
+
+
+def row_runs(row: list[Line]) -> list[tuple[str, str]]:
+    """The runs of the row's pieces, a space between each; none if all are plain."""
+    if not any(piece.runs for piece in row):
+        return []
+    runs: list[tuple[str, str]] = []
+    for piece in row:
+        if runs:
+            runs.append((" ", ""))
+        runs += piece.runs or [(piece.text, "")]
+    return runs
 
 
 def same_row(row: list[Line], piece: Line) -> bool:

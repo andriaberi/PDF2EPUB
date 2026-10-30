@@ -1,4 +1,11 @@
-from pdf2epub.pdf.spacing import Glyph, lacks_spaces, learn_advances, letter_spacing, spaced_text
+from pdf2epub.pdf.spacing import (
+    Glyph,
+    lacks_spaces,
+    learn_advances,
+    letter_spacing,
+    spaced_chars,
+    spaced_text,
+)
 
 # Two letters, each 0.6 of the font size wide; a word break adds 0.3 more.
 WIDTH, SPACE, SIZE = 6.0, 3.0, 10.0
@@ -75,3 +82,8 @@ def test_raised_mark_keeps_to_its_word() -> None:
     line = set_line("ab", "79 ", "ba")
     line[2:4] = [glyph._replace(raised=True, x=glyph.x - SPACE) for glyph in line[2:4]]
     assert spaced_text(line, advances) == "ab⁅79⁆ ba"
+
+
+def test_a_space_put_in_takes_the_style_of_the_letter_before() -> None:
+    glyphs = [Glyph("a", 0, 10, "F", style="i"), Glyph("b", 10, 10, "F", style="")]
+    assert spaced_chars(glyphs, {("F", "a"): 0.5}) == [("a", "i"), (" ", "i"), ("b", "")]

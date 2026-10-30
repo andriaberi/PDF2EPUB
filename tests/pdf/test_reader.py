@@ -91,3 +91,45 @@ def test_a_word_broken_without_a_hyphen_is_marked(make_pdf: MakePdf) -> None:
 def test_lines_without_spaces_at_their_ends_break_no_words(make_pdf: MakePdf) -> None:
     book = read_pdf(make_pdf([["It was a quiet", "evening in the", "village."]]))
     assert not any(line.breaks_word for line in book.pages[0].lines)
+
+
+def styled_pdf(tmp_path: Path, rows: list[list[tuple[str, str]]]) -> str:
+    """A page of lines, each piece in Times of its style: "", "i", "b" or "bi"."""
+    import pymupdf
+
+    fonts = {"": "tiro", "i": "tiit", "b": "tibo", "bi": "tibi"}
+    doc = pymupdf.open()
+    page = doc.new_page(width=400, height=600)
+    for row, pieces in enumerate(rows):
+        x = 60.0
+        for text, style in pieces:
+            page.insert_text((x, 90 + row * 16), text, fontsize=11, fontname=fonts[style])
+            x += pymupdf.get_text_length(text, fontname=fonts[style], fontsize=11)
+    path = tmp_path / "styled.pdf"
+    doc.save(path)
+    return str(path)
+
+
+def test_reads_italics_and_bold(tmp_path: Path) -> None:
+    rows = [
+        [("It was a ", ""), ("very", "i"), (" good day, and ", ""), ("not", "b"), (" over.", "")]
+    ]
+    (line,) = read_pdf(styled_pdf(tmp_path, rows)).pages[0].lines
+    assert line.runs == [
+        ("It was a ", ""),
+        ("very ", "i"),
+        ("good day, and ", ""),
+        ("not ", "b"),
+        ("over.", ""),
+    ]
+
+
+def test_plain_lines_have_no_runs(tmp_path: Path) -> None:
+    rows = [[("Nothing set apart here.", "")]]
+    assert read_pdf(styled_pdf(tmp_path, rows)).pages[0].lines[0].runs == []
+
+
+def test_a_book_set_in_italics_throughout_is_plain(tmp_path: Path) -> None:
+    rows = [[("Set all in italics, ", "i"), ("but this", "bi"), (" in bold too.", "i")]]
+    (line,) = read_pdf(styled_pdf(tmp_path, rows)).pages[0].lines
+    assert line.runs == [("Set all in italics, ", ""), ("but this ", "b"), ("in bold too.", "")]

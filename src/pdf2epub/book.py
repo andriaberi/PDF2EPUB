@@ -11,6 +11,7 @@ from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pdf import Line
 from pdf2epub.pdf.text import NOTE_MARK
 from pdf2epub.structure import Heading, Note, Section
+from pdf2epub.styles import styled_text
 
 ROLES = ("body", "contents", "preface", "front", "title-page", "reprint", "back")
 
@@ -46,7 +47,7 @@ class HeadingBlock(Block):
 
 @dataclass(kw_only=True)
 class TextBlock(Block):
-    text: str
+    text: str  # its italics and bold in tags: "a <i>very</i> good day"
     lines: list[str] = field(default_factory=list)  # a verse paragraph's lines, as printed
     verse: bool = False
     epigraph: bool = False  # a quotation set under a heading
@@ -93,13 +94,19 @@ class Book:
             for paragraph in section.paragraphs:
                 lines = [line.text for line in paragraph.lines] if paragraph.verse else []
                 marks = [*NOTE_MARK.findall(paragraph.text), *NOTE_MARK.findall(" ".join(lines))]
+                # A scene break stays as printed, to be told as one.
+                text = paragraph.text
+                if not paragraph.scene_break:
+                    text = styled_text(text, paragraph.lines)
+                    if paragraph.verse:
+                        lines = [styled_text(line.text, [line]) for line in paragraph.lines]
                 blocks.append(
                     TextBlock(
                         id=f"b{len(blocks) + 1}",
                         page=paragraph.page,
                         role=paragraph.role,
                         include=paragraph.role == "body",
-                        text=paragraph.text,
+                        text=text,
                         lines=lines,
                         verse=paragraph.verse,
                         epigraph=paragraph.epigraph,

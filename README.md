@@ -18,6 +18,7 @@ It is made for Georgian books and handles English too.
   gets numbered chapters wherever it leaves a blank line
 - Links notes to their marks in the text, numbered or starred, and footnotes too
 - Keeps the line breaks of verse, and sets epigraphs apart under their chapter
+- Keeps italics and bold
 - Uses the PDF's cover, or an image you give it
 - Reads the Georgian letters of Word PDFs set in Sylfaen that lost them, and Georgian
   typed in the old ProgTV font
@@ -88,7 +89,8 @@ write_book(book, "book.epub")
 
 A `Book` holds the metadata, the notes, the cover and the book's blocks in reading
 order: each a `HeadingBlock` (level, label, title) or a `TextBlock` (a paragraph, verse
-with its `lines`, or an epigraph). A heading starts a section that runs to the next one.
+with its `lines`, or an epigraph). A text's italics and bold are in `<i>` and `<b>` tags:
+`"a <i>very</i> good day"`; a tag an edit leaves open closes at the paragraph's end. A heading starts a section that runs to the next one.
 Every block has an `id`, the `page` of the PDF it is printed on, and `include`: set it to
 `False` to leave the block out of the EPUB. A left-out heading's text joins the section
 before it. Writing leaves the book unchanged, so it can be written again.
@@ -138,7 +140,7 @@ used.
   listed by its title.
 - Footnotes at the bottom of a page are linked only when their marks are set raised in
   the text, as Word sets them; others are removed.
-- Bold, italics and pictures inside the book are not kept.
+- Pictures inside the book are not kept.
 - Only languages with a file in `src/pdf2epub/languages/` are detected; for others pass
   `language`.
 

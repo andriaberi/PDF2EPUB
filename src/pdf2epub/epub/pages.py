@@ -4,6 +4,7 @@ from html import escape
 from pdf2epub.cover import Cover
 from pdf2epub.pdf.text import NOTE_MARK
 from pdf2epub.structure import Heading, Note, Section
+from pdf2epub.styles import styled_html
 
 from .models import Metadata
 
@@ -97,7 +98,7 @@ def section_page(section: Section, metadata: Metadata) -> str:
 
 
 def paragraph_html(text: str, notes: dict[str, Note], linked: set[str]) -> str:
-    """The paragraph's text with its note marks as links to the notes.
+    """The paragraph's text, its italics and bold, and its note marks as links to the notes.
 
     The first link to a note on the page is where the note links back to.
     """
@@ -113,7 +114,7 @@ def paragraph_html(text: str, notes: dict[str, Note], linked: set[str]) -> str:
             f'href="../notes.xhtml#{note.id}">{note.mark}</a>'
         )
 
-    return NOTE_MARK.sub(link, escape(text))
+    return NOTE_MARK.sub(link, styled_html(escape(text)))
 
 
 def notes_page(notes: list[Note], sources: dict[str, str], title: str, language: str) -> str:
