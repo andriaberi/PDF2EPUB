@@ -19,6 +19,7 @@ It is made for Georgian books and handles English too.
 - Links notes to their marks in the text, numbered or starred, and footnotes too
 - Keeps the line breaks of verse, and sets epigraphs apart under their chapter
 - Keeps italics and bold
+- Keeps the pictures printed in the book, where they are printed
 - Uses the PDF's cover, or an image you give it
 - Reads the Georgian letters of Word PDFs set in Sylfaen that lost them, and Georgian
   typed in the old ProgTV font
@@ -57,7 +58,7 @@ try:
 except ConvertError as e:
     print(f"Can't convert: {e}")
 else:
-    print(result.headings, result.paragraphs, result.notes, result.cover)
+    print(result.headings, result.paragraphs, result.notes, result.pictures, result.cover)
 ```
 
 `convert` calls `progress` with the name of each step as it starts; `STEPS` lists them in
@@ -88,12 +89,14 @@ write_book(book, "book.epub")
 ```
 
 A `Book` holds the metadata, the notes, the cover and the book's blocks in reading
-order: each a `HeadingBlock` (level, label, title) or a `TextBlock` (a paragraph, verse
-with its `lines`, or an epigraph). A text's italics and bold are in `<i>` and `<b>` tags:
-`"a <i>very</i> good day"`; a tag an edit leaves open closes at the paragraph's end. A heading starts a section that runs to the next one.
-Every block has an `id`, the `page` of the PDF it is printed on, and `include`: set it to
-`False` to leave the block out of the EPUB. A left-out heading's text joins the section
-before it. Writing leaves the book unchanged, so it can be written again.
+order: each a `HeadingBlock` (level, label, title), a `TextBlock` (a paragraph, verse
+with its `lines`, or an epigraph) or a `PictureBlock` (a JPEG `data`, `width` and
+`height`). A text's italics and bold are in `<i>` and `<b>` tags, `"a <i>very</i> good
+day"`; a tag an edit leaves open closes at the paragraph's end. A heading starts a
+section that runs to the next one. Every block has an `id`, the `page` of the PDF it is
+printed on, and `include`: set it to `False` to leave the block out of the EPUB. A
+left-out heading's text joins the section before it. Writing leaves the book unchanged,
+so it can be written again.
 
 A block's `role` says where it belongs. Only the body is included at first; the rest
 is found and kept, to be included if wanted:
@@ -142,7 +145,10 @@ used.
 - Footnotes at the bottom of a page are linked when their marks are set raised in the
   text, as Word sets them, or glued to the word they follow: "word12", "word.12",
   "word*". A footnote whose mark isn't found on its page is removed.
-- Pictures inside the book are not kept.
+- Pictures are kept when the PDF holds them as images; charts and drawings made of
+  lines are not. A picture goes between paragraphs, so one printed in the middle of a
+  paragraph comes after it. A scanned book's pictures are not kept: each of its pages
+  is one.
 - Only languages with a file in `src/pdf2epub/languages/` are detected; for others pass
   `language`.
 

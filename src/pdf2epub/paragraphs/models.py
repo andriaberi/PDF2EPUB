@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass, field
 
-from pdf2epub.pdf import Line
+from pdf2epub.pdf import Line, Picture
 
 # A scene break: "*", "* * *", "⁂", or a row of three dashes or more. A dash alone
 # opens speech instead.
@@ -27,6 +27,8 @@ class Paragraph:
     # the first heading), "title-page" (the book's own), "reprint" (of the title page)
     # and "back" (who translated or published it, printed after its last line).
     role: str = "body"
+    # A picture in the text, with no text of its own.
+    picture: Picture | None = None
 
     @property
     def scene_break(self) -> bool:

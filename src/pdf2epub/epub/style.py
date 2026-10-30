@@ -174,6 +174,20 @@ div.epigraph + p {
   text-indent: 0;
 }
 
+/* A picture in the text, as wide as the screen at most and never split by a page. */
+figure.picture {
+  margin: 1em 0;
+  text-align: center;
+  text-indent: 0;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+figure.picture img {
+  max-width: 100%;
+  max-height: 95vh;
+}
+
 /* Cover: the picture alone, filling the screen. */
 
 body.cover {

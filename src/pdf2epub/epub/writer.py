@@ -73,6 +73,12 @@ def write_epub(
     # A book with no headings at all is listed by its title, as one entry.
     toc = entries(sections, files) or [(1, Heading(1, metadata.title), files[0])]
     notes_heading = epub_heading("notes", metadata.language)
+    pictures = {
+        id(paragraph): f"images/picture-{number:04}.jpg"
+        for number, paragraph in enumerate(
+            (p for section in sections for p in section.paragraphs if p.picture), start=1
+        )
+    }
     if notes:
         toc.append((1, Heading(1, notes_heading), NOTES_FILE))
 
@@ -82,7 +88,9 @@ def write_epub(
         epub.writestr("META-INF/container.xml", CONTAINER)
         epub.writestr(
             "EPUB/content.opf",
-            package_document(files, metadata, cover is not None, bool(notes), credit),
+            package_document(
+                files, metadata, cover is not None, bool(notes), credit, list(pictures.values())
+            ),
         )
         epub.writestr("EPUB/style.css", STYLESHEET)
         epub.writestr("EPUB/nav.xhtml", nav_document(toc, metadata.language))
@@ -95,7 +103,10 @@ def write_epub(
             epub.writestr("EPUB/cover.xhtml", cover_page(cover, metadata))
         epub.writestr("EPUB/title.xhtml", title_page(metadata))
         for section, file in zip(sections, files, strict=True):
-            epub.writestr(f"EPUB/{file}", section_page(section, metadata))
+            epub.writestr(f"EPUB/{file}", section_page(section, metadata, pictures))
+            for paragraph in section.paragraphs:
+                if paragraph.picture:
+                    epub.writestr(f"EPUB/{pictures[id(paragraph)]}", paragraph.picture.data)
         if notes:
             page = notes_page(
                 notes, note_sources(sections, files), notes_heading, metadata.language
@@ -141,7 +152,12 @@ def note_sources(sections: list[Section], files: list[str]) -> dict[str, str]:
 
 
 def package_document(
-    files: list[str], metadata: Metadata, has_cover: bool, has_notes: bool, credit: bool = True
+    files: list[str],
+    metadata: Metadata,
+    has_cover: bool,
+    has_notes: bool,
+    credit: bool = True,
+    pictures: list[str] | None = None,
 ) -> str:
     modified = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     creator = f"<dc:creator>{escape(metadata.author)}</dc:creator>\n" if metadata.author else ""
@@ -152,6 +168,10 @@ def package_document(
     fonts = "\n".join(
         f'<item id="font{number}" href="fonts/{font}" media-type="font/ttf"/>'
         for number, font in enumerate(FONTS, start=1)
+    )
+    images = "".join(
+        f'\n<item id="picture{number}" href="{file}" media-type="image/jpeg"/>'
+        for number, file in enumerate(pictures or [], start=1)
     )
     spine = "\n".join(f'<itemref idref="s{number}"/>' for number in range(1, len(files) + 1))
     # The cover-image property is EPUB 3; the "cover" meta is for older readers.
@@ -185,7 +205,7 @@ xml:lang="{escape(metadata.language)}">
 <item id="css" href="style.css" media-type="text/css"/>
 {cover_items}<item id="title" href="title.xhtml" media-type="{XHTML}"/>
 {fonts}
-{items}{notes_item}
+{items}{notes_item}{images}
 </manifest>
 <spine toc="ncx">
 {cover_spine}<itemref idref="title"/>

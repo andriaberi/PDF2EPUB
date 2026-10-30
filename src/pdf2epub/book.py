@@ -8,7 +8,7 @@ from pdf2epub.cover import Cover, load_cover
 from pdf2epub.epub import Metadata
 from pdf2epub.errors import BookError
 from pdf2epub.paragraphs import Paragraph
-from pdf2epub.pdf import Line
+from pdf2epub.pdf import Line, Picture
 from pdf2epub.pdf.text import NOTE_MARK
 from pdf2epub.structure import Heading, Note, Section
 from pdf2epub.styles import styled_text
@@ -18,7 +18,7 @@ ROLES = ("body", "contents", "preface", "front", "title-page", "reprint", "back"
 # Heading levels run from the outermost division to a subheading set in the text.
 MAX_LEVEL = 6
 
-# A JPEG starts with these bytes; the EPUB names its cover cover.jpg.
+# A JPEG starts with these bytes; the EPUB names its cover and pictures .jpg.
 JPEG_START = b"\xff\xd8"
 
 # Where the cover came from.
@@ -55,13 +55,20 @@ class TextBlock(Block):
     notes: dict[str, str] = field(default_factory=dict)  # each mark's note id: {"12": "note-12"}
 
 
+@dataclass(kw_only=True)
+class PictureBlock(Block):
+    data: bytes  # a JPEG
+    width: int  # in pixels
+    height: int
+
+
 @dataclass
 class Book:
     """The book between reading and writing: its blocks in reading order, a heading
     starting each section, so it is easy to show and edit."""
 
     metadata: Metadata
-    blocks: list[HeadingBlock | TextBlock]
+    blocks: list[HeadingBlock | TextBlock | PictureBlock]
     notes: list[Note]
     cover: Cover | None
     cover_source: str  # PDF_COVER, GIVEN_COVER or NO_COVER
@@ -76,7 +83,7 @@ class Book:
         cover: Cover | None,
         cover_source: str,
     ) -> "Book":
-        blocks: list[HeadingBlock | TextBlock] = []
+        blocks: list[HeadingBlock | TextBlock | PictureBlock] = []
         for section in sections:
             if section.heading:
                 heading = section.heading
@@ -92,6 +99,19 @@ class Book:
                     )
                 )
             for paragraph in section.paragraphs:
+                if picture := paragraph.picture:
+                    blocks.append(
+                        PictureBlock(
+                            id=f"b{len(blocks) + 1}",
+                            page=paragraph.page,
+                            role=paragraph.role,
+                            include=paragraph.role == "body",
+                            data=picture.data,
+                            width=picture.width,
+                            height=picture.height,
+                        )
+                    )
+                    continue
                 lines = [line.text for line in paragraph.lines] if paragraph.verse else []
                 marks = [*NOTE_MARK.findall(paragraph.text), *NOTE_MARK.findall(" ".join(lines))]
                 # A scene break stays as printed, to be told as one.
@@ -133,6 +153,12 @@ class Book:
             if not sections:
                 sections.append(Section(heading=None))
             section = sections[-1]
+            if isinstance(block, PictureBlock):
+                picture = Picture(block.data, block.width, block.height, 0, 0)
+                section.paragraphs.append(
+                    Paragraph("", block.page, picture=picture, role=block.role)
+                )
+                continue
             links = {mark: notes[i] for mark, i in block.notes.items() if i in notes}
             unwritten = block.notes.keys() - links.keys()
             section.paragraphs.append(
@@ -186,12 +212,7 @@ class Book:
             found.append("include_notes must be true or false")
 
         cover = self.cover
-        if cover and not (
-            isinstance(cover.data, bytes)
-            and cover.data.startswith(JPEG_START)
-            and is_size(cover.width)
-            and is_size(cover.height)
-        ):
+        if cover and not is_jpeg(cover.data, cover.width, cover.height):
             found.append("the cover must be a JPEG image with its width and height")
         return found
 
@@ -207,10 +228,7 @@ class Book:
         return {
             "version": VERSION,
             "metadata": asdict(self.metadata),
-            "blocks": [
-                {"type": "heading" if isinstance(block, HeadingBlock) else "text", **asdict(block)}
-                for block in self.blocks
-            ],
+            "blocks": [block_data(block) for block in self.blocks],
             "notes": [asdict(note) for note in self.notes],
             "cover": cover,
             "cover_source": self.cover_source,
@@ -238,16 +256,24 @@ class Book:
             raise BookError(f"bad book data: {e!r}") from None
 
 
-def read_block(data: dict[str, Any]) -> HeadingBlock | TextBlock:
+def block_data(block: HeadingBlock | TextBlock | PictureBlock) -> dict[str, Any]:
+    if isinstance(block, PictureBlock):
+        return {"type": "picture", **asdict(block), "data": base64.b64encode(block.data).decode()}
+    return {"type": "heading" if isinstance(block, HeadingBlock) else "text", **asdict(block)}
+
+
+def read_block(data: dict[str, Any]) -> HeadingBlock | TextBlock | PictureBlock:
     fields = {key: value for key, value in data.items() if key != "type"}
     if data.get("type") == "heading":
         return HeadingBlock(**fields)
     if data.get("type") == "text":
         return TextBlock(**fields)
+    if data.get("type") == "picture":
+        return PictureBlock(**{**fields, "data": base64.b64decode(fields["data"])})
     raise BookError(f"unknown block type {data.get('type')!r}")
 
 
-def block_problems(block: HeadingBlock | TextBlock, ids: set[str]) -> list[str]:
+def block_problems(block: HeadingBlock | TextBlock | PictureBlock, ids: set[str]) -> list[str]:
     where = f"block {block.id!r}"
     found = []
     if not is_text(block.id) or block.id in ids:
@@ -259,6 +285,10 @@ def block_problems(block: HeadingBlock | TextBlock, ids: set[str]) -> list[str]:
     if not is_flag(block.include):
         found.append(f"{where}: include must be true or false")
 
+    if isinstance(block, PictureBlock):
+        if not is_jpeg(block.data, block.width, block.height):
+            found.append(f"{where}: a picture must be a JPEG image with its width and height")
+        return found
     if isinstance(block, HeadingBlock):
         if type(block.level) is not int or not 1 <= block.level <= MAX_LEVEL:
             found.append(f"{where}: a heading's level must be 1 to {MAX_LEVEL}")
@@ -293,6 +323,15 @@ def is_text_or_none(value: object) -> bool:
 
 def is_flag(value: object) -> bool:
     return isinstance(value, bool)
+
+
+def is_jpeg(data: object, width: object, height: object) -> bool:
+    return (
+        isinstance(data, bytes)
+        and data.startswith(JPEG_START)
+        and is_size(width)
+        and is_size(height)
+    )
 
 
 def is_size(value: object) -> bool:

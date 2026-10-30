@@ -13,6 +13,7 @@ from .language import book_language
 from .models import BOLD, ITALIC, Book, Line, OutlineEntry, Page
 from .noise import remove_noise
 from .pages import parse_pages
+from .pictures import read_pictures
 from .spacing import (
     Advances,
     Glyph,
@@ -72,7 +73,8 @@ def open_pdf(path: str) -> pymupdf.Document:
 
 
 def read_pdf(path: str, spec: str | None = None) -> Book:
-    """Read the text lines of the selected pages, with page furniture and OCR noise removed."""
+    """Read the text lines and pictures of the selected pages, with page furniture and
+    OCR noise removed."""
     with open_pdf(path) as doc:
         try:
             selected = [doc[index] for index in parse_pages(spec, doc.page_count)]
@@ -81,6 +83,7 @@ def read_pdf(path: str, spec: str | None = None) -> Book:
         pages = read_pages(selected)
         if not any(page.lines for page in pages):
             raise ReadError(f"no text found in {path}; is it a scan without OCR? Try ocrmypdf.")
+        read_pictures(selected, pages)
 
         pages = remove_noise(pages)
         metadata = doc.metadata or {}

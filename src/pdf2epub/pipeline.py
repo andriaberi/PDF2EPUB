@@ -1,5 +1,7 @@
 import hashlib
+import math
 import uuid
+from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,7 +12,7 @@ from pdf2epub.cover import Cover, find_cover, load_cover
 from pdf2epub.epub import Metadata, write_epub
 from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.paragraphs import Paragraph, build_paragraphs
-from pdf2epub.pdf import read_pdf
+from pdf2epub.pdf import Page, read_pdf
 from pdf2epub.structure import (
     Section,
     build_sections,
@@ -47,6 +49,7 @@ class Result:
     headings: int
     paragraphs: int
     notes: int
+    pictures: int
     cover: str  # where the cover came from: PDF_COVER, GIVEN_COVER or NO_COVER
 
 
@@ -87,6 +90,7 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
     sections = with_left_out(everything, sections)
     for paragraph in printed_contents(pdf_book.pages):
         place_by_page(sections, paragraph)
+    sections = place_pictures(sections, pdf_book.pages)
 
     # The book's own cover comes first; the given one is for books without one.
     cover, source = choose_cover(find_cover(options.pdf), fallback_cover)
@@ -109,9 +113,10 @@ def write_book(book: Book, output: str | Path | IO[bytes], credit: bool = True) 
         raise ConvertError(f"can't write {output}: {e.strerror}") from None
 
     headings = sum(1 for section in sections if section.heading)
-    paragraphs = sum(len(section.paragraphs) for section in sections)
+    texts = [paragraph for section in sections for paragraph in section.paragraphs]
+    pictures = sum(1 for paragraph in texts if paragraph.picture)
     path = target if isinstance(target, Path) else None
-    return Result(path, headings, paragraphs, len(notes), book.cover_source)
+    return Result(path, headings, len(texts) - pictures, len(notes), pictures, book.cover_source)
 
 
 def with_left_out(
@@ -147,6 +152,43 @@ def place_by_page(sections: list[Section], paragraph: Paragraph) -> None:
         sections[-1].paragraphs.append(paragraph)
     else:
         sections.append(Section(None, [paragraph]))
+
+
+def place_pictures(sections: list[Section], pages: list[Page]) -> list[Section]:
+    """The sections with the pictures among the text printed around them: each before
+    the first paragraph printed below it, and after the heading of its page. A picture
+    takes the role of the text after it."""
+    waiting = deque((page.number, picture) for page in pages for picture in page.pictures)
+
+    def printed_above(page: float, y: float, role: str) -> list[Paragraph]:
+        due = []
+        while waiting and (waiting[0][0], waiting[0][1].y0) < (page, y):
+            number, picture = waiting.popleft()
+            due.append(Paragraph("", number, picture=picture, role=role))
+        return due
+
+    placed: list[Section] = []
+    for section in sections:
+        if heading := section.heading:
+            before = printed_above(heading.page, -math.inf, heading.role)
+            if before and placed:
+                placed[-1].paragraphs += before
+            elif before:
+                placed.append(Section(None, before))
+        paragraphs: list[Paragraph] = []
+        for paragraph in section.paragraphs:
+            top = paragraph.lines[0].y0 if paragraph.lines else -math.inf
+            paragraphs += printed_above(paragraph.page, top, paragraph.role)
+            paragraphs.append(paragraph)
+        section.paragraphs = paragraphs
+        placed.append(section)
+    last = next((p.role for s in reversed(placed) for p in reversed(s.paragraphs)), "body")
+    rest = printed_above(math.inf, math.inf, last)
+    if rest and placed:
+        placed[-1].paragraphs += rest
+    elif rest:
+        placed.append(Section(None, rest))
+    return placed
 
 
 def choose_cover(own: Cover | None, fallback: Cover | None) -> tuple[Cover | None, str]:
