@@ -138,8 +138,9 @@ used.
   lines in a book with none. A blank line at the top or bottom of a page can't be
   seen, so such a chapter break is missed. A book with neither comes out as one text,
   listed by its title.
-- Footnotes at the bottom of a page are linked only when their marks are set raised in
-  the text, as Word sets them; others are removed.
+- Footnotes at the bottom of a page are linked when their marks are set raised in the
+  text, as Word sets them, or glued to the word they follow: "word12", "word.12",
+  "word*". A footnote whose mark isn't found on its page is removed.
 - Pictures inside the book are not kept.
 - Only languages with a file in `src/pdf2epub/languages/` are detected; for others pass
   `language`.
