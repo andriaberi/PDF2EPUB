@@ -290,6 +290,18 @@ def text_bottom(pages: list[Page]) -> float:
     return statistics.median(page.lines[-1].y1 for page in pages if page.lines)
 
 
+def text_top(pages: list[Page]) -> float:
+    """Where the book's pages usually start: the top of a page's first line."""
+    return statistics.median(page.lines[0].y0 for page in pages if page.lines)
+
+
+def starts_with_blank_line(line: Line, layout: Layout, top: float) -> bool:
+    """The page's first line starts a blank line or more below the top, as a chapter
+    marked only by a blank line starts when it falls at a page's head."""
+    step = layout.line_height + layout.gap
+    return line.y0 - top > BLANK_LINE * step
+
+
 def ends_with_blank_line(line: Line, layout: Layout, bottom: float) -> bool:
     """The page's last line ends a sentence a blank line or more above the bottom,
     as a chapter marked only by a blank line ends when it falls at a page's foot."""
