@@ -285,14 +285,10 @@ def merge_rows(pieces: list[Line]) -> list[Line]:
 
 def row_runs(row: list[Line]) -> list[tuple[str, str]]:
     """The runs of the row's pieces, a space between each; none if all are plain."""
-    if not any(piece.runs for piece in row):
-        return []
     runs: list[tuple[str, str]] = []
     for piece in row:
-        if runs:
-            runs.append((" ", ""))
-        runs += piece.runs or [(piece.text, "")]
-    return runs
+        runs += [(" ", "")] * bool(runs) + (piece.runs or [(piece.text, "")])
+    return styled_runs(runs)
 
 
 def same_row(row: list[Line], piece: Line) -> bool:

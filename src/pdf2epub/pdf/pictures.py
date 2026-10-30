@@ -35,14 +35,17 @@ def read_pictures(pdf_pages: list[pymupdf.Page], pages: list[Page]) -> None:
     pages being one."""
     if 2 * sum(page.scanned for page in pages) > len(pages):
         return
-    images = [page_images(pdf_page) for pdf_page in pdf_pages]
+    images = [
+        [i for i in pdf_page.get_image_info(hashes=True) if i["width"] and size(i).width > 0]
+        for pdf_page in pdf_pages
+    ]
     repeated = repeated_images(images)
     for pdf_page, page, found in zip(pdf_pages, pages, images, strict=True):
         # The cover is the book's cover already.
         if pdf_page.number == 0 and is_cover(pdf_page):
             continue
         boxes = [
-            (pymupdf.Rect(image["bbox"]) & pdf_page.rect, image["width"] / bbox_width(image))
+            (size(image) & pdf_page.rect, image["width"] / size(image).width)
             for image in found
             if image["digest"] not in repeated
         ]
@@ -57,17 +60,8 @@ def read_pictures(pdf_pages: list[pymupdf.Page], pages: list[Page]) -> None:
         page.pictures.sort(key=lambda picture: picture.y0)
 
 
-def page_images(page: pymupdf.Page) -> list[dict[str, Any]]:
-    return [
-        image
-        for image in page.get_image_info(hashes=True)
-        if image["width"] > 0 and bbox_width(image) > 0
-    ]
-
-
-def bbox_width(image: dict[str, Any]) -> float:
-    x0, _, x1, _ = image["bbox"]
-    return float(x1 - x0)
+def size(image: dict[str, Any]) -> pymupdf.Rect:
+    return pymupdf.Rect(image["bbox"])
 
 
 def repeated_images(images: list[list[dict[str, Any]]]) -> set[bytes]:
@@ -92,8 +86,7 @@ def joined(boxes: list[Box]) -> list[Box]:
 
 
 def near(box: pymupdf.Rect, other: pymupdf.Rect) -> bool:
-    grown = pymupdf.Rect(box.x0 - TOUCHING, box.y0 - TOUCHING, box.x1 + TOUCHING, box.y1 + TOUCHING)
-    return bool(grown.intersects(other))
+    return bool((box + pymupdf.Rect(-TOUCHING, -TOUCHING, TOUCHING, TOUCHING)).intersects(other))
 
 
 def is_on(line: Line, box: pymupdf.Rect) -> bool:

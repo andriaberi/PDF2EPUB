@@ -167,14 +167,11 @@ def place_pictures(sections: list[Section], pages: list[Page]) -> list[Section]:
             due.append(Paragraph("", number, picture=picture, role=role))
         return due
 
-    placed: list[Section] = []
+    # Pictures before the first heading start a section of their own.
+    placed = [Section(None)]
     for section in sections:
         if heading := section.heading:
-            before = printed_above(heading.page, -math.inf, heading.role)
-            if before and placed:
-                placed[-1].paragraphs += before
-            elif before:
-                placed.append(Section(None, before))
+            placed[-1].paragraphs += printed_above(heading.page, -math.inf, heading.role)
         paragraphs: list[Paragraph] = []
         for paragraph in section.paragraphs:
             top = paragraph.lines[0].y0 if paragraph.lines else -math.inf
@@ -183,12 +180,8 @@ def place_pictures(sections: list[Section], pages: list[Page]) -> list[Section]:
         section.paragraphs = paragraphs
         placed.append(section)
     last = next((p.role for s in reversed(placed) for p in reversed(s.paragraphs)), "body")
-    rest = printed_above(math.inf, math.inf, last)
-    if rest and placed:
-        placed[-1].paragraphs += rest
-    elif rest:
-        placed.append(Section(None, rest))
-    return placed
+    placed[-1].paragraphs += printed_above(math.inf, math.inf, last)
+    return placed if placed[0].paragraphs else placed[1:]
 
 
 def choose_cover(own: Cover | None, fallback: Cover | None) -> tuple[Cover | None, str]:
