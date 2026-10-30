@@ -60,9 +60,7 @@ def title_page(metadata: Metadata) -> str:
     return page(metadata.title, "\n".join(body), metadata.language)
 
 
-def section_page(
-    section: Section, metadata: Metadata, pictures: dict[int, str] | None = None
-) -> str:
+def section_page(section: Section, metadata: Metadata, pictures: dict[int, str]) -> str:
     """One section as a page of its own, so every section starts on a new page.
     `pictures` names each picture's file, by the id of its paragraph."""
     heading = section.heading
@@ -85,7 +83,7 @@ def section_page(
             parts.append(f'<div class="epigraph">{"".join(epigraph)}</div>')
             epigraph = []
         if paragraph.picture:
-            src = (pictures or {}).get(id(paragraph), "")
+            src = pictures[id(paragraph)]
             parts.append(f'<figure class="picture"><img src="../{src}" alt=""/></figure>')
         elif paragraph.scene_break:
             parts.append(f'<p class="scene-break">{escape(paragraph.text)}</p>')

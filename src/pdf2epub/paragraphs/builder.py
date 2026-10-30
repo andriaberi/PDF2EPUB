@@ -108,22 +108,11 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
                     and ends_sentence(above.text)
                 )
                 paragraphs[-1].apart = apart
-                # A picture at the page's edge moves the text, as a blank line does.
-                before = texts[number - 1] if number else None
                 paragraphs[-1].after_page_gap = (
                     above is None
                     and previous is not None
-                    and (
-                        (
-                            ends_with_blank_line(*previous, bottom)
-                            and before is not None
-                            and not any(p.y0 >= previous[0].y1 for p in before.pictures)
-                        )
-                        or (
-                            ends_sentence(previous[0].text)
-                            and starts_with_blank_line(line, layout, top)
-                            and not any(p.y1 <= line.y0 for p in page.pictures)
-                        )
+                    and after_blank_line(
+                        line, layout, page, previous, texts[number - 1], top, bottom
                     )
                 )
                 if opening := SECTION_NUMBER.match(line.text):
@@ -203,6 +192,30 @@ def starts_paragraph(
         return False
     # A short line ending a sentence closes its paragraph, across a page break too.
     return previous is not None and ends_paragraph(*previous)
+
+
+def after_blank_line(
+    line: Line,
+    layout: Layout,
+    page: Page,
+    previous: tuple[Line, Layout],
+    before: Page,
+    top: float,
+    bottom: float,
+) -> bool:
+    """A page's first line after a blank line at the page break: the page `before` ends
+    a blank line short of the bottom, or this one starts that far below the top after a
+    finished sentence. A picture at the page's edge moves the text, as a blank line does."""
+    last = previous[0]
+    ends_short = ends_with_blank_line(*previous, bottom) and not any(
+        picture.y0 >= last.y1 for picture in before.pictures
+    )
+    starts_low = (
+        ends_sentence(last.text)
+        and starts_with_blank_line(line, layout, top)
+        and not any(picture.y1 <= line.y0 for picture in page.pictures)
+    )
+    return ends_short or starts_low
 
 
 def runs_past_picture(above: Line, line: Line, pictures: list[Picture]) -> bool:
