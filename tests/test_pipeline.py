@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from pdf2epub.book import TextBlock
+from pdf2epub.book import PictureBlock, TextBlock
 from pdf2epub.cover import Cover
 from pdf2epub.errors import BookError, ConvertError
 from pdf2epub.paragraphs import Paragraph
@@ -274,6 +274,11 @@ def test_a_picture_takes_the_role_of_the_text_after_it() -> None:
     pages = [Page(1, 400, 600, [], pictures=[Picture(b"\xff\xd8", 10, 10, 100, 200)])]
     picture, _ = place_pictures(sections, pages)[0].paragraphs
     assert picture.role == "title-page"
+
+
+def test_pictures_can_be_left_out(make_picture_pdf: Callable[..., str]) -> None:
+    book = read_book(Options(pdf=make_picture_pdf({1: [(100, 200, 300, 300)]}), pictures=False))
+    assert not any(isinstance(block, PictureBlock) for block in book.blocks)
 
 
 def test_pictures_are_written_into_the_epub(
