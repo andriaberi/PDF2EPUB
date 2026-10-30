@@ -72,7 +72,7 @@ def open_pdf(path: str) -> pymupdf.Document:
     return doc
 
 
-def read_pdf(path: str, spec: str | None = None) -> Book:
+def read_pdf(path: str, spec: str | None = None, pictures: bool = True) -> Book:
     """Read the text lines and pictures of the selected pages, with page furniture and
     OCR noise removed."""
     with open_pdf(path) as doc:
@@ -83,7 +83,8 @@ def read_pdf(path: str, spec: str | None = None) -> Book:
         pages = read_pages(selected)
         if not any(page.lines for page in pages):
             raise ReadError(f"no text found in {path}; is it a scan without OCR? Try ocrmypdf.")
-        read_pictures(selected, pages)
+        if pictures:
+            read_pictures(selected, pages)
 
         pages = remove_noise(pages)
         metadata = doc.metadata or {}

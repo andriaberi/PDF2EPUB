@@ -41,6 +41,7 @@ class Options:
     language: str | None = None
     cover: str | bytes | None = None  # a path or the image itself
     credit: bool = True  # name PDF2EPUB in the EPUB's metadata
+    pictures: bool = True  # keep the pictures printed in the book
 
 
 @dataclass
@@ -67,7 +68,7 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
     # Check the cover file first, so a typo fails before the slow part.
     fallback_cover = load_cover(options.cover) if options.cover else None
     progress(READING)
-    pdf_book = read_pdf(options.pdf, options.pages)
+    pdf_book = read_pdf(options.pdf, options.pages, options.pictures)
 
     progress(PARAGRAPHS)
     pages = drop_printed_contents(pdf_book.pages)
