@@ -44,9 +44,10 @@ jobs:
           done
           exit $missing
 
-  # Each push to main that passes the checks is released, numbered by its date:
-  # 1.2026.1025.1, then 1.2026.1025.2 the same day, then 1.2026.1026.1 (no leading zeros,
-  # so 5 January is 1.2027.105.1).
+  # Each push to main that passes the checks is released, its version bumped by the commits
+  # since the last tag: "feat!:" or a "BREAKING CHANGE:" line bumps major, "feat:" minor,
+  # anything else patch; only docs/chore/ci/test/refactor/style/build commits release nothing.
+  # With no tag yet, the release is 1.0.0.
   release:
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -57,7 +58,6 @@ jobs:
       group: release
       cancel-in-progress: false
     env:
-      TZ: America/New_York
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v5
@@ -73,11 +73,30 @@ jobs:
             echo "This commit is released already."
             exit 0
           fi
-          year=$(date +%Y)
-          day=$((10#$(date +%m%d)))
-          last=$(git tag --list "v1.$year.$day.*" | sed "s/^v1\.$year\.$day\.//" | sort -n | tail -1)
-          echo "version=1.$year.$day.$(( ${last:-0} + 1 ))" >> "$GITHUB_OUTPUT"
-          echo "previous=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null)" >> "$GITHUB_OUTPUT"
+          previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)
+          if [ -z "$previous" ]; then
+            version=1.0.0
+          else
+            subjects=$(git log --format=%s "$previous..HEAD")
+            if git log --format=%s%n%b "$previous..HEAD" | grep -qE '^[a-z]+(\(.*\))?!:|^BREAKING[ -]CHANGE:'; then
+              bump=major
+            elif grep -qE '^feat(\(.*\))?:' <<< "$subjects"; then
+              bump=minor
+            elif grep -qvE '^(docs|chore|ci|test|refactor|style|build)(\(.*\))?:' <<< "$subjects"; then
+              bump=patch
+            else
+              echo "Only docs, chores and the like since $previous: nothing to release."
+              exit 0
+            fi
+            IFS=. read -r major minor patch <<< "${previous#v}"
+            case $bump in
+              major) version=$((major + 1)).0.0 ;;
+              minor) version=$major.$((minor + 1)).0 ;;
+              patch) version=$major.$minor.$((patch + 1)) ;;
+            esac
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "previous=$previous" >> "$GITHUB_OUTPUT"
       - name: Build
         if: steps.number.outputs.version
         env:
