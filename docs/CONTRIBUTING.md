@@ -58,3 +58,10 @@ Signed-off-by: Your Name <you@example.com>
 commits you've already made on a branch, `git rebase --signoff main` and force-push.
 
 CI checks every commit in a pull request for a sign-off, and fails if one is missing.
+
+## Prefix your commits
+
+A commit's prefix decides the next release's version: `fix:` for a fix (1.0.0 → 1.0.1),
+`feat:` for something new (→ 1.1.0), and `feat!:` or a `BREAKING CHANGE:` line in the
+body for a change that breaks existing use (→ 2.0.0). `docs:`, `chore:`, `ci:`, `test:`,
+`refactor:`, `style:` and `build:` changes are not released on their own.
