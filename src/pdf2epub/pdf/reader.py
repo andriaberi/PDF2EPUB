@@ -104,7 +104,7 @@ def read_pdf(path: str, spec: str | None = None, pictures: bool = True) -> Book:
 def read_pages(pages: list[pymupdf.Page]) -> list[Page]:
     """Read the pages' lines, with a space wherever the page shows one."""
     lines = [text_lines(page) for page in pages]
-    every_line = [glyphs(line) for page in lines for line in page]
+    every_line = [line["glyphs"] for page in lines for line in page]
     advances = learn_advances(every_line)
     unspaced = lacks_spaces("".join(g.char for g in line) for line in every_line)
     breaks = iter(word_breaks(every_line))
@@ -170,7 +170,7 @@ def read_page(
 ) -> Page:
     pieces: list[Line] = []
     for line, breaks_word in zip(lines, breaks or [False] * len(lines), strict=True):
-        line_glyphs = glyphs(line)
+        line_glyphs = line["glyphs"]
         # A line too short to tell its letter-spacing has its block's.
         tracking = letter_spacing(line_glyphs, advances)
         if tracking is None:
@@ -205,7 +205,8 @@ def is_scan(page: pymupdf.Page) -> bool:
 
 
 def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
-    """PyMuPDF's lines of horizontal text, each letter with its position."""
+    """The page's lines of horizontal text: each line's box, its glyphs and its block's.
+    PyMuPDF's own per-letter dicts are dropped here, as they take gigabytes for a long book."""
     blocks = page.get_text("rawdict", flags=pymupdf.TEXT_MEDIABOX_CLIP)["blocks"]
     if has_unknown(blocks):
         flags = pymupdf.TEXT_MEDIABOX_CLIP | pymupdf.TEXT_CID_FOR_UNKNOWN_UNICODE
@@ -217,7 +218,7 @@ def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
         # Skip vertical or rotated text such as margin notes and spine labels.
         for line in block.get("lines", []):
             if abs(line["dir"][0]) >= 0.9:
-                lines.append({**line, "block": block_glyphs})
+                lines.append({"bbox": line["bbox"], "glyphs": glyphs(line), "block": block_glyphs})
     return lines
 
 
