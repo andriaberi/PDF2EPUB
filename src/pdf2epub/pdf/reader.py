@@ -52,6 +52,9 @@ MIN_BROKEN = 0.05
 # "LiberationSerif-Italic".
 ITALIC_NAME = re.compile("italic|oblique", re.IGNORECASE)
 BOLD_NAME = re.compile("bold", re.IGNORECASE)
+# Letters both filled and outlined: the bold Word makes for a font that has none,
+# such as Arial Unicode MS, which MuPDF reports with TEXT_COLLECT_STYLES.
+FAKE_BOLD = pymupdf.mupdf.FZ_STEXT_FILLED | pymupdf.mupdf.FZ_STEXT_STROKED
 
 # A style at least this share of the book's text is set in is its text's own, not
 # emphasis: a book printed in italics throughout.
@@ -207,9 +210,10 @@ def is_scan(page: pymupdf.Page) -> bool:
 def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
     """The page's lines of horizontal text: each line's box, its glyphs and its block's.
     PyMuPDF's own per-letter dicts are dropped here, as they take gigabytes for a long book."""
-    blocks = page.get_text("rawdict", flags=pymupdf.TEXT_MEDIABOX_CLIP)["blocks"]
+    flags = pymupdf.TEXT_MEDIABOX_CLIP | pymupdf.TEXT_COLLECT_STYLES
+    blocks = page.get_text("rawdict", flags=flags)["blocks"]
     if has_unknown(blocks):
-        flags = pymupdf.TEXT_MEDIABOX_CLIP | pymupdf.TEXT_CID_FOR_UNKNOWN_UNICODE
+        flags |= pymupdf.TEXT_CID_FOR_UNKNOWN_UNICODE
         restore_letters(blocks, page.get_text("rawdict", flags=flags)["blocks"])
     type_letters(blocks)
     lines = []
@@ -245,7 +249,8 @@ def glyphs(line: dict[str, Any]) -> list[Glyph]:
 def span_style(span: dict[str, Any]) -> str:
     """The span's style, from its font's flags or its name."""
     flags, font = span["flags"], span["font"]
-    bold = flags & pymupdf.TEXT_FONT_BOLD or BOLD_NAME.search(font)
+    fake_bold = span.get("char_flags", 0) & FAKE_BOLD == FAKE_BOLD
+    bold = flags & pymupdf.TEXT_FONT_BOLD or BOLD_NAME.search(font) or fake_bold
     italic = flags & pymupdf.TEXT_FONT_ITALIC or ITALIC_NAME.search(font)
     return (BOLD if bold else "") + (ITALIC if italic else "")
 

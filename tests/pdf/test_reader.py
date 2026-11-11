@@ -133,3 +133,19 @@ def test_a_book_set_in_italics_throughout_is_plain(tmp_path: Path) -> None:
     rows = [[("Set all in italics, ", "i"), ("but this", "bi"), (" in bold too.", "i")]]
     (line,) = read_pdf(styled_pdf(tmp_path, rows)).pages[0].lines
     assert line.runs == [("Set all in italics, ", ""), ("but this ", "b"), ("in bold too.", "")]
+
+
+def test_reads_bold_made_by_outlining_a_plain_font(tmp_path: Path) -> None:
+    import pymupdf
+
+    # Word's bold for a font with none, such as Arial Unicode MS: filled and outlined.
+    doc = pymupdf.open()
+    page = doc.new_page()
+    x = 72.0
+    for text, mode in [("Plain then ", 0), ("outlined", 2), (" and plain.", 0)]:
+        page.insert_text((x, 90), text, fontsize=11, fontname="helv", render_mode=mode)
+        x += pymupdf.get_text_length(text, fontname="helv", fontsize=11)
+    path = tmp_path / "outlined.pdf"
+    doc.save(path)
+    (line,) = read_pdf(str(path)).pages[0].lines
+    assert line.runs == [("Plain then ", ""), ("outlined ", "b"), ("and plain.", "")]
