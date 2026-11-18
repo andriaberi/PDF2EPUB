@@ -7,12 +7,11 @@ from pdf2epub.pdf.spacing import (
     spaced_text,
 )
 
-# Two letters, each 0.6 of the font size wide; a word break adds 0.3 more.
+# Letters 0.6 font sizes wide; a word break adds 0.3.
 WIDTH, SPACE, SIZE = 6.0, 3.0, 10.0
 
 
 def set_line(*words: str) -> list[Glyph]:
-    """Glyphs placed as a PDF without spaces places them: words apart by position only."""
     glyphs, x = [], 0.0
     for word in words:
         for char in word:

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-# How a run of text is set: "i" italic, "b" bold, "bi" both, "" plain.
+# "i" italic, "b" bold, "bi" both, "" plain
 ITALIC, BOLD = "i", "b"
 
 
@@ -11,10 +11,7 @@ class Line:
     y0: float
     x1: float
     y1: float
-    # Ends partway through a word that the next line finishes, with no hyphen to show it.
     breaks_word: bool = False
-    # The line as printed, run by run with each run's style, when any of it is in
-    # italics or bold; empty when it is all plain.
     runs: list[tuple[str, str]] = field(default_factory=list)
 
     @property
@@ -24,18 +21,16 @@ class Line:
 
 @dataclass
 class Footnote:
-    mark: str  # "12", as its mark reads in the text: "pneumonia[12]"
+    mark: str  # "12", as in "pneumonia[12]"
     text: str
 
 
 @dataclass
 class Picture:
-    """A picture printed on a page, as a JPEG."""
-
     data: bytes
-    width: int  # in pixels
+    width: int
     height: int
-    y0: float  # where it is printed on its page
+    y0: float
     y1: float
 
 
@@ -45,18 +40,13 @@ class Page:
     width: float
     height: float
     lines: list[Line]
-    # A scan with an OCR text layer: its text may hold misreads to clean up.
     scanned: bool = False
-    # The notes at its foot whose marks in its text could be told: raised digits.
     footnotes: list[Footnote] = field(default_factory=list)
-    # The pictures printed on it, top to bottom.
     pictures: list[Picture] = field(default_factory=list)
 
 
 @dataclass
 class OutlineEntry:
-    """A bookmark in the PDF's outline: a heading as the PDF's maker listed it."""
-
     level: int  # 1 is the outermost
     title: str
     page: int  # 1-based

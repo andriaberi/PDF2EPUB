@@ -9,7 +9,6 @@ Entry = tuple[int, Heading, str]  # level, heading, file
 
 
 def entries(sections: list[Section], files: list[str]) -> list[Entry]:
-    """Table of contents entries; front matter has no heading and isn't listed."""
     return [
         (section.heading.level, section.heading, file)
         for section, file in zip(sections, files, strict=True)
@@ -18,7 +17,6 @@ def entries(sections: list[Section], files: list[str]) -> list[Entry]:
 
 
 def nav_document(toc: list[Entry], language: str) -> str:
-    """The table of contents, nested by heading level. It is also a page of the book."""
     title = epub_heading("contents", language)
     lines = ['<nav epub:type="toc" id="toc">', f"<h1>{escape(title)}</h1>"]
     depth = 0
@@ -30,7 +28,6 @@ def nav_document(toc: list[Entry], language: str) -> str:
             lines.append("</li>")
             for _ in range(depth - level):
                 lines.append("</ol></li>")
-        # A part or volume holding chapters stands out from the chapters under it.
         group = index + 1 < len(toc) and toc[index + 1][0] > heading.level
         lines.append(f"<li{' class="group"' if group else ''}>{contents_link(heading, file)}")
         depth = level
@@ -41,7 +38,6 @@ def nav_document(toc: list[Entry], language: str) -> str:
 
 
 def contents_link(heading: Heading, file: str) -> str:
-    """ "თავი პირველი: ბატონი მირიელი", the label kept on one line."""
     label = escape(heading.label.rstrip("."))
     if not heading.title:
         return f'<a href="{file}"><span class="label">{label}</span></a>'
@@ -49,7 +45,6 @@ def contents_link(heading: Heading, file: str) -> str:
 
 
 def ncx_document(toc: list[Entry], title: str, identifier: str) -> str:
-    """The EPUB 2 table of contents, for older readers."""
     lines = []
     depth = 0
     for order, (level, heading, file) in enumerate(toc, start=1):

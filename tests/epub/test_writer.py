@@ -133,7 +133,6 @@ def test_metadata_credits_pdf2epub_as_the_producer(tmp_path: Path) -> None:
     assert '<meta refines="#producer" property="role" scheme="marc:relators">bkp</meta>' in opf
     assert '<meta name="generator" content="PDF2EPUB ' in opf
     assert "https://github.com/andriaberi/PDF2EPUB" in opf
-    # The book's own author stays its only creator.
     assert opf.count("<dc:creator>") == 1
 
 

@@ -52,7 +52,6 @@ def sample_book() -> Book:
 
 
 def shape(sections: list[Section]) -> list[tuple[object, ...]]:
-    """What the EPUB is written from: the lines only matter for verse."""
     return [
         (
             section.heading,
@@ -98,7 +97,7 @@ def test_marks_link_by_note_id_not_number() -> None:
 
 def test_left_out_heading_joins_its_text_to_the_section_before() -> None:
     book = sample_book()
-    book.blocks[2].include = False  # "Chapter 1" of volume I
+    book.blocks[2].include = False
     sections = book.sections()
     assert [s.heading.label if s.heading else None for s in sections] == [
         None,

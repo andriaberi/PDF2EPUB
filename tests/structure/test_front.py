@@ -52,7 +52,6 @@ def test_a_book_without_headings_keeps_its_text() -> None:
 
 
 def test_long_text_before_the_first_heading_is_kept() -> None:
-    # A tenth of the book or more: the first chapters, their headings missed.
     front = Section(None, [Paragraph(f"ტექსტი {n}.", 1) for n in range(20)])
     chapter = Section(Heading(1, "თავი მეორე"), [Paragraph(f"ტექსტი {n}.", 9) for n in range(40)])
     assert drop_text_before_first_heading([front, chapter]) == [front, chapter]

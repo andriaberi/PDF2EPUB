@@ -3,5 +3,4 @@ class ConvertError(Exception):
 
 
 class BookError(ConvertError):
-    """The book's data can't be used: another version, or a part missing, mistyped or
-    making no sense."""
+    """The book's data can't be used."""

@@ -73,7 +73,7 @@ def test_writing_leaves_the_book_as_it_was(make_pdf: Callable[..., str], tmp_pat
     first = zipfile.ZipFile(tmp_path / "first.epub")
     second = zipfile.ZipFile(tmp_path / "second.epub")
     for name in first.namelist():
-        if name != "EPUB/content.opf":  # it holds the time of writing
+        if name != "EPUB/content.opf":
             assert first.read(name) == second.read(name), name
     assert 'href="../notes.xhtml#note-1"' in first.read("EPUB/text/section-0001.xhtml").decode()
 
@@ -96,7 +96,7 @@ def test_left_out_text_comes_back_but_not_text_made_into_notes() -> None:
     text, notes = Paragraph("Text.[1]", 2), Paragraph("[1] A note.", 9)
     front, chapter = Section(None, [title_page]), Section(Heading(1, "Chapter 1"), [text, notes])
     everything = [(section, list(section.paragraphs)) for section in [front, chapter]]
-    chapter.paragraphs.remove(notes)  # as extract_notes() does
+    chapter.paragraphs.remove(notes)
     chapter.notes = {"1": Note("note-1", "1", "A note.")}
     sections = with_left_out(everything, [chapter])
     assert [(s.heading, s.paragraphs) for s in sections] == [
@@ -238,7 +238,6 @@ def text(content: str, page: int, y: float, role: str = "body") -> Paragraph:
 
 
 def pictured(page: int, y: float) -> list[list[str]]:
-    """Where a picture printed on `page` at `y` goes: shown as "#"."""
     sections = [
         Section(None, [text("Front", 1, 100, role="front")]),
         Section(Heading(1, "Chapter 1", page=3), [text("A", 3, 200), text("B", 4, 300)]),

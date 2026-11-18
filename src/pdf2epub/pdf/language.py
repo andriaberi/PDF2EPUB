@@ -6,14 +6,10 @@ from .models import Page
 from .text import script_of
 
 SAMPLE_LINES = 2000
-
-# A tag for a language without a file is taken to be in Latin script, as most are.
 UNKNOWN_SCRIPT = "LATIN"
 
 
 def detect_language(pages: list[Page]) -> str | None:
-    """The language with a file whose script most of the text is in, None for any other.
-    Languages sharing a script are told apart by their common words."""
     lines = [line.text for page in pages for line in page.lines][:SAMPLE_LINES]
     scripts = Counter(script for text in lines for c in text if (script := script_of(c)))
     if not scripts:
@@ -29,8 +25,6 @@ def detect_language(pages: list[Page]) -> str | None:
 
 
 def book_language(declared: str | None, pages: list[Page]) -> str | None:
-    """The PDF's own language tag, unless the text is in another script, as Georgian books
-    tagged "en-US" are. A Latin book tagged "fr" stays French."""
     detected = detect_language(pages)
     if declared is None:
         return detected

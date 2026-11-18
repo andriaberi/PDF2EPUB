@@ -24,11 +24,9 @@ from pdf2epub.structure import (
     title_page_spelling,
 )
 
-# The steps convert() tells its progress callback, in order; read_book() tells the first three.
 STEPS = ("Reading the PDF", "Finding paragraphs", "Finding chapters", "Writing the EPUB")
 READING, PARAGRAPHS, CHAPTERS, WRITING = STEPS
 
-# How many of a book's problems an error names.
 MAX_PROBLEMS = 5
 
 
@@ -39,33 +37,30 @@ class Options:
     title: str | None = None
     author: str | None = None
     language: str | None = None
-    cover: str | bytes | None = None  # a path or the image itself
-    credit: bool = True  # name PDF2EPUB in the EPUB's metadata
-    pictures: bool = True  # keep the pictures printed in the book
+    cover: str | bytes | None = None  # a path or the image bytes
+    credit: bool = True
+    pictures: bool = True
 
 
 @dataclass
 class Result:
-    output: Path | None  # None when written to a file object
+    output: Path | None
     headings: int
     paragraphs: int
     notes: int
     pictures: int
-    cover: str  # where the cover came from: PDF_COVER, GIVEN_COVER or NO_COVER
+    cover: str
 
 
 def convert(
     options: Options, output: str | Path, progress: Callable[[str], None] = lambda step: None
 ) -> Result:
-    """Convert the PDF to an EPUB at `output`, telling `progress` each step as it starts."""
     book = read_book(options, progress)
     progress(WRITING)
     return write_book(book, output, options.credit)
 
 
 def read_book(options: Options, progress: Callable[[str], None] = lambda step: None) -> Book:
-    """Find the book in the PDF, telling `progress` each step as it starts."""
-    # Check the cover file first, so a typo fails before the slow part.
     fallback_cover = load_cover(options.cover) if options.cover else None
     progress(READING)
     pdf_book = read_pdf(options.pdf, options.pages, options.pictures)
@@ -93,15 +88,11 @@ def read_book(options: Options, progress: Callable[[str], None] = lambda step: N
         place_by_page(sections, paragraph)
     sections = place_pictures(sections, pdf_book.pages)
 
-    # The book's own cover comes first; the given one is for books without one.
     cover, source = choose_cover(find_cover(options.pdf), fallback_cover)
     return Book.from_sections(metadata, sections, notes, cover, source)
 
 
 def write_book(book: Book, output: str | Path | IO[bytes], credit: bool = True) -> Result:
-    """Write the book as an EPUB at `output`, a path or a binary file object such as
-    io.BytesIO, unless it has problems() to fix first. With `credit`, the EPUB's metadata
-    names PDF2EPUB as its producer."""
     if problems := book.problems():
         more = f"; and {len(problems) - MAX_PROBLEMS} more" if len(problems) > MAX_PROBLEMS else ""
         raise BookError("; ".join(problems[:MAX_PROBLEMS]) + more)
@@ -123,8 +114,6 @@ def write_book(book: Book, output: str | Path | IO[bytes], credit: bool = True) 
 def with_left_out(
     everything: list[tuple[Section, list[Paragraph]]], kept: list[Section]
 ) -> list[Section]:
-    """The sections as they were, with the paragraphs left out marked by their role;
-    paragraphs taken into the notes are gone for good."""
     written = {id(paragraph) for section in kept for paragraph in section.paragraphs}
     return [
         Section(
@@ -137,7 +126,6 @@ def with_left_out(
 
 
 def place_by_page(sections: list[Section], paragraph: Paragraph) -> None:
-    """Put the paragraph before the first heading or paragraph printed after it."""
     for index, section in enumerate(sections):
         if section.heading and section.heading.page > paragraph.page:
             if index == 0:
@@ -156,9 +144,6 @@ def place_by_page(sections: list[Section], paragraph: Paragraph) -> None:
 
 
 def place_pictures(sections: list[Section], pages: list[Page]) -> list[Section]:
-    """The sections with the pictures among the text printed around them: each before
-    the first paragraph printed below it, and after the heading of its page. A picture
-    takes the role of the text after it."""
     waiting = deque((page.number, picture) for page in pages for picture in page.pictures)
 
     def printed_above(page: float, y: float, role: str) -> list[Paragraph]:
@@ -168,7 +153,6 @@ def place_pictures(sections: list[Section], pages: list[Page]) -> list[Section]:
             due.append(Paragraph("", number, picture=picture, role=role))
         return due
 
-    # Pictures before the first heading start a section of their own.
     placed = [Section(None)]
     for section in sections:
         if heading := section.heading:
@@ -194,6 +178,5 @@ def choose_cover(own: Cover | None, fallback: Cover | None) -> tuple[Cover | Non
 
 
 def book_identifier(pdf: Path) -> str:
-    """The same PDF always gets the same id, so readers see a new conversion as the same book."""
     digest = hashlib.sha256(pdf.read_bytes()).hexdigest()
     return f"urn:uuid:{uuid.uuid5(uuid.NAMESPACE_URL, digest)}"

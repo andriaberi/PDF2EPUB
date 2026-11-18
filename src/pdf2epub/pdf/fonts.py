@@ -1,17 +1,12 @@
 from typing import Any
 
-# What PyMuPDF reads for a letter the PDF gives no Unicode for.
+# PyMuPDF's stand-in for a letter with no Unicode.
 UNKNOWN = "�"
 
-# Fonts whose glyphs follow the alphabet, so a letter the PDF lost can be worked out
-# from its glyph number: font name, its first letter's glyph, that letter, how many.
-# Windows' Georgian font, as Word exports it without a Unicode map: ა to ჰ; and the
-# opening quote Noto Sans Georgian loses: „.
+# Font name, its first letter's glyph, that letter, how many.
 GLYPH_ORDERS = [("sylfaen", 0x2A8, "ა", 33), ("noto sans georgian", 0x468, "„", 1)]
 
-# Old Georgian fonts that draw each Georgian letter in place of the key a Russian
-# keyboard types it with, so the PDF holds those keys: "ithtrbkt,b" is შერეკილები.
-# Keys that aren't letters stand for punctuation; any other key is itself.
+# Old Georgian fonts typed on Russian keys: "ithtrbkt,b" is შერეკილები.
 KEYBOARD_FONTS = ["progtv"]
 KEYBOARD = dict(
     zip(
@@ -29,8 +24,6 @@ def has_unknown(blocks: list[dict[str, Any]]) -> bool:
 
 
 def restore_letters(blocks: list[dict[str, Any]], numbered: list[dict[str, Any]]) -> None:
-    """Put back the letters the PDF lost, from the same page read with glyph numbers
-    in their place, where the font's glyph order is known."""
     glyphs = {position(char): ord(char["c"]) for span in spans(numbered) for char in span["chars"]}
     for span in spans(blocks):
         for char in span["chars"]:
@@ -47,7 +40,6 @@ def lost_letter(font: str, glyph: int) -> str | None:
 
 
 def type_letters(blocks: list[dict[str, Any]]) -> None:
-    """Turn the keys a keyboard font holds into the Georgian letters it shows."""
     for span in spans(blocks):
         if any(name in span["font"].casefold() for name in KEYBOARD_FONTS):
             for char in span["chars"]:
@@ -61,7 +53,6 @@ def type_letters(blocks: list[dict[str, Any]]) -> None:
 
 
 def position(char: dict[str, Any]) -> tuple[float, float]:
-    """Where the letter sits, the same however the page is read."""
     x, y = char["origin"]
     return round(x, 2), round(y, 2)
 

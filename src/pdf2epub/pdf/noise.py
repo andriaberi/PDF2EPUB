@@ -10,30 +10,16 @@ from .footnotes import marked_footnotes, number_footnotes
 from .models import Line, Page
 from .text import NOTE_MARK, script_of, strip_edge_debris
 
-# How far into the top or bottom of the page headers, footers and page numbers sit.
 MARGIN = 0.12
-
-# Furniture is peeled off the edges; a page rarely has more than this on one side.
 MAX_EDGE_LINES = 3
-
-# A running header or footer has to repeat on at least this many pages.
 MIN_REPEATS = 3
-
 PUNCTUATION = re.compile(r"^\W+|\W+$")
 ROMAN = re.compile(r"^[ivxlcdm]+\.?$", re.IGNORECASE)
-# Books number front-matter pages in lower case ("xiv"); a numeral in capitals at the
-# top of a page is a chapter number ("XI").
 CHAPTER_NUMBER = re.compile(r"^[IVXLCDM]+\.?$")
 NUMBER = re.compile(r"^[\d.,:;/()\[\]–—-]+$")
-# A word of two letters or more, which no page number has.
 WORD = re.compile(r"[^\W\d_]{2,}")
-# Headers repeat with a different page number each time: compare their words alone.
 NOT_LETTERS = re.compile(r"[\d\W_]+")
 SEPARATOR = re.compile(r"^[*⁂•·~=_—–\- ]+$")
-
-# A web address, copyright sign or a language's word for a website ("საიტმა", "საიტი"): a
-# website's credits, not the book's text. They are short, and stack at most a few
-# lines high.
 WEB = re.compile(
     r"www\.|https?://|\b\w+\.(?:ge|com|org|net|ru)\b|©"
     + "".join(f"|{re.escape(word)}" for word in sorted(all_words("website"))),
@@ -41,29 +27,21 @@ WEB = re.compile(
 )
 MAX_CREDIT_WORDS = 6
 MAX_CREDIT_LINES = 4
-
-# Footnotes sit in the bottom part of the page, below a gap wider than this many
-# ordinary line gaps (or half a line), and take up at most this many lines.
 FOOTNOTE_AREA = 0.6
 FOOTNOTE_GAP = 3
 MAX_FOOTNOTE_LINES = 6
 
-# A footnote's number set small and run into its text: "79ფილტვების ანთება".
+# "79ფილტვების ანთება"
 GLUED_MARK = re.compile(r"^\d{1,3}(?=[^\W\d_])")
 
-# A footnote's mark: OCR reads a raised "¹" as "'!", "%", "31", so any short run of
-# digits and symbols, but no dash, which opens speech.
+# OCR reads a raised "¹" as "'!", "%", "31"; a dash opens speech instead.
 FOOTNOTE_MARK = re.compile(r"^[\d*†‡§'’\"“”!%^°¹²³⁰⁴-⁹]{1,3}[.)]?$")
 
 
 def remove_noise(pages: list[Page]) -> list[Page]:
-    """Drop OCR junk, page numbers and running headers and footers."""
     for page in pages:
-        # Only OCR misreads pictures as junk; a born-digital page's odd lines ("#34",
-        # "A", "Lise-მაც") are the book's own text.
         if page.scanned:
             page.lines = drop_junk(page.lines)
-        # A page without a single real word is a cover or a plate read as text.
         if not any(has_long_word(line.text) for line in page.lines):
             page.lines = []
 
@@ -80,7 +58,6 @@ def remove_noise(pages: list[Page]) -> list[Page]:
             strip_glued_page_number(page, page.number + offset)
 
     for page in pages:
-        # Footnote marks look like specks, so clean the edges only once footnotes are out.
         drop_footnotes(page)
         if page.scanned:
             for line in page.lines:
@@ -92,8 +69,6 @@ def remove_noise(pages: list[Page]) -> list[Page]:
 
 
 def drop_web_credits(lines: list[Line]) -> list[Line]:
-    """Remove a website's credits: "4Love.Ge © 2008-2015", and "www.ChiaturaINFO.GE"
-    with the lines stacked right above it ("მოამზადა: ...")."""
     dropped: set[int] = set()
     for index, line in enumerate(lines):
         if not WEB.search(line.text) or len(line.text.split()) > MAX_CREDIT_WORDS:
@@ -112,7 +87,6 @@ def drop_web_credits(lines: list[Line]) -> list[Line]:
 
 
 def aligned(upper: Line, lower: Line) -> bool:
-    """Set flush on the same side, or centred on each other."""
     return any(
         abs(a - b) < lower.height
         for a, b in [
@@ -124,8 +98,6 @@ def aligned(upper: Line, lower: Line) -> bool:
 
 
 def drop_junk(lines: list[Line]) -> list[Line]:
-    """Remove OCR misreads of pictures and stains. On a page mostly junk, like a plate,
-    only lines with a real word stay."""
     kept = [line for line in lines if not is_junk(line.text)]
     junk = len(lines) - len(kept)
     if junk >= 2 and junk >= len(kept):
@@ -160,7 +132,6 @@ def has_long_word(text: str) -> bool:
 
 
 def is_word(token: str) -> bool:
-    """Letters of one script, with only apostrophes, hyphens or dots inside."""
     scripts = {script_of(c) for c in token if c.isalpha()}
     if len(scripts) != 1:
         return False
@@ -169,23 +140,18 @@ def is_word(token: str) -> bool:
 
 def is_furniture(line: Line, page: Page, repeated: set[str], running: set[str]) -> bool:
     in_margin = line.y1 < page.height * MARGIN or line.y0 > page.height * (1 - MARGIN)
-    # A chapter number repeats too, once in each part, but it is the book's text.
     if not in_margin or CHAPTER_NUMBER.match(line.text.replace(" ", "")):
         return False
-    # So does a label: every book of a novel has its "თავი მესამე", every part its
-    # "თავი მეორე - I". A label is a header only when it runs on from page to page.
     if is_labelled(line.text) and line.text.casefold() not in running:
         return False
     return is_page_number(line.text) or furniture_key(line.text) in repeated
 
 
 def is_labelled(text: str) -> bool:
-    """A label, or a line opening with one: "თავი მეორე", "თავი მეორე - I"."""
     return label_level(text) is not None or split_label(text) is not None
 
 
 def is_page_number(text: str) -> bool:
-    """Short, with no real word: "12", "- 12 -", "xiv", or OCR misreads like "1,"."""
     compact = text.replace(" ", "")
     if len(compact) > 8 or CHAPTER_NUMBER.match(compact):
         return False
@@ -214,7 +180,6 @@ def repeated_edge_lines(pages: list[Page]) -> set[str]:
 
 
 def running_labels(pages: list[Page]) -> set[str]:
-    """Labels at the edges of two pages in a row: a running header like "თავი მესამე"."""
     edges = {
         page.number: {line.text.casefold() for line in edge_lines(page) if is_labelled(line.text)}
         for page in pages
@@ -225,9 +190,6 @@ def running_labels(pages: list[Page]) -> set[str]:
 
 
 def strip_edges(page: Page, repeated: set[str], running: set[str]) -> list[Line]:
-    """Peel furniture off the top and bottom of the page and return what was removed.
-    A header comes off once: the same words again below it are the heading it names,
-    "მეორე ნაწილი" on the part's first page."""
     removed: list[Line] = []
     taken: set[str] = set()
 
@@ -247,7 +209,6 @@ def strip_edges(page: Page, repeated: set[str], running: set[str]) -> list[Line]
 
 
 def page_number_offset(removed: dict[int, list[Line]]) -> int | None:
-    """How far printed page numbers are from PDF page numbers, if they agree often enough."""
     offsets: Counter[int] = Counter()
     for number, lines in removed.items():
         for line in lines:
@@ -260,7 +221,6 @@ def page_number_offset(removed: dict[int, list[Line]]) -> int | None:
 
 
 def strip_glued_page_number(page: Page, printed: int) -> None:
-    """OCR sometimes puts the page number on the same line as the text next to it."""
     number = str(printed)
     if page.lines and page.lines[-1].text.endswith(" " + number):
         page.lines[-1].text = page.lines[-1].text.removesuffix(number).rstrip()
@@ -269,16 +229,11 @@ def strip_glued_page_number(page: Page, printed: int) -> None:
 
 
 def drop_footnotes(page: Page) -> None:
-    """Take the footnotes off the page's foot, once page numbers are gone: from the
-    highest wide gap whose next line opens with a mark. Those whose marks are raised in
-    the text are kept as the page's footnotes."""
     lines = page.lines
     if len(lines) < 3:
         return
 
     gaps = [below.y0 - above.y1 for above, below in pairwise(lines)]
-    # The gap between lines of a paragraph: on a page of short dialogue most gaps are
-    # the wider ones between paragraphs, so the smaller ones tell.
     usual_gap = max(statistics.quantiles(gaps, n=4)[0], 0)
     line_height = statistics.median(line.height for line in lines)
     wide_gap = max(FOOTNOTE_GAP * usual_gap, line_height / 2)
@@ -300,8 +255,6 @@ def drop_footnotes(page: Page) -> None:
 
 
 def runs_on(last: Line, lines: list[Line]) -> bool:
-    """A full last line broken mid-word goes on overleaf: the block above it is text,
-    like a section numbered "1.", not footnotes."""
     full_width = statistics.median(line.x1 - line.x0 for line in lines)
     return last.text.endswith("-") and last.x1 - last.x0 > 0.8 * full_width
 

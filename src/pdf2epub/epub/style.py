@@ -1,5 +1,3 @@
-# One stylesheet for every page. Nothing relies on pseudo-elements or colour, which
-# many readers ignore.
 STYLESHEET = """\
 @charset "utf-8";
 

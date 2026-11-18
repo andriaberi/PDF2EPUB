@@ -7,28 +7,25 @@ from pdf2epub.paragraphs import Paragraph
 class Heading:
     level: int  # 1 is the outermost division the book uses
     label: str  # "თავი მეორე", "Chapter 2"
-    title: str | None = None  # "კეთილგონიერება სიბრძნეს აფრთხილებს"
+    title: str | None = None
     page: int = field(default=0, compare=False)  # where it is printed, 0 if not known
-    role: str = "body"  # see Paragraph.role
+    role: str = "body"
 
     @property
     def text(self) -> str:
-        """ "თავი პირველი: ბატონი მირიელი", or the label alone."""
         label = self.label.rstrip(".")
         return f"{label}: {self.title}" if self.title else label
 
 
 @dataclass
 class Note:
-    id: str  # "note-12", "footnote-3": the same nowhere else in the book
-    mark: str  # "12", as printed in the text: "ფრეილინა[12]"
+    id: str  # unique in the book
+    mark: str
     text: str
 
 
 @dataclass
 class Section:
-    """A heading and the paragraphs up to the next one. Front matter has no heading."""
-
     heading: Heading | None
     paragraphs: list[Paragraph] = field(default_factory=list)
-    notes: dict[str, Note] = field(default_factory=dict)  # the notes its marks refer to
+    notes: dict[str, Note] = field(default_factory=dict)

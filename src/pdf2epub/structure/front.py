@@ -8,44 +8,22 @@ from pdf2epub.paragraphs import Paragraph
 
 from .models import Heading, Section
 
-# Front matter this short is a title page, not a preface.
 TITLE_PAGE = 3
-
-# A title page printed again before a later volume may carry an epigraph or the
-# translators too, so it may be a little longer.
 REPRINTED_TITLE_PAGE = 6
-
-# A note in brackets after the title: "ანა კარენინა (ტომი I)".
 BRACKETED = re.compile(r"\s*\([^)]*\)\s*$")
-
-# Letters in Latin, to compare with metadata written in Latin: "ლევ ტოლსტოი" reads
-# "lev tolstoi", close to "Leo Tolstoy".
 ROMANISED = {k: v for language in LANGUAGES.values() for k, v in language.romanisation.items()}
 ROMANISATION = str.maketrans(ROMANISED)
-
-# How alike a romanised line and the metadata must be to spell the same name.
 SAME_NAME = 0.75
-
-# Title page lines are short; longer ones are sentences.
 MAX_NAME_WORDS = 8
-
-# The colophon after the book's last line: at most this many lines, each set far right
-# of the text (this many line heights) or naming a year.
 MAX_BACK_MATTER = 6
 SET_RIGHT = 4
 YEAR = re.compile(r"\b(1[5-9]|20)\d\d\b")
-# ...or naming who made the book, or closing it: "მთარგმნელი: ...", "დასასრული".
 CREDIT = re.compile(any_of(all_words("credits")), re.IGNORECASE)
 THE_END = all_words("the_end")
-
-# Text before the first heading that is more than this share of the book is the book
-# itself, its first chapters missed, not a title page or a translator's note.
 MAX_FRONT_MATTER = 0.1
 
 
 def drop_front_matter(sections: list[Section], title: str, author: str | None) -> list[Section]:
-    """Leave out the book's own title pages; the EPUB opens with a title page of its own.
-    What each step leaves out is marked with its role, so it can be shown if wanted."""
     steps = [
         ("preface", drop_prefaces),
         ("reprint", drop_title_page_reprints),
@@ -64,7 +42,6 @@ def drop_front_matter(sections: list[Section], title: str, author: str | None) -
 
 
 def parts(sections: list[Section]) -> list[Heading | Paragraph]:
-    """The sections' headings and paragraphs in reading order."""
     found: list[Heading | Paragraph] = []
     for section in sections:
         if section.heading:
@@ -74,7 +51,6 @@ def parts(sections: list[Section]) -> list[Heading | Paragraph]:
 
 
 def drop_prefaces(sections: list[Section]) -> list[Section]:
-    """Leave out forewords and prefaces, with any sections under them."""
     kept: list[Section] = []
     preface_level = None
     for section in sections:
@@ -88,10 +64,6 @@ def drop_prefaces(sections: list[Section]) -> list[Section]:
 
 
 def drop_title_page_reprints(sections: list[Section]) -> list[Section]:
-    """Drop the title page printed again before a new volume, at the end of a section.
-
-    The reprint names its own volume, "(ტომი II)" where the first said "(ტომი I)".
-    """
     if not sections or sections[0].heading or len(sections[0].paragraphs) > REPRINTED_TITLE_PAGE:
         return sections
     title_page = {reprint_key(p.text) for p in sections[0].paragraphs}
@@ -102,13 +74,10 @@ def drop_title_page_reprints(sections: list[Section]) -> list[Section]:
 
 
 def reprint_key(text: str) -> str:
-    # One printing may trail off in dot leaders the other leaves out: "თარგმანი. . .. . .".
     return without_volume(text).rstrip(" .…").casefold()
 
 
 def drop_repeated_title(sections: list[Section], title: str, author: str | None) -> list[Section]:
-    """Drop the title and author, which the title page already shows, and the book's
-    own title page however it spells them: "ალბერ კამიუ - უცხო"."""
     if not sections or sections[0].heading:
         return sections
     repeated = {title.casefold(), (author or "").casefold()}
@@ -118,8 +87,6 @@ def drop_repeated_title(sections: list[Section], title: str, author: str | None)
 
 
 def drop_text_before_first_heading(sections: list[Section]) -> list[Section]:
-    """Leave out what comes before the first heading: the printed title page, credits,
-    a translator's note. A book without headings keeps all its text."""
     if len(sections) < 2 or sections[0].heading:
         return sections
     front = len(sections[0].paragraphs)
@@ -128,9 +95,6 @@ def drop_text_before_first_heading(sections: list[Section]) -> list[Section]:
 
 
 def drop_back_matter(sections: list[Section]) -> list[Section]:
-    """Leave out who translated or published the book, and when, printed after its last
-    line: "ინგლისურიდან თარგმნა - მზია კეკელიძემ", "ნოემბერი 1943 - თებერვალი 1944.",
-    and "დასასრული"."""
     if not sections:
         return sections
     paragraphs = sections[-1].paragraphs
@@ -162,7 +126,6 @@ def is_colophon_line(paragraph: Paragraph, left: float) -> bool:
 
 
 def is_title_page(section: Section) -> bool:
-    """A few lines on the first page, names rather than sentences: author, title."""
     paragraphs = section.paragraphs
     return (
         len(paragraphs) <= TITLE_PAGE
@@ -174,8 +137,6 @@ def is_title_page(section: Section) -> bool:
 def title_page_spelling(
     sections: list[Section], title: str | None, author: str | None
 ) -> tuple[str | None, str | None]:
-    """The title and author as the book's title page spells them: "ლევ ტოლსტოი" for
-    metadata in Latin letters, "Leo Tolstoy"."""
     if not sections or sections[0].heading:
         return title, author
     lines = [
@@ -189,7 +150,6 @@ def title_page_spelling(
 def same_name(name: str | None, lines: list[str]) -> str | None:
     if not name or is_romanisable(name):
         return name
-    # Metadata may name the volume too: "Ana karenina II".
     wanted = re.sub(r"\s+[IVX]+$", "", without_volume(name)).casefold()
     best, score = name, SAME_NAME
     for line in lines:
@@ -202,7 +162,6 @@ def same_name(name: str | None, lines: list[str]) -> str | None:
 
 
 def without_volume(text: str) -> str:
-    """ "ანა კარენინა (ტომი I)" as "ანა კარენინა"."""
     text = text.strip()
     bracketed = BRACKETED.search(text)
     if bracketed and any(label in bracketed.group().casefold() for label in LABELS):

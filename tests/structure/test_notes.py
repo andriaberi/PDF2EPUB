@@ -107,7 +107,6 @@ def test_the_starred_word_counts_before_the_one_ahead_of_it() -> None:
         ),
     )
     extract_notes([chapter])
-    # Marks are numbered in the notes' order.
     assert chapter.paragraphs[0].text == "წმ. ავგუსტინეს, წმ. ბონავენტურას,[2] წმ. ბასილის[1]"
 
 

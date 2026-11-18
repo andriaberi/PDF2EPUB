@@ -30,11 +30,11 @@ def test_ocr_dash_runs_become_one_dash() -> None:
         ("თ ა ლ ე ჲ ა", "თალეჲა"),
         ("C h a p t e r 3", "Chapter 3"),
         ("- პ უ რ ი!", "- პური!"),
-        ("ე ბ ი.", "ე ბ ი."),  # the end of a word wrapped from the line above
+        ("ე ბ ი.", "ე ბ ი."),
         ("„ჟ ი ვ ი ო!“", "„ჟივიო!“"),
         ("ე ბ ი. – თქვა მან", "ე ბ ი. – თქვა მან"),
-        ("ა და ბ", "ა და ბ"),  # one-letter words in prose stay apart
-        ("თქვა სიტყვა ფ ა ქ ტ", "თქვა სიტყვა ფ ა ქ ტ"),  # emphasis in the text stays
+        ("ა და ბ", "ა და ბ"),
+        ("თქვა სიტყვა ფ ა ქ ტ", "თქვა სიტყვა ფ ა ქ ტ"),
         ("J. R. R. Tolkien", "J. R. R. Tolkien"),
     ],
 )

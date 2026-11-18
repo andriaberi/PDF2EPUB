@@ -3,31 +3,22 @@ from dataclasses import dataclass, field
 
 from pdf2epub.pdf import Line, Picture
 
-# A scene break: "*", "* * *", "⁂", or a row of three dashes or more. A dash alone
-# opens speech instead.
+# "*", "* * *", "⁂", or "---"; a lone dash opens speech.
 SCENE_BREAK = re.compile(r"^(?:[*⁂•~=_]\s*)+$|^(?:[—–-]\s*){3,}$")
 
 
 @dataclass
 class Paragraph:
     text: str
-    page: int  # the page it starts on
-    lines: list[Line] = field(default_factory=list)  # kept for heading detection
-    verse: bool = False  # keeps its line breaks: a poem, a list
-    # Starts far below the finished text above it, as a heading set in the text does.
+    page: int
+    lines: list[Line] = field(default_factory=list)
+    verse: bool = False
     apart: bool = False
-    # Starts a page after one whose text ended a blank line or more short of the bottom,
-    # or starts a blank line or more below the top after a finished sentence.
     after_page_gap: bool = False
-    # A quotation set under a heading, and the line naming whose it is.
     epigraph: bool = False
     attribution: bool = False
-    # Where it belongs: "body" is the book itself; the rest the EPUB leaves out unless
-    # asked: "contents" (a printed table of contents), "preface", "front" (text before
-    # the first heading), "title-page" (the book's own), "reprint" (of the title page)
-    # and "back" (who translated or published it, printed after its last line).
+    # "body", "contents", "preface", "front", "title-page", "reprint" or "back".
     role: str = "body"
-    # A picture in the text, with no text of its own.
     picture: Picture | None = None
 
     @property

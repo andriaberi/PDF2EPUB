@@ -16,9 +16,8 @@ from pdf2epub.pipeline import (
 )
 
 try:
-    # "1.2.0": major.minor.patch, from the release's git tag
     __version__ = version("pdf2epub")
-except PackageNotFoundError:  # run from the source folder without installing
+except PackageNotFoundError:
     __version__ = "0"
 
 __all__ = [

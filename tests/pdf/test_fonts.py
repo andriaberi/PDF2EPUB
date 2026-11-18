@@ -37,7 +37,7 @@ def test_letters_of_other_fonts_stay_unknown() -> None:
 def test_letters_matched_by_where_they_sit() -> None:
     blocks = page("Sylfaen", [UNKNOWN, UNKNOWN])
     numbered = page("Sylfaen", ["ʨ", "ʩ"])
-    numbered[0]["lines"][0]["spans"][0]["chars"].reverse()  # read in another order
+    numbered[0]["lines"][0]["spans"][0]["chars"].reverse()
     restore_letters(blocks, numbered)
     assert text(blocks) == "აბ"
 
@@ -54,7 +54,6 @@ def test_a_keyboard_font_shows_georgian_letters() -> None:
 
 
 def test_a_keyboard_fonts_symbol_keys_and_punctuation() -> None:
-    # As a symbol font gives them: U+F000 and the key; U+F020 is the space.
     keys = "sfdb gbhdtkb- 'vhbs~ |@lf#=_1"
     blocks = page("ProgTV", [chr(0xF000 + ord(key)) for key in keys])
     type_letters(blocks)

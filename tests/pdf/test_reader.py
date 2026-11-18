@@ -75,7 +75,6 @@ def test_a_heading_level_with_an_epigraph_is_a_line_of_its_own() -> None:
 
 
 def test_a_word_broken_without_a_hyphen_is_marked(make_pdf: MakePdf) -> None:
-    # Breaks between words have a space at the line's end or the next line's start.
     lines = [
         "It was a quiet eve",
         "ning in the village ",
@@ -94,7 +93,6 @@ def test_lines_without_spaces_at_their_ends_break_no_words(make_pdf: MakePdf) ->
 
 
 def styled_pdf(tmp_path: Path, rows: list[list[tuple[str, str]]]) -> str:
-    """A page of lines, each piece in Times of its style: "", "i", "b" or "bi"."""
     import pymupdf
 
     fonts = {"": "tiro", "i": "tiit", "b": "tibo", "bi": "tibi"}
@@ -138,7 +136,6 @@ def test_a_book_set_in_italics_throughout_is_plain(tmp_path: Path) -> None:
 def test_reads_bold_made_by_outlining_a_plain_font(tmp_path: Path) -> None:
     import pymupdf
 
-    # Word's bold for a font with none, such as Arial Unicode MS: filled and outlined.
     doc = pymupdf.open()
     page = doc.new_page()
     x = 72.0

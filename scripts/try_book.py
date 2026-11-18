@@ -1,4 +1,4 @@
-"""Convert a book by hand to see how it comes out: python scripts/try_book.py book.pdf"""
+"""Usage: python scripts/try_book.py book.pdf"""
 
 import argparse
 import time

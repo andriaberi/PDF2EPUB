@@ -5,29 +5,22 @@ from pdf2epub.languages import all_words
 from pdf2epub.paragraphs import Paragraph
 from pdf2epub.pdf import Page
 
-# Words a printed table of contents is headed with.
 TITLES = all_words("contents_titles")
 
-# "Chapter 3 ........ 45", "თავი მესამე 45": an entry ending in its page number.
+# "Chapter 3 ........ 45"
 ENTRY = re.compile(r"\S.*(\s|\.{2,}|…)\d{1,4}$")
-
-# A page of entries, most of its lines, is a contents page even without its title.
 MIN_ENTRIES = 5
 ENTRY_SHARE = 0.5
-
-# Under a contents title fewer will do: titles that wrap take up lines between entries.
 MIN_TITLED_ENTRIES = 3
 TITLED_ENTRY_SHARE = 0.3
 
 
 def drop_printed_contents(pages: list[Page]) -> list[Page]:
-    """Leave out the book's printed table of contents; the EPUB has a working one."""
     contents = contents_pages(pages)
     return [page for page in pages if page.number not in contents]
 
 
 def printed_contents(pages: list[Page]) -> list[Paragraph]:
-    """The book's printed table of contents, a paragraph per page that keeps its lines."""
     contents = contents_pages(pages)
     return [
         Paragraph(
@@ -43,8 +36,6 @@ def printed_contents(pages: list[Page]) -> list[Paragraph]:
 
 
 def contents_pages(pages: list[Page]) -> set[int]:
-    """The numbers of the contents pages, with the last few entries carried over onto
-    a page of their own."""
     found: set[int] = set()
     for page in pages:
         lines = [line.text.strip() for line in page.lines]
@@ -64,5 +55,4 @@ def is_contents_page(page: Page) -> bool:
 
 
 def is_entry(text: str) -> bool:
-    """A heading listed with its page number, or a label alone, as some contents list them."""
     return bool(ENTRY.match(text)) or label_level(text) is not None
