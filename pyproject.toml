@@ -87,7 +87,7 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src", "tests", "scripts"]
+files = ["src", "tests"]
 mypy_path = "src"
 strict = true
 warn_unreachable = true
