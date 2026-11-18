@@ -25,7 +25,6 @@ def test_ocr_junk(text: str) -> None:
         "* * *",
         "IV",
         "1963",
-        # A note's mark glued to a word leaves it a word.
         "ეს ფასტი.[2]",
         "à კიტის.[40]",
         "Lady“.[54]",
@@ -66,14 +65,12 @@ def test_removes_running_headers() -> None:
 
 
 def test_keeps_chapter_numbers_at_the_top_of_pages() -> None:
-    # Each part has its own chapter VII: it repeats like a header, but it is a heading.
     pages = [page(n, (20, "VII"), (100, f"Text {n}.")) for n in range(1, 5)]
     first = remove_noise(pages)[0]
     assert [line.text for line in first.lines] == ["VII", "Text 1."]
 
 
 def test_keeps_a_label_repeated_across_the_book() -> None:
-    # Every book of a novel has its chapter three, at the top of some page.
     pages = [page(n, (100, f"Text {n}.")) for n in range(1, 10)]
     for number in (2, 5, 8):
         pages[number - 1].lines.insert(0, Line("თავი მესამე", 50, 20, 100, 30))
@@ -112,14 +109,12 @@ def test_clears_junk_heavy_pages() -> None:
 
 
 def test_keeps_odd_lines_of_a_born_digital_page() -> None:
-    # Only OCR makes junk: a printed page's "#34" or "A" is a heading, "!" a line's end.
     rows = [(100, "#34"), (120, "A"), (140, "Lise-მაც ამოიოხრა."), (160, "!"), (180, "' ლივრი")]
     [result] = remove_noise([page(1, *rows, scanned=False)])
     assert texts(result.lines) == ["#34", "A", "Lise-მაც ამოიოხრა.", "!", "' ლივრი"]
 
 
 def body(number: int, rows: int, *extra: tuple[float, str]) -> Page:
-    """A page of ordinary text lines 12 apart (2 of gap), followed by the extra lines."""
     lines = [(100 + 12 * row, f"Body text line {row}.") for row in range(rows)]
     return page(number, *lines, *extra)
 
@@ -220,8 +215,6 @@ def test_raised_mark_without_its_footnote_is_taken_out() -> None:
 
 
 def test_footnote_under_a_page_of_short_dialogue() -> None:
-    # Most gaps are the wide ones between one-line paragraphs; the narrow ones between
-    # a paragraph's lines tell the usual gap, so the footnote's gap still stands out.
     rows, y = [], 100.0
     for n in range(18):
         rows.append((y, f"— ტექსტი {n}."))

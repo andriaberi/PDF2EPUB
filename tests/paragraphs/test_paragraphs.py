@@ -35,7 +35,6 @@ def test_rejoins_words_broken_without_a_hyphen() -> None:
 
 
 def test_a_word_broken_without_a_hyphen_keeps_its_paragraph() -> None:
-    # The second line is indented, as a paragraph's first is, but finishes a word.
     first = Line("მიწა ღორღიან", LEFT, 100, 300, 110, breaks_word=True)
     p = page(1, first, line(114, "ია, თესლს კი ჩაიტევს.", x0=INDENT, x1=150))
     assert texts([p]) == ["მიწა ღორღიანია, თესლს კი ჩაიტევს."]
@@ -63,7 +62,6 @@ def test_gap_starts_a_paragraph() -> None:
 
 
 def test_double_spaced_lines_join() -> None:
-    # Lines 10 high, 30 apart: twice the line's height between each.
     lines = [line(100 + 30 * n, f"word{n}", x0=INDENT if n % 6 == 0 else LEFT) for n in range(12)]
     lines[5] = line(250, "word5.", x1=150)
     lines[11] = line(430, "word11.", x1=150)
@@ -118,7 +116,6 @@ def test_page_ending_early_ends_the_paragraph() -> None:
 
 
 def full_page(number: int) -> Page:
-    """Ordinary text, so the book's column can be measured."""
     return page(number, *(line(40 + 14 * row, "ტექსტი") for row in range(12)))
 
 
@@ -173,7 +170,6 @@ def test_dialogue_is_not_verse() -> None:
 
 
 def verse_page(*texts: str, intro: str | None = None, after: str | None = None) -> Page:
-    """Short indented lines, with a line of text leading in and one following."""
     lines = [line(100, intro, x1=200)] if intro else []
     lines += [line(114 + 14 * row, text, INDENT, 180) for row, text in enumerate(texts)]
     if after:
@@ -244,7 +240,6 @@ def test_verse_doesnt_end_with_the_speech_after_it() -> None:
 
 
 def test_page_of_short_lines_keeps_the_books_margins() -> None:
-    # Measured alone, this page would take the indent for its margin and miss it.
     p = page(
         2,
         line(100, "ხელი მოაწერინა:", INDENT, 200),
@@ -279,12 +274,10 @@ def test_line_of_text_starting_with_a_label_word_carries_on() -> None:
 
 
 def lines_page(number: int, rows: list[tuple[float, str, float]], x0: float = LEFT) -> Page:
-    """A page of lines (y, text, x1), all from the left margin."""
     return page(number, *(line(y, text, x0=x0, x1=x1) for y, text, x1 in rows))
 
 
 def spaced_book(step: float, joined_at: int | None = None) -> list[Page]:
-    """Twelve paragraphs of three full lines, set apart by a wider step, no indent."""
     rows = []
     y = 40.0
     for number in range(12):
@@ -297,7 +290,6 @@ def spaced_book(step: float, joined_at: int | None = None) -> list[Page]:
 
 
 def test_space_between_paragraphs_starts_one() -> None:
-    # Every line is full, so only the space tells where paragraphs end.
     paragraphs = texts(spaced_book(22))
     assert len(paragraphs) == 12
     assert paragraphs[0] == "Paragraph 0 line 0 Paragraph 0 line 1 Paragraph 0 line 2."
@@ -310,7 +302,6 @@ def test_sentence_running_on_across_the_space_carries_on() -> None:
 
 
 def test_space_mid_sentence_in_a_loosely_spaced_book_is_no_break() -> None:
-    # A Word export: space after every second line, half the time mid-sentence.
     rows = []
     y = 40.0
     for number in range(16):
@@ -480,7 +471,6 @@ def test_text_before_a_bracketed_translation_carries_on() -> None:
 def book_page(
     number: int, rows: int = 30, last: str = "the end of a sentence.", top: float = 40
 ) -> Page:
-    """Indented paragraphs of three lines, `rows` lines from `top`."""
     lines = [
         line(
             top + 14 * row,

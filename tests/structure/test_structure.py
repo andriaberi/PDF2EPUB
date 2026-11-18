@@ -9,7 +9,6 @@ LEFT, RIGHT = 45.0, 385.0
 
 
 def body_page(number: int) -> Page:
-    """A full page of ordinary text, so the text column can be measured."""
     lines = [Line("text", LEFT, 40 + 14 * row, RIGHT, 50 + 14 * row) for row in range(30)]
     return Page(number, 430, 590, lines)
 
@@ -149,7 +148,6 @@ def test_not_numerals(text: str) -> None:
 
 
 def numbered(*items: str) -> list[Paragraph]:
-    """Chapter numbers flush left, each followed by a paragraph of text."""
     paragraphs = []
     for number, item in enumerate(items):
         y = 100 + 60 * number
@@ -185,7 +183,6 @@ def test_a_part_label_doesnt_take_the_chapter_number_as_its_title() -> None:
 
 
 def test_numbers_out_of_step_are_text() -> None:
-    # Too few to be chapter numbers, or not counting up: a number in the text.
     assert [s.heading for s in build_sections(numbered("7", "II"), PAGES)] == [None]
     sections = build_sections(numbered("I", "II", "III", "XX"), PAGES)
     assert [s.heading.label for s in sections if s.heading] == ["I", "II", "III"]
@@ -200,7 +197,6 @@ def test_sentence_after_a_chapter_number_is_not_its_title() -> None:
 
 
 def flush(text: str, y: float, page: int = 1, x1: float = 160) -> Paragraph:
-    """A short line set at the paragraph indent, as digital books often set headings."""
     return Paragraph(text, page, [Line(text, 50, y, x1, y + 11)])
 
 
@@ -225,7 +221,6 @@ def test_flush_left_label_and_title() -> None:
 
 
 def test_label_and_title_set_flush_right() -> None:
-    # Both end at the page's right margin, past the text column.
     label = Paragraph("I წიგნი", 1, [Line("I წიგნი", 370, 60, 400, 70)])
     title = Paragraph("კლიო", 1, [Line("კლიო", 376, 76, 400, 86)])
     assert headings([label, title, body("ტექსტი.")]) == [Heading(1, "I წიგნი", "კლიო")]
@@ -238,7 +233,6 @@ def test_flush_left_short_text_without_gap_is_not_a_title() -> None:
 
 
 def test_line_leading_into_speech_is_not_a_title() -> None:
-    # The page ends after it, so only its colon tells it from a title.
     paragraphs = [
         flush("თავი მერვე", 512),
         flush("მზის სხივი ღრმა ორმოში", 524),
@@ -279,7 +273,6 @@ def test_part_book_and_chapter_levels() -> None:
 
 
 def big(text: str, y: float, size: float = 16) -> Paragraph:
-    """A heading line in a bigger font than the text's 10 points."""
     return Paragraph(text, 1, [Line(text, LEFT, y, LEFT + 100, y + size)])
 
 

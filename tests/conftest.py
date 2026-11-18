@@ -6,8 +6,6 @@ import pytest
 
 @pytest.fixture
 def make_pdf(tmp_path: Path):  # type: ignore[no-untyped-def]
-    """Write a PDF whose pages hold the given lines, top to bottom, plus a page number."""
-
     def make(pages: list[list[str]], header: str | None = None) -> str:
         doc = pymupdf.open()
         for number, lines in enumerate(pages, start=1):
@@ -24,21 +22,16 @@ def make_pdf(tmp_path: Path):  # type: ignore[no-untyped-def]
     return make
 
 
-# Lines of text as in a book, top to bottom of the page.
 TEXT = [f"Line {row} of the story goes on and on here." for row in range(30)]
 
 
 @pytest.fixture
 def make_picture_pdf(tmp_path: Path):  # type: ignore[no-untyped-def]
-    """Write a PDF of text pages with pictures printed on them."""
-
     def make(
         pictures: dict[int, list[tuple[float, float, float, float]]],
         pages: int = 4,
         labels: int = 0,
     ) -> str:
-        """Pages of text with gaps where pictures go: {page index: [(x0, y0, x1, y1)]}, each
-        with `labels` lines of text printed on it."""
         image = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 200, 100), False)
         image.set_rect(image.irect, (200, 60, 40))
         doc = pymupdf.open()

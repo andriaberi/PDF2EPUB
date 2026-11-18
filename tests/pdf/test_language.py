@@ -32,11 +32,11 @@ ENGLISH = "It was the best of times, it was the worst of times"
 @pytest.mark.parametrize(
     ("declared", "text", "language"),
     [
-        ("en-US", GEORGIAN, "ka"),  # a Georgian book made on an English system
+        ("en-US", GEORGIAN, "ka"),
         ("ka", ENGLISH, "en"),
         ("ka-GE", GEORGIAN, "ka-GE"),
         ("en-GB", ENGLISH, "en-GB"),
-        ("fr", ENGLISH, "fr"),  # Latin script can't tell French from English
+        ("fr", ENGLISH, "fr"),
         (None, GEORGIAN, "ka"),
         ("ru", "1 2 3", "ru"),
     ],
