@@ -29,40 +29,19 @@ class ReadError(ConvertError):
     """The PDF can't be opened or has no text to extract."""
 
 
-# Names programs put in as the author when nobody set one.
 ACCOUNT_NAMES = {"admin", "administrator", "user", "owner", "author", "unknown", "pc"}
-
-# Pieces level with each other but this many line heights apart and in different
-# sizes are separate lines.
 APART_IN_ROW = 10
 SAME_SIZE = 1.2
-
-# A scanned page is an image covering at least this share of the page.
 SCAN_AREA = 0.5
-
-# Some books put a space at the end of a line, or the start of the next, wherever the
-# break falls between words, at least this share of their line breaks, and break words
-# with no hyphen: there a line ending in a letter with no space after it breaks a word.
 SPACED_BREAKS = 0.5
-# Such a book breaks words on many lines, at least this share; a book that only seems to,
-# on a few, has lost the space at those breaks instead.
 MIN_BROKEN = 0.05
-
-# Font names that tell a font's style where its flags don't: "Sylfaen,Bold",
-# "LiberationSerif-Italic".
 ITALIC_NAME = re.compile("italic|oblique", re.IGNORECASE)
 BOLD_NAME = re.compile("bold", re.IGNORECASE)
-# Letters both filled and outlined: the bold Word makes for a font that has none,
-# such as Arial Unicode MS, which MuPDF reports with TEXT_COLLECT_STYLES.
 FAKE_BOLD = pymupdf.mupdf.FZ_STEXT_FILLED | pymupdf.mupdf.FZ_STEXT_STROKED
-
-# A style at least this share of the book's text is set in is its text's own, not
-# emphasis: a book printed in italics throughout.
 USUAL_STYLE = 0.5
 
 
 def open_pdf(path: str) -> pymupdf.Document:
-    """The PDF, ready to read, or a ReadError saying why it isn't."""
     if not Path(path).is_file():
         raise ReadError(f"no such file: {path}")
     try:
@@ -76,8 +55,6 @@ def open_pdf(path: str) -> pymupdf.Document:
 
 
 def read_pdf(path: str, spec: str | None = None, pictures: bool = True) -> Book:
-    """Read the text lines and pictures of the selected pages, with page furniture and
-    OCR noise removed."""
     with open_pdf(path) as doc:
         try:
             selected = [doc[index] for index in parse_pages(spec, doc.page_count)]
@@ -105,7 +82,6 @@ def read_pdf(path: str, spec: str | None = None, pictures: bool = True) -> Book:
 
 
 def read_pages(pages: list[pymupdf.Page]) -> list[Page]:
-    """Read the pages' lines, with a space wherever the page shows one."""
     lines = [text_lines(page) for page in pages]
     every_line = [line["glyphs"] for page in lines for line in page]
     advances = learn_advances(every_line)
@@ -120,7 +96,6 @@ def read_pages(pages: list[pymupdf.Page]) -> list[Page]:
 
 
 def drop_usual_style(pages: list[Page]) -> None:
-    """Take out of the lines' runs any style most of the book is set in."""
     lines = [line for page in pages for line in page.lines]
     counts: Counter[str] = Counter()
     for line in lines:
@@ -137,8 +112,6 @@ def drop_usual_style(pages: list[Page]) -> None:
 
 
 def word_breaks(lines: list[list[Glyph]]) -> list[bool]:
-    """Which lines break a word with no hyphen to show it, in a book that marks the
-    breaks between words with a space (SPACED_BREAKS)."""
     if not lines:
         return []
     spaced = [
@@ -174,7 +147,6 @@ def read_page(
     pieces: list[Line] = []
     for line, breaks_word in zip(lines, breaks or [False] * len(lines), strict=True):
         line_glyphs = line["glyphs"]
-        # A line too short to tell its letter-spacing has its block's.
         tracking = letter_spacing(line_glyphs, advances)
         if tracking is None:
             tracking = letter_spacing(line["block"], advances) or 0.0
@@ -190,7 +162,6 @@ def read_page(
 
 
 def styled_runs(chars: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    """The text, characters or runs, as runs of one style each; none if it is all plain."""
     runs = [
         ("".join(text for text, _ in group), style)
         for style, group in groupby(chars, key=lambda char: char[1])
@@ -199,7 +170,6 @@ def styled_runs(chars: list[tuple[str, str]]) -> list[tuple[str, str]]:
 
 
 def is_scan(page: pymupdf.Page) -> bool:
-    """An image covering most of the page: a scan, its text an OCR layer on top."""
     area = abs(page.rect)
     return any(
         abs(pymupdf.Rect(image["bbox"]) & page.rect) >= SCAN_AREA * area
@@ -208,8 +178,6 @@ def is_scan(page: pymupdf.Page) -> bool:
 
 
 def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
-    """The page's lines of horizontal text: each line's box, its glyphs and its block's.
-    PyMuPDF's own per-letter dicts are dropped here, as they take gigabytes for a long book."""
     flags = pymupdf.TEXT_MEDIABOX_CLIP | pymupdf.TEXT_COLLECT_STYLES
     blocks = page.get_text("rawdict", flags=flags)["blocks"]
     if has_unknown(blocks):
@@ -219,7 +187,6 @@ def text_lines(page: pymupdf.Page) -> list[dict[str, Any]]:
     lines = []
     for block in blocks:
         block_glyphs = [glyph for line in block.get("lines", []) for glyph in glyphs(line)]
-        # Skip vertical or rotated text such as margin notes and spine labels.
         for line in block.get("lines", []):
             if abs(line["dir"][0]) >= 0.9:
                 lines.append({"bbox": line["bbox"], "glyphs": glyphs(line), "block": block_glyphs})
@@ -247,7 +214,6 @@ def glyphs(line: dict[str, Any]) -> list[Glyph]:
 
 
 def span_style(span: dict[str, Any]) -> str:
-    """The span's style, from its font's flags or its name."""
     flags, font = span["flags"], span["font"]
     fake_bold = span.get("char_flags", 0) & FAKE_BOLD == FAKE_BOLD
     bold = flags & pymupdf.TEXT_FONT_BOLD or BOLD_NAME.search(font) or fake_bold
@@ -256,16 +222,11 @@ def span_style(span: dict[str, Any]) -> str:
 
 
 def is_raised_mark(span: dict[str, Any]) -> bool:
-    """A note mark set as superscript: digits alone, raised above the line."""
     text = "".join(char["c"] for char in span["chars"]).strip()
     return bool(span["flags"] & pymupdf.TEXT_FONT_SUPERSCRIPT) and text.isdigit()
 
 
 def merge_rows(pieces: list[Line]) -> list[Line]:
-    """Join pieces that sit on the same printed line, in reading order.
-
-    OCR text layers often split one printed line into several, one per word group.
-    """
     rows: list[list[Line]] = []
     for piece in sorted(pieces, key=middle):
         if rows and same_row(rows[-1], piece):
@@ -291,7 +252,6 @@ def merge_rows(pieces: list[Line]) -> list[Line]:
 
 
 def row_runs(row: list[Line]) -> list[tuple[str, str]]:
-    """The runs of the row's pieces, a space between each; none if all are plain."""
     runs: list[tuple[str, str]] = []
     for piece in row:
         runs += [(" ", "")] * bool(runs) + (piece.runs or [(piece.text, "")])
@@ -299,8 +259,6 @@ def row_runs(row: list[Line]) -> list[tuple[str, str]]:
 
 
 def same_row(row: list[Line], piece: Line) -> bool:
-    """On the row's printed line, not a line of its own that happens to sit level with
-    it, like a heading on the left beside the end of an epigraph on the right."""
     first = row[0]
     if abs(middle(piece) - middle(first)) >= min(piece.height, first.height) / 2:
         return False
@@ -314,8 +272,6 @@ def middle(line: Line) -> float:
 
 
 def metadata_text(value: str | None) -> str | None:
-    """Metadata fields are often junk like "000427", "Microsoft Word - draft.doc" or the
-    name of the computer's account, "Admin"."""
     if not value:
         return None
     value = clean_text(value)
@@ -329,7 +285,6 @@ def metadata_text(value: str | None) -> str | None:
 
 
 def declared_language(doc: Any) -> str | None:
-    """The /Lang entry of the PDF catalog, e.g. "en-US"."""
     kind, value = doc.xref_get_key(doc.pdf_catalog(), "Lang")
     if kind != "string" or not value.strip():
         return None

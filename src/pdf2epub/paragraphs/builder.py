@@ -31,32 +31,20 @@ from .layout import (
 from .models import Paragraph, is_scene_break
 from .verse import find_verse
 
-# Punctuation that closes what came before: "!", ". დიახ", ", -". Not "…" or ",,"
-# (typed for „), and "“" only before a space or punctuation: it opens English quotes.
+# "!", ". დიახ", ", -"; "“" only before a space or punctuation
 CLOSES = re.compile(r"^(?:[.!?;:)»](?!\.)|,(?!,)|“(?=[\s.,;:!?)]))")
-
 OPENING_QUOTES = ("„", "«")
 
-# A numbered section's opening: "29. როდესაც კროჲსოსმა ...".
+# "29. როდესაც ..."
 SECTION_NUMBER = re.compile(r"^(\d{1,3})\. ")
-
-# Punctuation inside a line of text, not a heading: "მან ჟურნალ", "ოსტატი, იტალიური".
 CLAUSE_BREAK = re.compile(r"[.,;:]\s")
-
-# A heading set in the text is a few words, well short of the line.
 SET_TITLE_WORDS = 6
 SET_TITLE_WIDTH = 0.6
-
-# A heading run into the text ends well short of the margin, at most this share of
-# the column; a paragraph's first line stops only a word or two short.
 MAX_HEADING_WIDTH = 0.8
-
-# A line ending in these is a clause or a sentence, not a heading set in the text.
 TITLE_ENDS = (".", ",", ":", ";", "!", "?", "…", "-", "–", "—", "“", "»", '"', ")")
 
 
 def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
-    """Join the lines of all pages into paragraphs, across page breaks too."""
     paragraphs: list[Paragraph] = []
     previous: tuple[Line, Layout] | None = None
     if not any(page.lines for page in pages):
@@ -64,9 +52,7 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
     column = text_column(pages)
     bottom = text_bottom(pages)
     top = text_top(pages)
-    # The paragraph started far below the text above it: it may be a heading.
     apart = False
-    # The number of the last numbered section started: "28. ...".
     section: int | None = None
 
     texts = [page for page in pages if page.lines]
@@ -78,15 +64,12 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
             above = page.lines[index - 1] if index else None
             following = page.lines[index + 1 :] or next_page
             below = following[0] if following else None
-            # A heading set in the text with no space around it, as a line of its own,
-            # unless it goes on a heading already started: "გაალმასება." / "და კიდევ ...".
             titled = (
                 index not in verse
                 and is_set_title(line, previous, below, layout)
                 and not (apart and continues_heading(paragraphs[-1], line, above, layout))
             )
             if index in verse:
-                # Verse goes on line by line until a stanza ends; text never joins it.
                 starts = verse[index] or not paragraphs or not paragraphs[-1].verse
             elif above is not None and runs_past_picture(above, line, page.pictures):
                 starts = False
@@ -101,7 +84,6 @@ def build_paragraphs(pages: list[Page]) -> list[Paragraph]:
                 )
             if starts:
                 paragraphs.append(Paragraph(line.text, page.number, [line], index in verse))
-                # After a chapter's text, not its label: a title follows a finished sentence.
                 apart = titled or (
                     above is not None
                     and stands_apart(line, above, layout)
@@ -137,9 +119,6 @@ def starts_paragraph(
     heading: Paragraph | None = None,
     below: Line | None = None,
 ) -> bool:
-    """`heading` is the paragraph so far when it started far below the text: maybe a heading."""
-    # A broken word, with a hyphen or without, a lone dialogue dash or a quote opened at
-    # the line's end carries on, whatever the layout: "სიტყვა „აღსდგა“ - „" / "Redivivus".
     if previous is not None and (
         breaks_word(previous[0].text)
         or previous[0].breaks_word
@@ -147,12 +126,8 @@ def starts_paragraph(
         or previous[0].text.endswith(OPENING_QUOTES)
     ):
         return False
-    # A line opening with a full stop or a comma ends the sentence of the line before:
-    # "Est modus in rebus" / ". დიახ, სადილსაც...".
     if previous is not None and CLOSES.match(line.text):
         return False
-    # Some books set a foreign word mid-sentence on a line of its own, indented as if
-    # it started a paragraph: "...უნდა ჰქონდეს" / "Est modus in rebus" / ". დიახ".
     if (
         previous is not None
         and below is not None
@@ -161,21 +136,14 @@ def starts_paragraph(
         and is_short(line, layout)
     ):
         return False
-    # A scene break stands alone, and the text after it starts afresh.
     if is_scene_break(line.text) or (previous is not None and is_scene_break(previous[0].text)):
         return True
-    # A heading in a bigger font stands alone: the gap below a tall line measures
-    # small, so the gap rule alone would glue the heading to the text after it.
     if is_tall(line, layout) or (previous is not None and is_tall(*previous)):
         return True
-    # So does a chapter number alone on its line ("XII", "7."), whatever its size.
     if numeral_value(line.text) or (previous is not None and numeral_value(previous[0].text)):
         return True
-    # Text after a label or a named section starts afresh, even with no gap between.
     if previous is not None and is_heading_line(*previous):
         return True
-    # A line set apart from the text, like a right-aligned label, stands alone too,
-    # even at the foot of a page.
     if previous is not None and is_set_apart(previous[0], line, layout):
         return True
     if is_indented(line, layout):
@@ -190,7 +158,6 @@ def starts_paragraph(
         return True
     if heading is not None and continues_heading(heading, line, above, layout):
         return False
-    # A short line ending a sentence closes its paragraph, across a page break too.
     return previous is not None and ends_paragraph(*previous)
 
 
@@ -203,9 +170,6 @@ def after_blank_line(
     top: float,
     bottom: float,
 ) -> bool:
-    """A page's first line after a blank line at the page break: the page `before` ends
-    a blank line short of the bottom, or this one starts that far below the top after a
-    finished sentence. A picture at the page's edge moves the text, as a blank line does."""
     last = previous[0]
     ends_short = ends_with_blank_line(*previous, bottom) and not any(
         picture.y0 >= last.y1 for picture in before.pictures
@@ -219,7 +183,6 @@ def after_blank_line(
 
 
 def runs_past_picture(above: Line, line: Line, pictures: list[Picture]) -> bool:
-    """A sentence going on below a picture printed in the middle of it."""
     return not ends_sentence(above.text) and any(
         above.y1 <= picture.y0 and picture.y1 <= line.y0 for picture in pictures
     )
@@ -228,8 +191,6 @@ def runs_past_picture(above: Line, line: Line, pictures: list[Picture]) -> bool:
 def starts_next_section(
     line: Line, previous: tuple[Line, Layout] | None, section: int | None
 ) -> bool:
-    """The next numbered section, "29. როდესაც ...", after section 28's last sentence,
-    in books that set sections apart only by space, or not at all."""
     number = SECTION_NUMBER.match(line.text)
     return (
         number is not None
@@ -240,8 +201,6 @@ def starts_next_section(
 
 
 def ends_heading(paragraph: Paragraph, line: Line, layout: Layout) -> bool:
-    """A heading set apart above but run straight into the text below: a line or a few,
-    the last well short of the margin, then a full line of text."""
     last = paragraph.lines[-1]
     return (
         len(paragraph.lines) <= TITLE_LINES
@@ -252,14 +211,11 @@ def ends_heading(paragraph: Paragraph, line: Line, layout: Layout) -> bool:
 
 
 def is_glued(word: str) -> bool:
-    """Two words of two scripts glued together, "სხვაHybris". Capitals amid Georgian
-    are a title typed in the wrong keyboard layout instead: "OPERATIონეშ"."""
     scripts = {script_of(c) for c in word if c.isalpha()}
     return len(scripts) > 1 and any(c.islower() and script_of(c) == "LATIN" for c in word)
 
 
 def in_latin_capitals(text: str) -> bool:
-    """Its Latin letters, two or more, all capitals: "OPERATIონეშ შპIღIთუალეშ" as printed."""
     latin = [c for c in text if script_of(c) == "LATIN"]
     return len(latin) >= 2 and all(c.isupper() for c in latin)
 
@@ -267,8 +223,6 @@ def in_latin_capitals(text: str) -> bool:
 def is_set_title(
     line: Line, previous: tuple[Line, Layout] | None, below: Line | None, layout: Layout
 ) -> bool:
-    """A short heading set flush left between two paragraphs, with no space around it:
-    "ჰიპე", a few words after a finished sentence and before a full line of text."""
     text = NOTE_MARK.sub("", line.text).strip()
     return (
         not layout.indents
@@ -283,17 +237,12 @@ def is_set_title(
         and not any(is_glued(word) for word in text.split())
         and below is not None
         and not is_short(below, layout)
-        # It runs straight into the text: a stray word before a paragraph's space isn't
-        # a heading, "ჰეფაჲსტოსის" / "152. ადრე ეს ფსმეტიქოსი ...".
         and not has_gap_before(below, line, layout)
-        # A bracketed translation goes on the text, "(პირველქმნილი მატერია (ლათ.).)",
-        # unless it translates a heading in capitals: "OPERATIONES SPIRITUALES".
         and (not below.text.startswith("(") or in_latin_capitals(text))
     )
 
 
 def continues_heading(paragraph: Paragraph, line: Line, above: Line | None, layout: Layout) -> bool:
-    """A heading's next short line, close below: "გაალმასება." / "და კიდევ ერთი ... რამ"."""
     return (
         above is not None
         and len(paragraph.lines) < TITLE_LINES
@@ -306,7 +255,6 @@ def continues_heading(paragraph: Paragraph, line: Line, above: Line | None, layo
 
 
 def is_heading_line(line: Line, layout: Layout) -> bool:
-    """A short line reading "თავი მეორე", "წინათქმა", or a label with its title."""
     text = line.text
     return is_short(line, layout) and (
         label_level(text) is not None or is_section_name(text) or split_label(text) is not None
@@ -318,8 +266,6 @@ def breaks_word(text: str) -> bool:
 
 
 def join(text: str, line: str, word_goes_on: bool = False) -> str:
-    """Add a line to a paragraph, rejoining a word broken by a hyphen, or with none
-    when the line above is known to break one."""
     if breaks_word(text) and line[:1].isalpha():
         return text[:-1] + line
     if word_goes_on and line[:1].isalpha():
@@ -330,7 +276,6 @@ def join(text: str, line: str, word_goes_on: bool = False) -> str:
 
 
 def join_lines(lines: list[Line]) -> str:
-    """The lines' text run together as one paragraph's."""
     text = lines[0].text
     for above, line in pairwise(lines):
         text = join(text, line.text, above.breaks_word)
@@ -338,5 +283,4 @@ def join_lines(lines: list[Line]) -> str:
 
 
 def paragraph_of(lines: list[Line], page: int, epigraph: bool = False) -> Paragraph:
-    """The lines as one paragraph, starting on `page`."""
     return Paragraph(join_lines(lines), page, lines, epigraph=epigraph)

@@ -1,5 +1,5 @@
 def parse_pages(spec: str | None, page_count: int) -> list[int]:
-    """Turn a 1-based spec like "1-3,7,10-12" into sorted 0-based page indices."""
+    """Parse "1-3,7,10-12" (1-based) into sorted 0-based indices."""
     if spec is None:
         return list(range(page_count))
 

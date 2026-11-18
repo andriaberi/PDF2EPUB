@@ -3,17 +3,12 @@ import pymupdf
 from .image import to_cover
 from .models import Cover
 
-# The first page is a cover when a picture fills most of it and there is almost no
-# text: a scanned cover has a few words of OCR noise, a title page has sentences.
 MIN_IMAGE_SHARE = 0.6
 MAX_WORDS = 20
-
-# Height of the rendered cover in pixels, sharp enough for any reader.
 COVER_HEIGHT = 1600
 
 
 def find_cover(path: str) -> Cover | None:
-    """The PDF's own cover: its first page, when that page is a picture."""
     with pymupdf.open(path) as doc:
         if not doc.page_count:
             return None

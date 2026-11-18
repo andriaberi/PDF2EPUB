@@ -14,65 +14,56 @@ from pdf2epub.structure import Heading, Note, Section
 from pdf2epub.styles import styled_text
 
 ROLES = ("body", "contents", "preface", "front", "title-page", "reprint", "back")
-
-# Heading levels run from the outermost division to a subheading set in the text.
 MAX_LEVEL = 6
-
-# A JPEG starts with these bytes; the EPUB names its cover and pictures .jpg.
 JPEG_START = b"\xff\xd8"
-
-# Where the cover came from.
 PDF_COVER = "cover from the PDF"
 GIVEN_COVER = "cover from the given image"
 NO_COVER = "no cover"
 
-# Goes up whenever the shape of to_dict()'s data changes, so older data is refused.
+# Bump when to_dict()'s data shape changes.
 VERSION = 1
 
 
 @dataclass(kw_only=True)
 class Block:
-    id: str  # the same however the blocks around it change
-    page: int  # the PDF page it is printed on, from 1; 0 if not known
-    role: str = "body"  # see Paragraph.role
-    include: bool = True  # whether the EPUB shows it; at first, only the body is shown
+    id: str  # stable across edits
+    page: int  # 1-based PDF page; 0 if unknown
+    role: str = "body"
+    include: bool = True
 
 
 @dataclass(kw_only=True)
 class HeadingBlock(Block):
-    level: int  # 1 is the outermost division the book uses
+    level: int  # 1 is the outermost
     label: str  # "თავი მეორე", "Chapter 2"
     title: str | None = None
 
 
 @dataclass(kw_only=True)
 class TextBlock(Block):
-    text: str  # its italics and bold in tags: "a <i>very</i> good day"
-    lines: list[str] = field(default_factory=list)  # a verse paragraph's lines, as printed
+    text: str
+    lines: list[str] = field(default_factory=list)
     verse: bool = False
-    epigraph: bool = False  # a quotation set under a heading
-    attribution: bool = False  # the line naming whose the epigraph is
+    epigraph: bool = False
+    attribution: bool = False
     notes: dict[str, str] = field(default_factory=dict)  # each mark's note id: {"12": "note-12"}
 
 
 @dataclass(kw_only=True)
 class PictureBlock(Block):
     data: bytes  # a JPEG
-    width: int  # in pixels
+    width: int
     height: int
 
 
 @dataclass
 class Book:
-    """The book between reading and writing: its blocks in reading order, a heading
-    starting each section, so it is easy to show and edit."""
-
     metadata: Metadata
     blocks: list[HeadingBlock | TextBlock | PictureBlock]
     notes: list[Note]
     cover: Cover | None
     cover_source: str  # PDF_COVER, GIVEN_COVER or NO_COVER
-    include_notes: bool = True  # False leaves out the notes and their marks in the text
+    include_notes: bool = True
 
     @classmethod
     def from_sections(
@@ -114,7 +105,6 @@ class Book:
                     continue
                 lines = [line.text for line in paragraph.lines] if paragraph.verse else []
                 marks = [*NOTE_MARK.findall(paragraph.text), *NOTE_MARK.findall(" ".join(lines))]
-                # A scene break stays as printed, to be told as one.
                 text = paragraph.text
                 if not paragraph.scene_break:
                     text = styled_text(text, paragraph.lines)
@@ -137,8 +127,6 @@ class Book:
         return cls(metadata, blocks, notes, cover, cover_source)
 
     def sections(self) -> list[Section]:
-        """The included blocks as sections, each heading starting one. A mark whose note
-        is left out, or no longer in the book, is taken out of the text."""
         notes = {note.id: note for note in self.written_notes()}
         sections: list[Section] = []
         for block in self.blocks:
@@ -165,7 +153,6 @@ class Book:
                 Paragraph(
                     without_marks(block.text, unwritten),
                     block.page,
-                    # Verse is written line by line; where the lines were no longer matters.
                     [Line(without_marks(text, unwritten), 0, 0, 0, 0) for text in block.lines],
                     verse=block.verse,
                     epigraph=block.epigraph,
@@ -178,12 +165,10 @@ class Book:
         return sections
 
     def set_cover(self, image: str | bytes) -> None:
-        """Use this image, a path or its bytes, as the cover; CoverError if it isn't one."""
         self.cover = load_cover(image)
         self.cover_source = GIVEN_COVER
 
     def problems(self) -> list[str]:
-        """What keeps the book, as edited, from being written; empty if nothing does."""
         found: list[str] = []
         metadata = self.metadata
         for name in ("title", "language", "identifier"):
@@ -220,7 +205,6 @@ class Book:
         return self.notes if self.include_notes else []
 
     def to_dict(self) -> dict[str, Any]:
-        """The book as JSON-able data; from_dict() reads it back."""
         cover = None
         if self.cover:
             data = base64.b64encode(self.cover.data).decode()
@@ -339,7 +323,6 @@ def is_size(value: object) -> bool:
 
 
 def without_marks(text: str, marks: Collection[str]) -> str:
-    """The text without these note marks, or the space before them: "word [1] next"."""
     if not marks:
         return text
     return re.sub(rf"\s*{NOTE_MARK.pattern}", lambda m: "" if m[1] in marks else m[0], text)

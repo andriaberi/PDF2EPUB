@@ -26,7 +26,6 @@ CONTAINER = """\
 """
 
 XHTML = "application/xhtml+xml"
-
 FONTS = [
     "NotoSerif-Regular.ttf",
     "NotoSerif-Bold.ttf",
@@ -37,13 +36,10 @@ FONTS = [
 
 
 NOTES_FILE = "notes.xhtml"
-
-# Credit in the metadata, where readers don't show it: PDF2EPUB as the book producer
-# (MARC relator "bkp"), and the release that wrote the file.
 SOURCE_URL = "https://github.com/andriaberi/PDF2EPUB"
 try:
     VERSION = version("pdf2epub")
-except PackageNotFoundError:  # run from the source folder without installing
+except PackageNotFoundError:
     VERSION = "0"
 CREDIT = f"""\
 <dc:contributor id="producer">PDF2EPUB</dc:contributor>
@@ -51,8 +47,6 @@ CREDIT = f"""\
 <meta name="generator" content="PDF2EPUB {VERSION} ({SOURCE_URL})"/>
 """
 
-# A section with more text than this, in bytes, goes on over several files: readers
-# open a long chapterless book slowly, or not at all, as one file.
 MAX_PAGE_TEXT = 400_000
 
 
@@ -64,13 +58,8 @@ def write_epub(
     notes: list[Note] | None = None,
     credit: bool = True,
 ) -> None:
-    """Write the book as an EPUB 3 file, one page per section, after the cover if any.
-
-    Notes, if the book has them, get a page of their own at the end.
-    """
     sections = [part for section in sections for part in split_long(section)]
     files = [f"text/section-{number:04}.xhtml" for number in range(1, len(sections) + 1)]
-    # A book with no headings at all is listed by its title, as one entry.
     toc = entries(sections, files) or [(1, Heading(1, metadata.title), files[0])]
     notes_heading = epub_heading("notes", metadata.language)
     pictures = {
@@ -115,8 +104,6 @@ def write_epub(
 
 
 def split_long(section: Section) -> list[Section]:
-    """The section as it is, or over several pages if long, the heading on the first.
-    Each page keeps the notes its own marks refer to."""
     parts: list[list[Paragraph]] = [[]]
     size = 0
     for paragraph in section.paragraphs:
@@ -143,7 +130,6 @@ def split_long(section: Section) -> list[Section]:
 
 
 def note_sources(sections: list[Section], files: list[str]) -> dict[str, str]:
-    """The page each note is first referred to from, relative to the notes page."""
     sources: dict[str, str] = {}
     for section, file in zip(sections, files, strict=True):
         for note in section.notes.values():

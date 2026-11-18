@@ -10,8 +10,6 @@ from .headings import is_label, is_named_section, is_set_right
 def take_epigraph(
     paragraphs: list[Paragraph], index: int, page: int, column: Layout
 ) -> tuple[list[Paragraph], int]:
-    """The epigraph under a heading on `page`, and the index after it: lines set far
-    right before the chapter's text, each quotation's author further right still."""
     start = index
     while index < len(paragraphs) and is_epigraph_part(paragraphs[index], page, column):
         index += 1
@@ -20,7 +18,6 @@ def take_epigraph(
 
 
 def is_epigraph_part(paragraph: Paragraph, page: int, column: Layout) -> bool:
-    # A heading at a page's foot has its epigraph on the next page.
     return (
         paragraph.page in (page, page + 1)
         and not paragraph.scene_break
@@ -32,11 +29,9 @@ def is_epigraph_part(paragraph: Paragraph, page: int, column: Layout) -> bool:
 
 
 def quotations(lines: list[Line], page: int, column: Layout) -> list[Paragraph]:
-    """The quotations' lines run together, and each name on a line of its own."""
     parts: list[Paragraph] = []
     quote: list[Line] = []
     for line in lines:
-        # A name starts well right of its quotation; the next quotation, back at its left.
         if quote and line.x0 - min(q.x0 for q in quote) > SET_APART * column.line_height:
             parts.append(paragraph_of(quote, page, epigraph=True))
             parts.append(Paragraph(line.text, page, [line], epigraph=True, attribution=True))

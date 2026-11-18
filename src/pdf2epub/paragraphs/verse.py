@@ -6,36 +6,18 @@ from pdf2epub.pdf import Line
 
 from .layout import GAP, SPEECH_DASHES, Layout, has_gap_before, is_indented, is_tall
 
-# Verse, a list, a column of names: this many short lines in a row at least...
 MIN_LINES = 4
-
-# ...or this many, after a line leading into them: "…და სიმღერა დაიწყო:".
 MIN_INTRODUCED_LINES = 2
-
-# A song may have speech in it, "- ტილო გარეცხე!", but at most this share of its lines.
 MAX_DIALOGUE_SHARE = 1 / 3
-
-# A line ending this many line heights short of the right edge is short even in
-# ragged-right text.
 SHORT = 4
-
-# A sentence this many words long after verse is narration, not the verse's last line.
 MIN_NARRATION_WORDS = 3
-
-# Short lines that each end a sentence are short paragraphs of text, not verse.
 MAX_SENTENCE_SHARE = 0.5
-
-# A line opening with these ends the text above it: "!(არ გააჭირე საქმე...)".
 CLOSING = (".", ",", "!", "?", ";", ")", "»")
 SENTENCE_END = (".", "!", "?", "…")
 CLOSING_QUOTES = '“”"»’'
 
 
 def find_verse(lines: list[Line], layout: Layout) -> dict[int, bool]:
-    """The page's lines that are verse (or a list), each mapped to whether it starts a stanza.
-
-    Verse keeps its line breaks; a wider gap than its own lines' parts stanzas.
-    """
     verse: dict[int, bool] = {}
     run: list[int] = []
     for index in range(len(lines) + 1):
@@ -43,12 +25,8 @@ def find_verse(lines: list[Line], layout: Layout) -> dict[int, bool]:
             run.append(index)
             continue
         run = without_paragraph_end(run, lines, layout)
-        # Nor does it end with speech or a line leading into it: "- საწყალი ცხენი,
-        # - ამოიოხრა ფანტინმა." / "დალიამ იუცხოვა ეს სიბრალული:".
         while run and (is_dialogue(lines[run[-1]]) or lines[run[-1]].text.endswith(":")):
             run = run[:-1]
-        # Nor with the narration after it, a sentence of a few words after its last
-        # line; a letter's signature is only a word or two: "ფანტინი“.".
         if (
             len(run) > 1
             and all(ends_sentence(lines[index].text) for index in run[-2:])
@@ -56,8 +34,6 @@ def find_verse(lines: list[Line], layout: Layout) -> dict[int, bool]:
             and is_verse(run[:-1], lines, layout)
         ):
             run = run[:-1]
-        # Speech may break up a song; if the whole run isn't verse, its parts between
-        # the speech may be.
         for part in [run] if is_verse(run, lines, layout) else between_dialogue(run, lines, layout):
             if is_verse(part, lines, layout):
                 verse.update(stanzas(part, lines, layout))
@@ -66,7 +42,6 @@ def find_verse(lines: list[Line], layout: Layout) -> dict[int, bool]:
 
 
 def is_verse_line(line: Line, layout: Layout) -> bool:
-    """A short line; one opening speech counts too, but no run of verse starts with it."""
     return (
         line.x1 < layout.right - SHORT * layout.line_height
         and not line.text.startswith(CLOSING)
@@ -77,9 +52,6 @@ def is_verse_line(line: Line, layout: Layout) -> bool:
 
 
 def without_paragraph_end(run: list[int], lines: list[Line], layout: Layout) -> list[int]:
-    """Leave out the text before the verse: the last line of the paragraph above, or
-    a short paragraph leading into it ("…იმღერა ჰანგი:", "და ისევ მოკურცხლა.").
-    """
     while run and (
         is_dialogue(lines[run[0]])
         or continues(run[0], lines, layout)
@@ -91,7 +63,6 @@ def without_paragraph_end(run: list[int], lines: list[Line], layout: Layout) -> 
 
 
 def continues(index: int, lines: list[Line], layout: Layout) -> bool:
-    """Carries on the line above it: no indent, no gap, and the line above isn't verse."""
     if index == 0:
         return False
     line, above = lines[index], lines[index - 1]
@@ -115,7 +86,6 @@ def between_dialogue(run: list[int], lines: list[Line], layout: Layout) -> list[
 def is_verse(run: list[int], lines: list[Line], layout: Layout) -> bool:
     if not run:
         return False
-    # Speech in a song ends its sentences as speech does; count the song's own lines.
     sung = [index for index in run if not is_dialogue(lines[index])]
     ends = sum(1 for index in sung if ends_sentence(lines[index].text))
     dialogue = len(run) - len(sung)
@@ -128,8 +98,6 @@ def is_verse(run: list[int], lines: list[Line], layout: Layout) -> bool:
 
 
 def is_introduction(line: Line, layout: Layout) -> bool:
-    """A line leading into verse: "…და სიმღერა დაიწყო:", or broken short after a comma,
-    "მოლიერისა არ იყოს,"."""
     text = line.text
     return text.endswith(":") or (text.endswith(",") and is_verse_line(line, layout))
 
@@ -143,7 +111,6 @@ def ends_sentence(text: str) -> bool:
 
 
 def stanzas(run: list[int], lines: list[Line], layout: Layout) -> dict[int, bool]:
-    """Some books space verse wider than text, so a stanza break is wide for the verse."""
     gaps = [lines[below].y0 - lines[above].y1 for above, below in pairwise(run)]
     usual = statistics.median(gaps)
     starts = {run[0]: True}

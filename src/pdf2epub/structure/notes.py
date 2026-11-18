@@ -8,50 +8,27 @@ from pdf2epub.pdf.text import NOTE_MARK
 
 from .models import Note, Section
 
-# Words the notes at the end of a book (or of a volume) are headed with.
 TITLES = all_words("notes_titles")
-
-# A note starts with its mark, at a paragraph's start or after the last note, maybe
-# with a stray superscript: "[24]1 საამო ღამეს".
 NOTE_START = re.compile(r"(?:^|(?<=\s))\[(\d+)\]\d*\s+")
-
-# Notes may instead be keyed by page, their word starred in the text: "გვ. 45.
-# ფრანშკონტე _ ..." for "ფრანშკონტეში.*". A line or two may come before the first.
 PAGE_KEY = re.compile(
     rf"^(?:{any_of(all_words('page_abbreviations'))})\.?\s*\d+\.\s*", re.IGNORECASE
 )
 MAX_SUBTITLE_LINES = 2
 STAR = re.compile(r"\*")
-
-# A note explains a term, written before a dash: "ფრანშკონტე _ აღმოსავლეთ ...".
 TERM_END = re.compile(r"\s[_–—]\s")
 WORD = re.compile(r"[^\W\d_]{3,}")
 ROMAN = re.compile(r"[IVXLCDM]+")
 APOSTROPHES = re.compile(r"['’]")
-
-# A note ends a sentence; one that doesn't goes on in the paragraph after it, as when
-# each printed line of a page reads as a paragraph of its own.
 NOTE_ENDS = (".", "!", "?", "…", "»", "“", ")")
-
-# A marked word is the term's word in another case ("ჰელვეციის" for "ჰელვეცია") when
-# they share this many first letters, and differ in at most this many after them.
 MIN_SHARED = 3
 MAX_ENDING = 3
-
-# Notes printed a little out of the order of their marks are looked for this many
-# notes either side of where the order puts them first, then anywhere.
 REORDERED = 3
-
-# Notes without a title are known by their numbers: at least this many paragraphs in
-# a row starting "[1] ", "[2] ", "[3] ".
 MIN_UNTITLED_NOTES = 3
 
 
 def extract_notes(sections: list[Section]) -> list[Note]:
-    """Take the notes out of the text and link the marks to them. Marks refer to the
-    next block of notes, so numbering may start again after each volume's."""
     notes: list[Note] = []
-    waiting: list[Section] = []  # sections whose marks the next block of notes explains
+    waiting: list[Section] = []
     for index, section in enumerate(sections):
         if (keyed := find_keyed_block(section.paragraphs)) is not None:
             start, first = keyed
@@ -78,8 +55,6 @@ def extract_notes(sections: list[Section]) -> list[Note]:
 
 
 def link_footnotes(sections: list[Section], footnotes: list[Footnote]) -> list[Note]:
-    """Notes of the footnotes, their marks in the text linked to them; numbered through
-    the book, each mark has one."""
     notes = {f.mark: Note(f"footnote-{f.mark}", f.mark, f.text) for f in footnotes}
     for section in sections:
         link_marks(section, notes)
@@ -87,8 +62,6 @@ def link_footnotes(sections: list[Section], footnotes: list[Footnote]) -> list[N
 
 
 def find_block(paragraphs: list[Paragraph]) -> tuple[int, int, int] | None:
-    """Where a block of notes is, [start, end) with its title, the notes from `first`
-    on, up to the last paragraph that starts one."""
     for index, paragraph in enumerate(paragraphs):
         titled = (
             paragraph.text.strip().casefold() in TITLES
@@ -108,14 +81,12 @@ def find_block(paragraphs: list[Paragraph]) -> tuple[int, int, int] | None:
 
 
 def starts_numbered_notes(paragraphs: list[Paragraph]) -> bool:
-    """Notes printed without a title: "[1] ...", "[2] ...", "[3] ..." one under another."""
     wanted = [str(number) for number in range(1, MIN_UNTITLED_NOTES + 1)]
     marks = [NOTE_START.match(p.text) for p in paragraphs[:MIN_UNTITLED_NOTES]]
     return [match.group(1) if match else None for match in marks] == wanted
 
 
 def split_notes(paragraphs: list[Paragraph]) -> list[tuple[str, str]]:
-    """ "[1] ფრეილინა – ... [2] ლივრეანი – ..." as ("1", "ფრეილინა – ..."), ("2", ...)."""
     text = " ".join(paragraph.text for paragraph in paragraphs)
     starts = list(NOTE_START.finditer(text))
     return [
@@ -125,7 +96,6 @@ def split_notes(paragraphs: list[Paragraph]) -> list[tuple[str, str]]:
 
 
 def link_marks(section: Section, notes: dict[str, Note]) -> None:
-    """Record which notes the section's marks refer to, the first block's for each mark."""
     for paragraph in section.paragraphs:
         for mark in NOTE_MARK.findall(paragraph.text):
             if mark in notes:
@@ -133,10 +103,6 @@ def link_marks(section: Section, notes: dict[str, Note]) -> None:
 
 
 def find_keyed_block(paragraphs: list[Paragraph]) -> tuple[int, int] | None:
-    """Where notes keyed by page start, with their title, and their first note.
-
-    They run to the end of the book.
-    """
     for index, paragraph in enumerate(paragraphs):
         if paragraph.text.strip().casefold() not in TITLES:
             continue
@@ -148,8 +114,6 @@ def find_keyed_block(paragraphs: list[Paragraph]) -> tuple[int, int] | None:
 
 
 def link_stars(sections: list[Section], entries: list[Paragraph], numbered: int) -> list[Note]:
-    """Notes from a block keyed by page, the stars in the text linked to them by the
-    word they mark and by order. Linked stars become marks: "ფრანშკონტეში.[1]"."""
     texts = [PAGE_KEY.sub("", text) for text in join_broken(entries)]
     terms = [TERM_END.split(text, maxsplit=1)[0] for text in texts]
     stars = [
@@ -167,7 +131,6 @@ def link_stars(sections: list[Section], entries: list[Paragraph], numbered: int)
         Note(f"note-{numbered + number}", marks.get(number - 1, ""), text)
         for number, text in enumerate(texts, start=1)
     ]
-    # Replace each star from the paragraph's end, so the places of the others hold.
     for star in sorted(pairs, key=lambda star: -stars[star][2]):
         section, paragraph, at = stars[star]
         note = notes[pairs[star]]
@@ -177,7 +140,6 @@ def link_stars(sections: list[Section], entries: list[Paragraph], numbered: int)
 
 
 def join_broken(entries: list[Paragraph]) -> list[str]:
-    """The notes' texts, a note broken over paragraphs joined up again."""
     texts: list[str] = []
     for entry in entries:
         if texts and not texts[-1].endswith(NOTE_ENDS) and not PAGE_KEY.match(entry.text):
@@ -188,20 +150,14 @@ def join_broken(entries: list[Paragraph]) -> list[str]:
 
 
 def marked_words(before: str) -> list[str]:
-    """The words a star may mark: the last before it, or the one before that when the
-    last is a numeral or a case ending, as in "ანრი III-ისა*"."""
     return [word for word in letter_words(before) if not ROMAN.fullmatch(word)][-2:][::-1]
 
 
 def letter_words(text: str) -> list[str]:
-    """Words of three letters or more, "დ’ობინიე" read as "დობინიე"."""
     return WORD.findall(APOSTROPHES.sub("", text))
 
 
 def match_terms(words: list[list[str]], terms: list[str]) -> dict[int, int]:
-    """Which note each mark refers to, as {mark: note}: the pairing of marks and notes
-    in order that scores best, then marks left over paired with the notes
-    left over, those near where the order puts them first."""
     scores = [[term_score(marked, term) for term in terms] for marked in words]
     # best[i][j]: the best score of marks i.. paired with notes j..
     best = [[0] * (len(terms) + 1) for _ in range(len(words) + 1)]
@@ -234,8 +190,6 @@ def match_terms(words: list[list[str]], terms: list[str]) -> dict[int, int]:
             pairs[mark] = note
             taken.add(note)
 
-    # A mark matching no term, between paired marks whose notes have one note between
-    # them, is that note's: it marks a word further back.
     for mark in range(len(words)):
         if mark in pairs or mark - 1 not in pairs or mark + 1 not in pairs:
             continue
@@ -247,9 +201,6 @@ def match_terms(words: list[list[str]], terms: list[str]) -> dict[int, int]:
 
 
 def term_score(marked: list[str], term: str) -> int:
-    """How well the marked words match the term: the letters each shares with a word of
-    the term, if they are the same word in different cases. The word right before the
-    star counts double, so "წმ. ბონავენტურას*" is "ბონავენტურა" before "წმ. ავგუსტინე"."""
     score = 0
     for weight, word in zip((2, 1), marked, strict=False):
         best = 0
@@ -262,7 +213,6 @@ def term_score(marked: list[str], term: str) -> int:
 
 
 def shared_start(word: str, other: str) -> int:
-    """How many first letters the two words share."""
     count = 0
     for a, b in zip(word, other, strict=False):
         if a != b:

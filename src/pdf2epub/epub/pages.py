@@ -24,7 +24,6 @@ lang="{lang}" xml:lang="{lang}">
 </html>
 """
 
-# Between a book's sections, the sign of a new part.
 ORNAMENT = "⁂"
 
 
@@ -39,7 +38,6 @@ def page(title: str, body: str, language: str, css: str = "style.css", body_clas
 
 
 def cover_page(cover: Cover, metadata: Metadata) -> str:
-    """The cover image scaled to fill the screen, keeping its proportions."""
     body = (
         '<section class="cover" epub:type="cover">\n'
         '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
@@ -61,8 +59,6 @@ def title_page(metadata: Metadata) -> str:
 
 
 def section_page(section: Section, metadata: Metadata, pictures: dict[int, str]) -> str:
-    """One section as a page of its own, so every section starts on a new page.
-    `pictures` names each picture's file, by the id of its paragraph."""
     heading = section.heading
     division = heading is not None and not section.paragraphs
     kind = "division" if division else "chapter"
@@ -88,7 +84,6 @@ def section_page(section: Section, metadata: Metadata, pictures: dict[int, str])
         elif paragraph.scene_break:
             parts.append(f'<p class="scene-break">{escape(paragraph.text)}</p>')
         elif paragraph.verse:
-            # Each line as printed: a poem or a list loses its sense run together.
             lines = (paragraph_html(line.text, section.notes, linked) for line in paragraph.lines)
             parts.append(f'<div class="verse">{"".join(f"<p>{line}</p>" for line in lines)}</div>')
         else:
@@ -102,11 +97,6 @@ def section_page(section: Section, metadata: Metadata, pictures: dict[int, str])
 
 
 def paragraph_html(text: str, notes: dict[str, Note], linked: set[str]) -> str:
-    """The paragraph's text, its italics and bold, and its note marks as links to the notes.
-
-    The first link to a note on the page is where the note links back to.
-    """
-
     def link(match: re.Match[str]) -> str:
         note = notes.get(match.group(1))
         if note is None:
@@ -122,8 +112,6 @@ def paragraph_html(text: str, notes: dict[str, Note], linked: set[str]) -> str:
 
 
 def notes_page(notes: list[Note], sources: dict[str, str], title: str, language: str) -> str:
-    """All the book's notes, each linking back to the text: a list, as DPUB-ARIA asks,
-    each showing its printed mark rather than the list's number."""
     parts = [
         '<section class="notes" epub:type="endnotes" role="doc-endnotes">',
         f"<h1>{escape(title)}</h1>",
@@ -133,7 +121,6 @@ def notes_page(notes: list[Note], sources: dict[str, str], title: str, language:
         mark = escape(note.mark)
         if note.id in sources:
             mark = f'<a href="{sources[note.id]}#ref-{note.id}" role="doc-backlink">{mark}</a>'
-        # A note no mark in the text was linked to has no number to show.
         shown = f'<span class="mark">{mark}</span> ' if mark else ""
         parts.append(
             f'<li id="{note.id}" epub:type="endnote"><p>{shown}{escape(note.text)}</p></li>'
@@ -143,10 +130,6 @@ def notes_page(notes: list[Note], sources: dict[str, str], title: str, language:
 
 
 def heading_html(heading: Heading) -> str:
-    """The label as a small line above the title: "თავი პირველი" over "ბატონი მირიელი".
-
-    A heading without a title shows its label as the title.
-    """
     tag = f"h{min(heading.level, 3)}"
     if not heading.title:
         return f"<{tag}>{escape(heading.label)}</{tag}>"

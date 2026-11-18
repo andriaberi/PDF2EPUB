@@ -8,7 +8,6 @@ JPEG_QUALITY = 90
 
 
 def load_cover(image: str | bytes) -> Cover:
-    """Read a cover image from a file or its bytes: JPEG, PNG and most other formats."""
     if isinstance(image, str) and not Path(image).is_file():
         raise CoverError(f"no such cover image: {image}")
     try:
